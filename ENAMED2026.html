@@ -7265,84 +7265,121 @@ function filterByCat(cat) {
 }
 
 function openMapa(id) {
-  const m = MAPAS.find(x => x.id === id);
-  if (!m) return;
-  currentMapaId = id;
-  document.getElementById('modalTitle').textContent = m.title;
-  const c = m.content;
-  let html = `<p style="color:var(--text-muted);margin-bottom:1.25rem">${m.summary}</p><div class="detail-grid">`;
-
-  const blocks = [
-    ['classificacao', '📋 Classificação'],
-    ['fatores', '⚠️ Fatores de Risco'],
-    ['fisiopatologia', '🔬 Fisiopatologia / Desencadeantes'],
-    ['etiologias', '🔍 Etiologias'],
-    ['sinais', '👤 Sinais e Sintomas'],
-    ['quadro', '👤 Quadro Clínico'],
-    ['diagnostico', '🔎 Diagnóstico'],
-    ['criterios', '📊 Critérios Diagnósticos'],
-    ['exames', '🧪 Exames Importantes'],
-    ['tratamento', '💊 Tratamento'],
-    ['manutencao', '💊 Tratamento de Manutenção'],
-    ['crise', '🚨 Crise / Exacerbação'],
-    ['exacerbacao', '🚨 Exacerbação Aguda'],
-    ['conduta', '🩺 Conduta'],
-    ['reperfusao', '⚡ Reperfusão'],
-    ['urgencia', '🚨 Urgência / Emergência'],
-    ['gravidade', '❗ Sinais de Gravidade'],
-    ['complicacoes', '⚠️ Complicações'],
-    ['escalas', '📏 Escalas-Chave'],
-    ['instabilidade', '⚡ Instabilidade'],
-    ['desencadeantes', '⚡ Desencadeantes'],
-    ['monitorizacao', '📈 Monitorização'],
-    ['focos', '🎯 Focos Infecciosos'],
-    ['choque', '💔 Choque Séptico'],
-    ['causas', '📌 Causas'],
-    ['manifestacoes', '👤 Manifestações'],
-    ['classificacao', '📋 Classificação'],
-    ['janela', '⏱️ Janela Terapêutica'],
-    ['cd4', '🩸 CD4 e Carga Viral'],
-    ['oportunistas', '🦠 Infecções Oportunistas'],
-    ['profilaxias', '🛡️ Profilaxias'],
-    ['tarv', '💊 TARV'],
-    ['conceito', '📘 Conceito'],
-    ['transmissao', '🔗 Transmissão'],
-    ['prevencao', '🛡️ Prevenção'],
-    ['alerta', '🚨 Sinais de Alerta'],
-    ['coma', '☠️ Coma Mixedematoso'],
-    ['tempestade', '⛈️ Tempestade Tireotóxica'],
-    ['graves', '👁️ Doença de Graves'],
-    ['dialise', '🔄 Indicações de Diálise'],
-    ['estadiamento', '📊 Estadiamento'],
-    ['manejo', '🩺 Manejo Inicial']
-  ];
-
-  const used = new Set();
-  blocks.forEach(([key, label]) => {
-    if (c[key] && !used.has(key)) {
-      used.add(key);
-      const items = Array.isArray(c[key]) ? c[key] : [c[key]];
-      html += `<div class="detail-block"><h4>${label}</h4><ul>${items.map(i => `<li>${i}</li>`).join('')}</ul></div>`;
+  try {
+    const m = MAPAS.find(x => x.id === id);
+    if (!m) {
+      console.error('[ENAMED] Mapa não encontrado:', id);
+      return;
     }
-  });
+    currentMapaId = id;
 
-  html += '</div>';
-  if (c.pegadinha) {
-    const peg = Array.isArray(c.pegadinha) ? c.pegadinha.map(p => `• ${p}`).join('<br>') : c.pegadinha;
-    html += `<div class="pegadinha"><h4>🎓 Pegadinha de Prova</h4><p>${peg}</p></div>`;
-  }
-  if (c.resumo) {
-    const res = Array.isArray(c.resumo) ? c.resumo.map(p => `• ${p}`).join('<br>') : c.resumo;
-    html += `<div class="resumo"><h4>⚡ Resumo Rápido</h4><p>${res}</p></div>`;
-  }
-  if (c.fontes) {
-    const font = Array.isArray(c.fontes) ? c.fontes.map(p => `• ${p}`).join('<br>') : c.fontes;
-    html += `<div class="detail-block" style="margin-top:1rem"><h4>📚 Fontes / Diretrizes</h4><p style="color:var(--text-muted);font-size:0.9rem">${font}</p></div>`;
-  }
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const btnMark = document.getElementById('btnMarkStudied');
 
-  document.getElementById('modalBody').innerHTML = html;
-  document.getElementById('modalOverlay').classList.add('open');
-  document.getElementById('btnMarkStudied').textContent = studied.includes(id) ? '✓ Já estudado' : '✓ Marcar como estudado';
+    // Limpa sempre antes de injetar (evita modal em branco / estado residual)
+    modalBody.innerHTML = '';
+    modalTitle.textContent = m.title || 'Mapa Clínico';
+
+    const c = m.content || {};
+    let html = `<p style="color:var(--text-muted);margin-bottom:1.25rem">${m.summary || ''}</p><div class="detail-grid">`;
+
+    const blocks = [
+      ['classificacao', '📋 Classificação'],
+      ['fatores', '⚠️ Fatores de Risco'],
+      ['fisiopatologia', '🔬 Fisiopatologia / Desencadeantes'],
+      ['etiologias', '🔍 Etiologias'],
+      ['sinais', '👤 Sinais e Sintomas'],
+      ['quadro', '👤 Quadro Clínico'],
+      ['diagnostico', '🔎 Diagnóstico'],
+      ['criterios', '📊 Critérios Diagnósticos'],
+      ['exames', '🧪 Exames Importantes'],
+      ['tratamento', '💊 Tratamento'],
+      ['manutencao', '💊 Tratamento de Manutenção'],
+      ['crise', '🚨 Crise / Exacerbação'],
+      ['exacerbacao', '🚨 Exacerbação Aguda'],
+      ['conduta', '🩺 Conduta'],
+      ['reperfusao', '⚡ Reperfusão'],
+      ['urgencia', '🚨 Urgência / Emergência'],
+      ['gravidade', '❗ Sinais de Gravidade'],
+      ['complicacoes', '⚠️ Complicações'],
+      ['escalas', '📏 Escalas-Chave'],
+      ['instabilidade', '⚡ Instabilidade'],
+      ['desencadeantes', '⚡ Desencadeantes'],
+      ['monitorizacao', '📈 Monitorização'],
+      ['focos', '🎯 Focos Infecciosos'],
+      ['choque', '💔 Choque Séptico'],
+      ['causas', '📌 Causas'],
+      ['manifestacoes', '👤 Manifestações'],
+      ['janela', '⏱️ Janela Terapêutica'],
+      ['cd4', '🩸 CD4 e Carga Viral'],
+      ['oportunistas', '🦠 Infecções Oportunistas'],
+      ['profilaxias', '🛡️ Profilaxias'],
+      ['tarv', '💊 TARV'],
+      ['conceito', '📘 Conceito'],
+      ['transmissao', '🔗 Transmissão'],
+      ['prevencao', '🛡️ Prevenção'],
+      ['alerta', '🚨 Sinais de Alerta'],
+      ['coma', '☠️ Coma Mixedematoso'],
+      ['tempestade', '⛈️ Tempestade Tireotóxica'],
+      ['graves', '👁️ Doença de Graves'],
+      ['dialise', '🔄 Indicações de Diálise'],
+      ['estadiamento', '📊 Estadiamento'],
+      ['manejo', '🩺 Manejo Inicial']
+    ];
+
+    const used = new Set();
+    blocks.forEach(([key, label]) => {
+      if (c[key] != null && !used.has(key)) {
+        used.add(key);
+        const items = Array.isArray(c[key]) ? c[key] : [c[key]];
+        const lis = items
+          .filter(i => i != null && i !== '')
+          .map(i => `<li>${String(i)}</li>`)
+          .join('');
+        if (lis) {
+          html += `<div class="detail-block"><h4>${label}</h4><ul>${lis}</ul></div>`;
+        }
+      }
+    });
+
+    html += '</div>';
+
+    if (c.pegadinha) {
+      const peg = Array.isArray(c.pegadinha)
+        ? c.pegadinha.map(p => `• ${String(p)}`).join('<br>')
+        : String(c.pegadinha);
+      html += `<div class="pegadinha"><h4>🎓 Pegadinha de Prova</h4><p>${peg}</p></div>`;
+    }
+    if (c.resumo) {
+      const res = Array.isArray(c.resumo)
+        ? c.resumo.map(p => `• ${String(p)}`).join('<br>')
+        : String(c.resumo);
+      html += `<div class="resumo"><h4>⚡ Resumo Rápido</h4><p>${res}</p></div>`;
+    }
+    if (c.fontes) {
+      const font = Array.isArray(c.fontes)
+        ? c.fontes.map(p => `• ${String(p)}`).join('<br>')
+        : String(c.fontes);
+      html += `<div class="detail-block" style="margin-top:1rem"><h4>📚 Fontes / Diretrizes</h4><p style="color:var(--text-muted);font-size:0.9rem">${font}</p></div>`;
+    }
+
+    modalBody.innerHTML = html;
+    modalOverlay.classList.add('open');
+    btnMark.textContent = studied.includes(id) ? '✓ Já estudado' : '✓ Marcar como estudado';
+  } catch (err) {
+    console.error('[ENAMED] Erro ao abrir mapa:', id, err);
+    const modalBody = document.getElementById('modalBody');
+    if (modalBody) {
+      modalBody.innerHTML = `<div class="detail-block" style="padding:1.5rem">
+        <h4 style="color:var(--danger)">⚠️ Erro ao carregar o conteúdo</h4>
+        <p>Não foi possível montar este mapa. Tente novamente ou abra o console (F12) para mais detalhes.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted)">${String(err && err.message || err)}</p>
+      </div>`;
+    }
+    document.getElementById('modalOverlay')?.classList.add('open');
+  }
 }
 
 function closeModal(e) {
@@ -7441,28 +7478,62 @@ function renderSus() {
 }
 
 function openSus(id) {
-  const s = SUS.find(x => x.id === id);
-  if (!s) return;
-  currentMapaId = 'sus_' + id;
-  document.getElementById('modalTitle').textContent = s.title;
-  const c = s.content;
-  let html = `<p style="color:var(--text-muted);margin-bottom:1.25rem">${s.summary}</p><div class="detail-grid">`;
+  try {
+    const s = SUS.find(x => x.id === id);
+    if (!s) {
+      console.error('[ENAMED] Mapa SUS não encontrado:', id);
+      return;
+    }
+    currentMapaId = 'sus_' + id;
 
-  Object.entries(c).forEach(([key, val]) => {
-    if (key === 'pegadinhas') return;
-    const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    const items = Array.isArray(val) ? val : [val];
-    html += `<div class="detail-block"><h4>📌 ${label}</h4><ul>${items.map(i => `<li>${i}</li>`).join('')}</ul></div>`;
-  });
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const btnMark = document.getElementById('btnMarkStudied');
 
-  html += '</div>';
-  if (c.pegadinhas) {
-    html += `<div class="pegadinha"><h4>🎓 Pegadinhas de Prova</h4><ul style="list-style:none;margin-top:0.5rem">${c.pegadinhas.map(p => `<li style="margin-bottom:0.4rem">• ${p}</li>`).join('')}</ul></div>`;
+    modalBody.innerHTML = '';
+    modalTitle.textContent = s.title || 'Mapa SUS';
+
+    const c = s.content || {};
+    let html = `<p style="color:var(--text-muted);margin-bottom:1.25rem">${s.summary || ''}</p><div class="detail-grid">`;
+
+    Object.entries(c).forEach(([key, val]) => {
+      if (key === 'pegadinhas') return;
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const items = Array.isArray(val) ? val : [val];
+      const lis = items
+        .filter(i => i != null && i !== '')
+        .map(i => `<li>${String(i)}</li>`)
+        .join('');
+      if (lis) {
+        html += `<div class="detail-block"><h4>📌 ${label}</h4><ul>${lis}</ul></div>`;
+      }
+    });
+
+    html += '</div>';
+
+    if (c.pegadinhas) {
+      const pegs = Array.isArray(c.pegadinhas) ? c.pegadinhas : [c.pegadinhas];
+      html += `<div class="pegadinha"><h4>🎓 Pegadinhas de Prova</h4><ul style="list-style:none;margin-top:0.5rem">${
+        pegs.map(p => `<li style="margin-bottom:0.4rem">• ${String(p)}</li>`).join('')
+      }</ul></div>`;
+    }
+
+    modalBody.innerHTML = html;
+    modalOverlay.classList.add('open');
+    btnMark.textContent = studied.includes(currentMapaId) ? '✓ Já estudado' : '✓ Marcar como estudado';
+  } catch (err) {
+    console.error('[ENAMED] Erro ao abrir mapa SUS:', id, err);
+    const modalBody = document.getElementById('modalBody');
+    if (modalBody) {
+      modalBody.innerHTML = `<div class="detail-block" style="padding:1.5rem">
+        <h4 style="color:var(--danger)">⚠️ Erro ao carregar o conteúdo</h4>
+        <p>Não foi possível montar este mapa do SUS.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted)">${String(err && err.message || err)}</p>
+      </div>`;
+    }
+    document.getElementById('modalOverlay')?.classList.add('open');
   }
-
-  document.getElementById('modalBody').innerHTML = html;
-  document.getElementById('modalOverlay').classList.add('open');
-  document.getElementById('btnMarkStudied').textContent = studied.includes(currentMapaId) ? '✓ Já estudado' : '✓ Marcar como estudado';
 }
 
 /* SEARCH */
