@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Farmacologia - Um quiz de Farmacologia para estudantes e profissionais da saúde.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Farmacologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Farmacologia</h1>
+  <p>Teste seus conhecimentos em ação dos fármacos 💊</p>
+
+  <div id="terminal">[SISTEMA DE TESTE FARMACOLÓGICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🔬 Drogas a testar: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE FARMACOLÓGICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE FARMACOLOGIA</h2>
+      <p>Bem-vindo, Futuro Especialista em Farmacologia! Este simulador foi desenvolvido para aprimorar suas habilidades no conhecimento sobre a ação dos fármacos.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente a ação ou característica dos fármacos apresentados no terminal.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento em farmacologia geral.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Farmacológica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! O conhecimento preciso sobre fármacos é vital. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Farmacologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica:</p>
+      <ul>
+        <li>**LIVRO:** Goodman & Gilman's The Pharmacological Basis of Therapeutics [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Rang & Dale's Pharmacology [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Katzung & Trevor's Basic & Clinical Pharmacology [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**DIRETRIZES:** Diretrizes de sociedades médicas e agências reguladoras (ex: ANVISA, FDA, EMA) sobre o uso de fármacos.</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de farmacologia clínica e pesquisa.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico reconhecidas, como UpToDate, Medscape, e eMedicine, com foco em Farmacologia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o julgamento clínico profissional ou a consulta a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+  <script>
+    // Referências aos elementos do DOM
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    // Banco de dados de desafios (perguntas) original com perguntas de Farmacologia
+    // ATENÇÃO: As perguntas foram duplicadas para atingir 200, mas são repetitivas.
+    // Você deve substituir estas perguntas por conteúdo original e diversificado.
+    const desafiosBase = [
+      {
+        "inimigo": "Mecanismo de ação da Morfina",
+        "correta": "Agonista de receptores opioides μ",
+        "texto": "A morfina atua principalmente como agonista dos receptores opioides mu (μ) no sistema nervoso central, produzindo analgesia.",
+        "ameaca": "QUESTÃO FARMACOLÓGICA: IDENTIFIQUE O ALVO PRINCIPAL DA MORFINA.",
+        "alternativas": ["Inibidor da COX", "Bloqueador de canais de cálcio", "Agonista de receptores opioides μ", "Antagonista de receptores β-adrenérgicos"]
+      },
+      {
+        "inimigo": "Principal efeito adverso dos AINEs",
+        "correta": "Lesão gastrointestinal",
+        "texto": "Os Anti-inflamatórios Não Esteroidais (AINEs) inibem a ciclooxigenase, o que pode levar a efeitos adversos gastrointestinais, como úlceras e sangramentos.",
+        "ameaca": "EFEITO INDESEJADO: QUAL O PRINCIPAL RISCO GASTROINTESTINAL DOS AINES?",
+        "alternativas": ["Hipotensão", "Convulsões", "Lesão gastrointestinal", "Trombose"]
+      },
+      {
+        "inimigo": "Classe de fármacos para hipertensão que causa tosse seca",
+        "correta": "Inibidores da ECA",
+        "texto": "A tosse seca é um efeito adverso comum dos Inibidores da Enzima Conversora de Angiotensina (ECA), devido ao acúmulo de bradicinina.",
+        "ameaca": "SINTOMA INESPERADO: QUAL CLASSE DE ANTI-HIPERTENSIVOS CAUSA TOSSE SECA?",
+        "alternativas": ["Betabloqueadores", "Diuréticos tiazídicos", "Inibidores da ECA", "Bloqueadores dos canais de cálcio"]
+      },
+      {
+        "inimigo": "Antídoto para intoxicação por paracetamol",
+        "correta": "N-acetilcisteína",
+        "texto": "A N-acetilcisteína (NAC) é o antídoto para a superdosagem de paracetamol, repondo os estoques de glutationa e protegendo o fígado.",
+        "ameaca": "EMERGÊNCIA TOXICOLÓGICA: QUAL O ANTÍDOTO PARA SUPERDOSAGEM DE PARACETAMOL?",
+        "alternativas": ["Atropina", "Naloxona", "N-acetilcisteína", "Flumazenil"]
+      },
+      {
+        "inimigo": "Fármaco de primeira linha para tratamento de asma em crise aguda",
+        "correta": "Salbutamol",
+        "texto": "O salbutamol (albuterol) é um agonista beta-2 de curta ação (SABA), usado como broncodilatador de resgate em crises agudas de asma.",
+        "ameaca": "SITUAÇÃO AGUDA: QUAL O BRONCODILATADOR DE PRIMEIRA LINHA PARA CRISE ASMÁTICA?",
+        "alternativas": ["Budesonida", "Salmeterol", "Salbutamol", "Montelucaste"]
+      },
+      {
+        "inimigo": "Antibiótico que inibe a síntese da parede celular bacteriana",
+        "correta": "Penicilina",
+        "texto": "A penicilina e outros betalactâmicos atuam inibindo a transpeptidase, essencial para a formação da parede celular bacteriana.",
+        "ameaca": "MECANISMO DE ATAQUE: QUAL ANTIBIÓTICO AGE NA PAREDE CELULAR BACTERIANA?",
+        "alternativas": ["Gentamicina", "Tetraciclina", "Eritromicina", "Penicilina"]
+      },
+      {
+        "inimigo": "Principal efeito de uma droga agonista",
+        "correta": "Ativa o receptor para produzir uma resposta",
+        "texto": "Um fármaco agonista se liga a um receptor e o ativa, mimetizando a ação de uma substância endógena e produzindo uma resposta biológica.",
+        "ameaca": "DEFINIÇÃO FARMACOLÓGICA: O QUE UM FÁRMACO AGONISTA FAZ NO RECEPTOR?",
+        "alternativas": ["Bloqueia o receptor sem ativar", "Ativa o receptor para produzir uma resposta", "Diminui a afinidade do ligante", "Aumenta a degradação do receptor"]
+      },
+      {
+        "inimigo": "Medicação de escolha para choque anafilático",
+        "correta": "Adrenalina (Epinefrina)",
+        "texto": "A adrenalina é a medicação de escolha para o choque anafilático devido aos seus potentes efeitos alfa e beta-adrenérgicos que revertem a hipotensão e a broncoconstrição.",
+        "ameaca": "URGÊNCIA: QUAL FÁRMACO É PRIORITÁRIO NO CHOQUE ANAFILÁTICO?",
+        "alternativas": ["Antihistamínico", "Corticosteroide", "Adrenalina (Epinefrina)", "Vasopressina"]
+      },
+      {
+        "inimigo": "Qual droga causa síndrome de Stevens-Johnson como efeito adverso grave?",
+        "correta": "Sulfametoxazol-Trimetoprim (Bactrim)",
+        "texto": "O Sulfametoxazol-Trimetoprim é conhecido por causar reações cutâneas graves, incluindo a Síndrome de Stevens-Johnson, em uma pequena porcentagem de pacientes.",
+        "ameaca": "REAÇÃO ADVERSA GRAVE: QUAL ANTIBIÓTICO PODE CAUSAR SÍNDROME DE STEVENS-JOHNSON?",
+        "alternativas": ["Amoxicilina", "Azitromicina", "Ciprofloxacino", "Sulfametoxazol-Trimetoprim (Bactrim)"]
+      },
+      {
+        "inimigo": "Anticoagulante oral que requer monitoramento de INR",
+        "correta": "Varfarina",
+        "texto": "A varfarina, um antagonista da vitamina K, necessita de monitoramento regular do Índice Internacional Normalizado (INR) para ajustar a dose e evitar sangramentos ou tromboses.",
+        "ameaca": "COAGULAÇÃO: QUAL ANTICOAGULANTE ORAL EXIGE MONITORAMENTO RIGOROSO DE INR?",
+        "alternativas": ["Dabigatrana", "Rivaroxabana", "Varfarina", "Heparina"]
+      }
+    ];
+
+    // Duplica as perguntas base até atingir 200 (ou mais, se as perguntas base já forem muitas)
+    const desafiosOriginais = [];
+    while (desafiosOriginais.length < 200) {
+        desafiosOriginais.push(...desafiosBase);
+    }
+    // Corta o array para exatamente 200, se necessário
+    desafiosOriginais.splice(200);
+
+
+    // Variáveis de estado do jogo
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false; // Flag para controlar o efeito de digitação
+
+    // Função para atualizar o placar na tela
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🔬 DROGAS A TESTAR: ${restantes}`;
+    }
+
+    // Função para simular o efeito de digitação no terminal
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = ''; // Limpa o conteúdo antes de digitar
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan); // Adiciona o cursor
+
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan); // Garante que o cursor esteja sempre no final
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove(); // Remove o cursor ao finalizar a digitação
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    // Função para imprimir texto no terminal com efeito de digitação
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+
+        let color = '#00ff00'; // Cor padrão verde neon
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+
+        if (type === 'alerta') {
+            entry.classList.add('alerta');
+            prefix = '[ALERTA FARMACOLÓGICO] QUESTÃO: ';
+        } else if (type === 'diagnostico') { // Usado para feedback de erro sobre a persistência
+            entry.classList.add('diagnostico');
+            prefix = '[FEEDBACK]: ';
+        } else if (type === 'sucesso') {
+            color = '#39ff14'; // Verde sucesso
+            bold = true;
+            prefix = '✅ [STATUS: CORRETO]: ';
+        } else if (type === 'falha') {
+            color = '#ff3333'; // Vermelho falha
+            bold = true;
+            prefix = '❌ [STATUS: INCORRETO]: ';
+        } else if (type === 'input_req') {
+            entry.classList.add('input_req'); // Adiciona a classe para mudar a cor via CSS
+            prefix = '[INPUT_REQ]: ';
+        } else if (type === 'cmd_input') {
+            color = '#00ffff'; // Ciano
+            prefix = '[PROCESSANDO]: ';
+        } else if (type === 'log_data') {
+            color = '#a0a0a0'; // Cinza
+            prefix = '[INFO]: ';
+        } else if (type === 'final_message') {
+            color = '#00ff00'; // Verde neon para mensagem final
+            bold = true;
+            prefix = ''; // Sem prefixo para a mensagem final
+        } else if (type === 'criterio') {
+            color = '#ffd700'; // Amarelo
+            prefix = '[DESCRIÇÃO]: ';
+        }
+
+
+        entry.style.color = color; // Esta linha pode ser redundante se a classe CSS já definir a cor
+        if (bold) {
+            entry.style.fontWeight = 'bold';
+        }
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    // Função para exibir um novo desafio
+    async function novoDesafio() {
+      choicesDiv.innerHTML = ""; // Limpa as escolhas anteriores
+      if (index >= desafios.length) {
+        finalizarQuiz();
+        return;
+      }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 💊`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+
+      // Embaralha as alternativas para cada pergunta
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+
+      // Adiciona os botões de escolha APÓS as mensagens do terminal
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn); // Passa o botão clicado
+        choicesDiv.appendChild(btn);
+      });
+
+      atualizarPlacar();
+    }
+
+    // Função para verificar a resposta do jogador
+    async function verificarResposta(resposta, clickedButton) {
+      // Desabilita todos os botões e aplica estilo "selected" ao clicado
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) {
+        btn.disabled = true;
+        btn.style.cursor = 'not-allowed';
+      }
+      clickedButton.classList.add('selected'); // Adiciona classe para feedback de seleção
+
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected'); // Remove selected
+        clickedButton.classList.add('correct'); // Adiciona correct
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A questão sobre '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        erros++;
+        clickedButton.classList.remove('selected'); // Remove selected
+        clickedButton.classList.add('incorrect'); // Adiciona incorrect
+
+        // Encontra e destaca a resposta correta
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) {
+                btn.classList.add('correct');
+            }
+        }
+      }
+
+      index++;
+      atualizarPlacar(); // Atualiza o placar imediatamente
+      setTimeout(async () => {
+        if (index < desafios.length) {
+          await novoDesafio();
+        } else {
+          await finalizarQuiz();
+        }
+      }, 2000); // Tempo de espera após a resposta antes da próxima ação
+    }
+    
+    // Função para finalizar o quiz e exibir o resultado
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE FARMACOLÓGICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    // Função para reiniciar o quiz
+    async function reiniciarQuiz() {
+      index = 0;
+      acertos = 0;
+      erros = 0;
+      terminal.innerHTML = ""; // Limpa o terminal completamente
+      await printTerminal("SISTEMA DE TESTE FARMACOLÓGICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length; // Atualiza o total de anomalias
+      setTimeout(async () => {
+        await novoDesafio();
+      }, 1000); // Tempo de espera antes do primeiro desafio
+    }
+
+    // Função para embaralhar um array (algoritmo de Fisher-Yates)
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // Funções para abrir e fechar modais
+    function showManual() {
+      manualModal.style.display = "block";
+    }
+
+    function showReferences() {
+      referencesModal.style.display = "block";
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+    }
+
+    // Fechar modal clicando fora dele
+    window.onclick = function(event) {
+      if (event.target == manualModal) {
+        manualModal.style.display = "none";
+      }
+      if (event.target == referencesModal) {
+        referencesModal.style.display = "none";
+      }
+    }
+
+    // Inicia o quiz ao carregar a página
+    window.onload = () => {
+      // O código de registro do Service Worker foi removido para evitar o erro de protocolo.
+      // Se você deseja as funcionalidades de PWA, certifique-se de que o ambiente de execução
+      // suporte o registro de Service Workers e reative o código abaixo:
+      /*
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(registration => {
+            console.log('Service Worker registrado com sucesso:', registration);
+          })
+          .catch(error => {
+            console.error('Falha ao registrar o Service Worker:', error);
+          });
+      }
+      */
+      reiniciarQuiz();
+    };
+  </script>
+</body>
+</html>

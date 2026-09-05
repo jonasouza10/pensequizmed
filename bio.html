@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Biologia - Um quiz de Biologia para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Biologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Biologia</h1>
+  <p>Explore o mundo da vida! 🧬</p>
+
+  <div id="terminal">[SISTEMA DE TESTE BIOLÓGICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🌿 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE BIOLÓGICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE BIOLOGIA</h2>
+      <p>Bem-vindo, Futuro Biólogo! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre os diversos temas da Biologia.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente os conceitos biológicos apresentados no terminal.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre a vida em suas diversas formas.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Biológica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! O conhecimento preciso sobre a vida é fundamental. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Biologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura científica:</p>
+      <ul>
+        <li>**LIVRO:** Biologia de Campbell (Campbell Biology) [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Amabis e Martho - Biologia [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**ENCICLOPÉDIAS:** Enciclopédias e dicionários especializados em Biologia e Ciências da Vida.</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados nas diversas áreas da Biologia.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino e pesquisa reconhecidas, como Khan Academy (Biologia), National Geographic (Biologia), e sites de universidades com materiais de Biologia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Organela responsável pela fotossíntese",
+    "correta": "Cloroplasto",
+    "texto": "O cloroplasto contém clorofila e é o local da fotossíntese em células vegetais e algas.",
+    "ameaca": "CITÓLOGIA: QUAL ORGANELA REALIZA FOTOSSÍNTESE?",
+    "alternativas": [
+      "Mitocôndria",
+      "Retículo endoplasmático",
+      "Cloroplasto",
+      "Complexo de Golgi"
+    ]
+  },
+  {
+    "inimigo": "Unidade básica da hereditariedade",
+    "correta": "Gene",
+    "texto": "O gene é um segmento de DNA que codifica uma proteína ou RNA funcional e é a unidade fundamental da hereditariedade.",
+    "ameaca": "GENÉTICA: QUAL A UNIDADE BÁSICA DA HEREDITARIEDADE?",
+    "alternativas": [
+      "Cromossomo",
+      "DNA",
+      "Alelo",
+      "Gene"
+    ]
+  },
+  {
+    "inimigo": "Processo de quebra da glicose para produzir energia (ATP)",
+    "correta": "Respiração celular",
+    "texto": "A respiração celular oxida a glicose liberando energia na forma de ATP, ocorrendo principalmente nas mitocôndrias.",
+    "ameaca": "METABOLISMO: COMO A GLICOSE GERA ENERGIA?",
+    "alternativas": [
+      "Fotossíntese",
+      "Fermentação apenas",
+      "Respiração celular",
+      "Osmose"
+    ]
+  },
+  {
+    "inimigo": "Molécula que armazena o código genético",
+    "correta": "DNA",
+    "texto": "O DNA (ácido desoxirribonucleico) armazena as informações genéticas de praticamente todos os seres vivos.",
+    "ameaca": "GENÉTICA: QUAL MOLÉCULA CARREGA O CÓDIGO GENÉTICO?",
+    "alternativas": [
+      "RNA",
+      "Proteína",
+      "Carboidrato",
+      "DNA"
+    ]
+  },
+  {
+    "inimigo": "Estrutura que controla a entrada e saída de substâncias da célula",
+    "correta": "Membrana plasmática",
+    "texto": "A membrana plasmática é uma bicamada lipídica com proteínas que regula o tráfego de substâncias de forma seletiva.",
+    "ameaca": "CITÓLOGIA: QUAL ESTRUTURA REGULA O TRÁFEGO CELULAR?",
+    "alternativas": [
+      "Parede celular",
+      "Núcleo",
+      "Membrana plasmática",
+      "Citoplasma"
+    ]
+  },
+  {
+    "inimigo": "Processo evolutivo de formação de novas espécies",
+    "correta": "Especiação",
+    "texto": "Especiação ocorre quando populações se diferenciam geneticamente até não poderem mais cruzar e gerar descendentes férteis.",
+    "ameaca": "EVOLUÇÃO: QUAL O PROCESSO DE FORMAÇÃO DE NOVAS ESPÉCIES?",
+    "alternativas": [
+      "Adaptação",
+      "Seleção natural",
+      "Mutação",
+      "Especiação"
+    ]
+  },
+  {
+    "inimigo": "Reino que inclui os fungos",
+    "correta": "Fungi",
+    "texto": "O Reino Fungi reúne organismos eucarióticos heterotróficos com parede de quitina e reprodução por esporos.",
+    "ameaca": "CLASSIFICAÇÃO: EM QUAL REINO ESTÃO OS FUNGOS?",
+    "alternativas": [
+      "Plantae",
+      "Animalia",
+      "Monera",
+      "Fungi"
+    ]
+  },
+  {
+    "inimigo": "Gás liberado como subproduto da fotossíntese",
+    "correta": "Oxigênio",
+    "texto": "Na fotossíntese, água e CO2 são convertidos em glicose e oxigênio, liberado na atmosfera.",
+    "ameaca": "FOTOSSÍNTESE: QUAL GÁS É LIBERADO?",
+    "alternativas": [
+      "Dióxido de carbono",
+      "Nitrogênio",
+      "Ozônio",
+      "Oxigênio"
+    ]
+  },
+  {
+    "inimigo": "Principais etapas do ciclo do nitrogênio",
+    "correta": "Fixação, nitrificação, assimilação, desnitrificação",
+    "texto": "O ciclo do nitrogênio inclui fixação do N2, nitrificação, assimilação pelos seres vivos e desnitrificação de volta a N2.",
+    "ameaca": "ECOLOGIA: QUAIS AS ETAPAS DO CICLO DO NITROGÊNIO?",
+    "alternativas": [
+      "Evaporação, condensação, precipitação",
+      "Fixação, nitrificação, assimilação, desnitrificação",
+      "Respiração, combustão, fotossíntese",
+      "Sedimentação, erosão, decomposição"
+    ]
+  },
+  {
+    "inimigo": "Células do sangue responsáveis pela defesa do organismo",
+    "correta": "Leucócitos (glóbulos brancos)",
+    "texto": "Os leucócitos atuam na imunidade, combatendo infecções e células anormais.",
+    "ameaca": "FISIOLOGIA: QUAIS CÉLULAS ATUAM NA DEFESA?",
+    "alternativas": [
+      "Hemácias",
+      "Plaquetas",
+      "Neurônios",
+      "Leucócitos (glóbulos brancos)"
+    ]
+  },
+  {
+    "inimigo": "Organela responsável pela respiração celular e produção de ATP",
+    "correta": "Mitocôndria",
+    "texto": "A mitocôndria é a 'usina de energia' da célula, onde ocorre a maior parte da produção de ATP.",
+    "ameaca": "CITÓLOGIA: QUAL ORGANELA PRODUZ A MAIOR PARTE DO ATP?",
+    "alternativas": [
+      "Cloroplasto",
+      "Lisossomo",
+      "Mitocôndria",
+      "Peroxissomo"
+    ]
+  },
+  {
+    "inimigo": "Estrutura que contém o material genético na célula eucariótica",
+    "correta": "Núcleo",
+    "texto": "O núcleo abriga os cromossomos e controla as atividades celulares por meio da expressão gênica.",
+    "ameaca": "CITÓLOGIA: ONDE ESTÁ O MATERIAL GENÉTICO NAS CÉLULAS EUCARIÓTICAS?",
+    "alternativas": [
+      "Mitocôndria apenas",
+      "Citoplasma",
+      "Núcleo",
+      "Ribossomo"
+    ]
+  },
+  {
+    "inimigo": "Processo de divisão celular que gera células idênticas (mesmo número de cromossomos)",
+    "correta": "Mitose",
+    "texto": "A mitose produz duas células-filhas geneticamente iguais à célula-mãe, mantendo o número diplóide.",
+    "ameaca": "CICLO CELULAR: QUAL DIVISÃO MANTÉM O NÚMERO DE CROMOSOMOS?",
+    "alternativas": [
+      "Meiose",
+      "Fissão binária",
+      "Mitose",
+      "Brotamento"
+    ]
+  },
+  {
+    "inimigo": "Processo de divisão celular que reduz o número de cromossomos pela metade",
+    "correta": "Meiose",
+    "texto": "A meiose gera gametas haploides e aumenta a variabilidade genética por recombinação e segregação independente.",
+    "ameaca": "CICLO CELULAR: QUAL DIVISÃO FORMA GAMETAS?",
+    "alternativas": [
+      "Mitose",
+      "Amitose",
+      "Meiose",
+      "Citocinese apenas"
+    ]
+  },
+  {
+    "inimigo": "Tipo de transporte que ocorre a favor do gradiente e sem gasto de energia",
+    "correta": "Difusão / transporte passivo",
+    "texto": "No transporte passivo (difusão simples ou facilitada) as substâncias se movem a favor do gradiente de concentração.",
+    "ameaca": "MEMBRANA: QUAL TRANSPORTE NÃO GASTA ENERGIA?",
+    "alternativas": [
+      "Bomba de sódio-potássio",
+      "Endocitose",
+      "Difusão / transporte passivo",
+      "Exocitose"
+    ]
+  },
+  {
+    "inimigo": "Transporte ativo característico que mantém o potencial de membrana",
+    "correta": "Bomba de sódio-potássio",
+    "texto": "A bomba Na+/K+ bombeia 3 Na+ para fora e 2 K+ para dentro, gastando ATP e gerando gradiente eletroquímico.",
+    "ameaca": "MEMBRANA: QUAL BOMBA MANTÉM O POTENCIAL DE MEMBRANA?",
+    "alternativas": [
+      "Difusão simples",
+      "Osmose",
+      "Bomba de sódio-potássio",
+      "Canais iônicos passivos"
+    ]
+  },
+  {
+    "inimigo": "Processo de entrada de água na célula por semipermeabilidade",
+    "correta": "Osmose",
+    "texto": "Osmose é a difusão de água através de uma membrana semipermeável, do meio menos concentrado para o mais concentrado em soluto.",
+    "ameaca": "MEMBRANA: QUAL O NOME DA DIFUSÃO DE ÁGUA?",
+    "alternativas": [
+      "Difusão facilitada",
+      "Transporte ativo",
+      "Osmose",
+      "Fagocitose"
+    ]
+  },
+  {
+    "inimigo": "Organela que digere material intracelular (enzimas hidrolíticas)",
+    "correta": "Lisossomo",
+    "texto": "Os lisossomos contêm enzimas digestivas e realizam a digestão intracelular e a reciclagem de organelas.",
+    "ameaca": "CITÓLOGIA: QUAL ORGANELA FAZ A DIGESTÃO INTRACELULAR?",
+    "alternativas": [
+      "Peroxissomo",
+      "Vacúolo apenas",
+      "Lisossomo",
+      "Complexo de Golgi"
+    ]
+  },
+  {
+    "inimigo": "Organela responsável pela síntese de proteínas",
+    "correta": "Ribossomo",
+    "texto": "Os ribossomos traduzem o mRNA em cadeias polipeptídicas (síntese proteica).",
+    "ameaca": "CITÓLOGIA: ONDE OCORRE A SÍNTESE DE PROTEÍNAS?",
+    "alternativas": [
+      "Núcleo",
+      "Mitocôndria apenas",
+      "Ribossomo",
+      "Lisossomo"
+    ]
+  },
+  {
+    "inimigo": "Organela que modifica, empacota e secreta proteínas",
+    "correta": "Complexo de Golgi",
+    "texto": "O complexo de Golgi processa e endereça proteínas e lipídios para secreção ou para outras organelas.",
+    "ameaca": "CITÓLOGIA: QUAL ORGANELA EMPACOTA E SECRETA PROTEÍNAS?",
+    "alternativas": [
+      "Retículo endoplasmático liso",
+      "Ribossomo",
+      "Complexo de Golgi",
+      "Lisossomo"
+    ]
+  },
+  {
+    "inimigo": "Ácido nucleico que leva a mensagem do DNA aos ribossomos",
+    "correta": "RNA mensageiro (mRNA)",
+    "texto": "O mRNA é transcrito a partir do DNA e traduzido nos ribossomos em proteína.",
+    "ameaca": "GENÉTICA: QUAL RNA LEVA A MENSAGEM DO GENE?",
+    "alternativas": [
+      "RNA ribossômico",
+      "RNA transportador",
+      "RNA mensageiro (mRNA)",
+      "DNA"
+    ]
+  },
+  {
+    "inimigo": "RNA que transporta aminoácidos para a síntese proteica",
+    "correta": "RNA transportador (tRNA)",
+    "texto": "O tRNA leva o aminoácido correspondente ao códon do mRNA durante a tradução.",
+    "ameaca": "GENÉTICA: QUAL RNA TRANSPORTA AMINOÁCIDOS?",
+    "alternativas": [
+      "mRNA",
+      "rRNA",
+      "RNA transportador (tRNA)",
+      "snRNA"
+    ]
+  },
+  {
+    "inimigo": "Pareamento de bases no DNA",
+    "correta": "Adenina com Timina; Citosina com Guanina",
+    "texto": "No DNA, A emparelha com T (duas pontes de hidrogênio) e C com G (três pontes de hidrogênio).",
+    "ameaca": "GENÉTICA: COMO AS BASES SE EMPARELHAM NO DNA?",
+    "alternativas": [
+      "A com C; T com G",
+      "A com G; C com T",
+      "Adenina com Timina; Citosina com Guanina",
+      "A com U; C com G apenas"
+    ]
+  },
+  {
+    "inimigo": "No RNA, a base que substitui a timina é",
+    "correta": "Uracila",
+    "texto": "No RNA a timina é substituída pela uracila, que se emparelha com a adenina.",
+    "ameaca": "GENÉTICA: QUAL BASE SUBSTITUI A TIMINA NO RNA?",
+    "alternativas": [
+      "Guanina",
+      "Citosina",
+      "Uracila",
+      "Adenina"
+    ]
+  },
+  {
+    "inimigo": "Mutação que troca uma base por outra",
+    "correta": "Substituição (ou mutação pontual)",
+    "texto": "A substituição de uma base pode ser silenciosa, de sentido trocado ou sem sentido (stop).",
+    "ameaca": "GENÉTICA: QUAL MUTAÇÃO TROCA UMA BASE POR OUTRA?",
+    "alternativas": [
+      "Deleção",
+      "Inserção",
+      "Inversão cromossômica",
+      "Substituição (ou mutação pontual)"
+    ]
+  },
+  {
+    "inimigo": "Lei de Mendel que trata da separação dos alelos",
+    "correta": "Primeira Lei (Lei da Segregação)",
+    "texto": "A 1ª Lei de Mendel afirma que os alelos se separam na formação dos gametas.",
+    "ameaca": "GENÉTICA: QUAL LEI DE MENDEL FALA DA SEGREGAÇÃO?",
+    "alternativas": [
+      "Segunda Lei",
+      "Lei da dominância apenas",
+      "Primeira Lei (Lei da Segregação)",
+      "Lei da ligação gênica"
+    ]
+  },
+  {
+    "inimigo": "Lei de Mendel da segregação independente",
+    "correta": "Segunda Lei de Mendel",
+    "texto": "A 2ª Lei afirma que genes de pares diferentes segregam de forma independente (quando não ligados).",
+    "ameaca": "GENÉTICA: QUAL É A SEGUNDA LEI DE MENDEL?",
+    "alternativas": [
+      "Lei da segregação",
+      "Lei da dominância",
+      "Segunda Lei de Mendel",
+      "Lei da epistasia"
+    ]
+  },
+  {
+    "inimigo": "Cromossomos sexuais humanos",
+    "correta": "XX no sexo feminino e XY no sexo masculino",
+    "texto": "O sistema XY determina o sexo na espécie humana: XX feminino, XY masculino.",
+    "ameaca": "GENÉTICA: QUAL A CONSTITUIÇÃO DOS CROMOSSOMASS SEXUAIS?",
+    "alternativas": [
+      "XO e XX",
+      "ZW e ZZ",
+      "XX no sexo feminino e XY no sexo masculino",
+      "YY e XX"
+    ]
+  },
+  {
+    "inimigo": "Doença genética ligada ao X clássica (exemplo)",
+    "correta": "Hemofilia / Daltonismo",
+    "texto": "Hemofilia e daltonismo são exemplos clássicos de herança ligada ao cromossomo X.",
+    "ameaca": "GENÉTICA: QUAL EXEMPLO DE DOENÇA LIGADA AO X?",
+    "alternativas": [
+      "Anemia falciforme",
+      "Fibrose cística",
+      "Hemofilia / Daltonismo",
+      "Síndrome de Down"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Down é causada por",
+    "correta": "Trissomia do cromossomo 21",
+    "texto": "A Síndrome de Down resulta da presença de três cópias do cromossomo 21 (trissomia 21).",
+    "ameaca": "GENÉTICA: QUAL A CAUSA DA SÍNDROME DE DOWN?",
+    "alternativas": [
+      "Monossomia do X",
+      "Trissomia do 18",
+      "Trissomia do cromossomo 21",
+      "Deleção do 5"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Parede celular bacteriana'?",
+    "correta": "Composta principalmente por peptideoglicano",
+    "texto": "A parede de peptideoglicano confere forma e proteção às bactérias.",
+    "ameaca": "MICROBIOLOGIA: 'PAREDE CELULAR BACTERIANA'",
+    "alternativas": [
+      "Quitina",
+      "Celulose",
+      "Composta principalmente por peptideoglicano",
+      "Peptidoglicano ausente"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Parede celular vegetal'?",
+    "correta": "Composta principalmente por celulose",
+    "texto": "A celulose dá rigidez e suporte às células vegetais.",
+    "ameaca": "BOTÂNICA: 'PAREDE CELULAR VEGETAL'",
+    "alternativas": [
+      "Quitina",
+      "Peptideoglicano",
+      "Composta principalmente por celulose",
+      "Lignina apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Parede celular dos fungos'?",
+    "correta": "Composta principalmente por quitina",
+    "texto": "A quitina é o polissacarídeo típico da parede fúngica.",
+    "ameaca": "MICOLOGIA: 'PAREDE CELULAR DOS FUNGOS'",
+    "alternativas": [
+      "Celulose",
+      "Peptideoglicano",
+      "Composta principalmente por quitina",
+      "Pectina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Bactérias Gram-positivas'?",
+    "correta": "Parede espessa de peptideoglicano (coram de roxo/azul)",
+    "texto": "Retêm o cristal violeta na coloração de Gram.",
+    "ameaca": "MICROBIOLOGIA: 'BACTÉRIAS GRAM-POSITIVAS'",
+    "alternativas": [
+      "Parede fina e membrana externa",
+      "Sem parede",
+      "Parede de celulose",
+      "Parede espessa de peptideoglicano (coram de roxo/azul)"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Bactérias Gram-negativas'?",
+    "correta": "Parede fina de peptideoglicano + membrana externa (LPS)",
+    "texto": "Não retêm o cristal violeta; coram de rosa/vermelho.",
+    "ameaca": "MICROBIOLOGIA: 'BACTÉRIAS GRAM-NEGATIVAS'",
+    "alternativas": [
+      "Parede espessa apenas",
+      "Sem membrana",
+      "Parede de quitina",
+      "Parede fina de peptideoglicano + membrana externa (LPS)"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Vírus'?",
+    "correta": "Ácido nucleico + capsídeo proteico (alguns com envelope)",
+    "texto": "São parasitas intracelulares obrigatórios, acelulares.",
+    "ameaca": "VIROLOGIA: 'VÍRUS'",
+    "alternativas": [
+      "Células procarióticas",
+      "Células eucarióticas",
+      "Ácido nucleico + capsídeo proteico (alguns com envelope)",
+      "Organelas próprias"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Príons'?",
+    "correta": "Proteínas infecciosas mal enoveladas",
+    "texto": "Causam doenças neurodegenerativas transmissíveis (ex.: Creutzfeldt-Jakob).",
+    "ameaca": "PATOLOGIA: 'PRÍONS'",
+    "alternativas": [
+      "Vírus sem capsídeo",
+      "Bactérias sem parede",
+      "Proteínas infecciosas mal enoveladas",
+      "RNA nu"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fotossíntese - fase clara'?",
+    "correta": "Ocorre nos tilacoides; produz ATP e NADPH e libera O2",
+    "texto": "Depende de luz e realiza a fotólise da água.",
+    "ameaca": "FISIOLOGIA VEGETAL: 'FOTOSSÍNTESE - FASE CLARA'",
+    "alternativas": [
+      "Ciclo de Calvin",
+      "Ciclo de Krebs",
+      "Ocorre nos tilacoides; produz ATP e NADPH e libera O2",
+      "Glicólise"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fotossíntese - fase escura (Ciclo de Calvin)'?",
+    "correta": "Fixa CO2 e produz glicose no estroma do cloroplasto",
+    "texto": "Não depende diretamente da luz, mas usa ATP e NADPH da fase clara.",
+    "ameaca": "FISIOLOGIA VEGETAL: 'FOTOSSÍNTESE - FASE ESCURA (CICLO DE CALVIN)'",
+    "alternativas": [
+      "Fase clara",
+      "Ciclo de Krebs",
+      "Fixa CO2 e produz glicose no estroma do cloroplasto",
+      "Fermentação"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Glicólise'?",
+    "correta": "Quebra da glicose em piruvato no citoplasma",
+    "texto": "Ocorre em aeróbios e anaeróbios; rende 2 ATP líquidos.",
+    "ameaca": "METABOLISMO: 'GLICÓLISE'",
+    "alternativas": [
+      "Ciclo de Krebs",
+      "Cadeia respiratória",
+      "Quebra da glicose em piruvato no citoplasma",
+      "Ciclo de Calvin"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ciclo de Krebs (ácido cítrico)'?",
+    "correta": "Oxida o acetil-CoA na matriz mitocondrial",
+    "texto": "Gera NADH, FADH2 e CO2; prepara elétrons para a cadeia respiratória.",
+    "ameaca": "METABOLISMO: 'CICLO DE KREBS (ÁCIDO CÍTRICO)'",
+    "alternativas": [
+      "Glicólise",
+      "Fermentação",
+      "Oxida o acetil-CoA na matriz mitocondrial",
+      "Fotólise"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Cadeia transportadora de elétrons'?",
+    "correta": "Produz a maior parte do ATP na respiração aeróbia",
+    "texto": "Ocorre na membrana mitocondrial interna; O2 é o aceptor final.",
+    "ameaca": "METABOLISMO: 'CADEIA TRANSPORTADORA DE ELÉTRONS'",
+    "alternativas": [
+      "Glicólise",
+      "Ciclo de Calvin",
+      "Produz a maior parte do ATP na respiração aeróbia",
+      "Fermentação lática"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fermentação lática'?",
+    "correta": "Regenera NAD+ a partir do piruvato formando lactato",
+    "texto": "Ocorre em músculos sob anaerobiose e em algumas bactérias.",
+    "ameaca": "METABOLISMO: 'FERMENTAÇÃO LÁTICA'",
+    "alternativas": [
+      "Fermentação alcoólica",
+      "Ciclo de Krebs",
+      "Regenera NAD+ a partir do piruvato formando lactato",
+      "Fosforilação oxidativa"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fermentação alcoólica'?",
+    "correta": "Produz etanol e CO2 a partir do piruvato",
+    "texto": "Realizada por leveduras; base da panificação e bebidas alcoólicas.",
+    "ameaca": "METABOLISMO: 'FERMENTAÇÃO ALCOÓLICA'",
+    "alternativas": [
+      "Fermentação lática",
+      "Respiração aeróbia",
+      "Produz etanol e CO2 a partir do piruvato",
+      "Ciclo de Krebs"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ecossistema'?",
+    "correta": "Comunidade biótica + fatores abióticos interagindo",
+    "texto": "Inclui seres vivos e ambiente físico-químico em determinada área.",
+    "ameaca": "ECOLOGIA: 'ECOSSISTEMA'",
+    "alternativas": [
+      "População",
+      "Comunidade apenas",
+      "Comunidade biótica + fatores abióticos interagindo",
+      "Bioma apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'População'?",
+    "correta": "Grupo de indivíduos da mesma espécie em uma área",
+    "texto": "Unidade básica de estudo em ecologia de populações.",
+    "ameaca": "ECOLOGIA: 'POPULAÇÃO'",
+    "alternativas": [
+      "Comunidade",
+      "Ecossistema",
+      "Grupo de indivíduos da mesma espécie em uma área",
+      "Bioma"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Comunidade'?",
+    "correta": "Conjunto de populações de diferentes espécies em uma área",
+    "texto": "Interagem por predação, competição, mutualismo etc.",
+    "ameaca": "ECOLOGIA: 'COMUNIDADE'",
+    "alternativas": [
+      "População",
+      "Ecossistema",
+      "Conjunto de populações de diferentes espécies em uma área",
+      "Indivíduo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Nicho ecológico'?",
+    "correta": "Papel e posição de uma espécie no ecossistema",
+    "texto": "Inclui habitat, recursos usados e interações.",
+    "ameaca": "ECOLOGIA: 'NICHO ECOLÓGICO'",
+    "alternativas": [
+      "Habitat apenas",
+      "Território",
+      "Papel e posição de uma espécie no ecossistema",
+      "Bioma"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Habitat'?",
+    "correta": "Local físico onde a espécie vive",
+    "texto": "É o 'endereço'; o nicho é a 'profissão'.",
+    "ameaca": "ECOLOGIA: 'HABITAT'",
+    "alternativas": [
+      "Nicho",
+      "Território",
+      "Local físico onde a espécie vive",
+      "Ecossistema"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Cadeia alimentar'?",
+    "correta": "Sequência linear de transferência de energia",
+    "texto": "Começa com produtores e segue consumidores e decompositores.",
+    "ameaca": "ECOLOGIA: 'CADEIA ALIMENTAR'",
+    "alternativas": [
+      "Teia alimentar",
+      "Pirâmide de biomassa",
+      "Sequência linear de transferência de energia",
+      "Ciclo biogeoquímico"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Teia alimentar'?",
+    "correta": "Conjunto interligado de cadeias alimentares",
+    "texto": "Representa as relações tróficas reais de forma mais complexa.",
+    "ameaca": "ECOLOGIA: 'TEIA ALIMENTAR'",
+    "alternativas": [
+      "Cadeia linear",
+      "Pirâmide etária",
+      "Conjunto interligado de cadeias alimentares",
+      "Sucessão ecológica"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Produtores'?",
+    "correta": "Organismos autótrofos (fotossintetizantes ou quimiossintetizantes)",
+    "texto": "Formam a base das cadeias alimentares.",
+    "ameaca": "ECOLOGIA: 'PRODUTORES'",
+    "alternativas": [
+      "Consumidores primários",
+      "Decompositores apenas",
+      "Organismos autótrofos (fotossintetizantes ou quimiossintetizantes)",
+      "Parasitas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Consumidores primários'?",
+    "correta": "Herbívoros que se alimentam de produtores",
+    "texto": "Ocupam o segundo nível trófico.",
+    "ameaca": "ECOLOGIA: 'CONSUMIDORES PRIMÁRIOS'",
+    "alternativas": [
+      "Carnívoros",
+      "Decompositores",
+      "Herbívoros que se alimentam de produtores",
+      "Onívoros apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Decompositores'?",
+    "correta": "Fungos e bactérias que reciclam matéria orgânica",
+    "texto": "Devolvem nutrientes inorgânicos ao ambiente.",
+    "ameaca": "ECOLOGIA: 'DECOMPOSITORES'",
+    "alternativas": [
+      "Produtores",
+      "Herbívoros",
+      "Fungos e bactérias que reciclam matéria orgânica",
+      "Parasitas apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Sucessão ecológica'?",
+    "correta": "Mudança gradual da comunidade ao longo do tempo",
+    "texto": "Pode ser primária (substrato novo) ou secundária (após distúrbio).",
+    "ameaca": "ECOLOGIA: 'SUCESSÃO ECOLÓGICA'",
+    "alternativas": [
+      "Extinção em massa",
+      "Migração apenas",
+      "Mudança gradual da comunidade ao longo do tempo",
+      "Especiação"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Seleção natural'?",
+    "correta": "Sobrevivência e reprodução diferencial dos mais aptos",
+    "texto": "Mecanismo principal da evolução proposto por Darwin.",
+    "ameaca": "EVOLUÇÃO: 'SELEÇÃO NATURAL'",
+    "alternativas": [
+      "Deriva genética",
+      "Mutação apenas",
+      "Sobrevivência e reprodução diferencial dos mais aptos",
+      "Migração"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Deriva genética'?",
+    "correta": "Mudança aleatória nas frequências alélicas",
+    "texto": "Mais intensa em populações pequenas (efeito fundador, gargalo).",
+    "ameaca": "EVOLUÇÃO: 'DERIVA GENÉTICA'",
+    "alternativas": [
+      "Seleção natural",
+      "Mutação dirigida",
+      "Mudança aleatória nas frequências alélicas",
+      "Fluxo gênico apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Efeito fundador'?",
+    "correta": "Nova população iniciada por poucos indivíduos",
+    "texto": "Pode alterar drasticamente as frequências gênicas por acaso.",
+    "ameaca": "EVOLUÇÃO: 'EFEITO FUNDADOR'",
+    "alternativas": [
+      "Gargalo populacional",
+      "Seleção sexual",
+      "Nova população iniciada por poucos indivíduos",
+      "Migração em massa"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Gargalo populacional (bottleneck)'?",
+    "correta": "Redução drástica do tamanho populacional",
+    "texto": "Perde variabilidade genética e pode fixar alelos por acaso.",
+    "ameaca": "EVOLUÇÃO: 'GARGALO POPULACIONAL (BOTTLENECK)'",
+    "alternativas": [
+      "Efeito fundador",
+      "Seleção estabilizadora",
+      "Redução drástica do tamanho populacional",
+      "Radiação adaptativa"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Homologia'?",
+    "correta": "Semelhança por ancestralidade comum",
+    "texto": "Ex.: membros anteriores de vertebrados (mesma origem embrionária).",
+    "ameaca": "EVOLUÇÃO: 'HOMOLOGIA'",
+    "alternativas": [
+      "Analogia",
+      "Convergência apenas",
+      "Semelhança por ancestralidade comum",
+      "Paralelismo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Analogia (homoplasia)'?",
+    "correta": "Semelhança por convergência evolutiva",
+    "texto": "Ex.: asas de insetos e aves (funções similares, origens diferentes).",
+    "ameaca": "EVOLUÇÃO: 'ANALOGIA (HOMOPLASIA)'",
+    "alternativas": [
+      "Homologia",
+      "Sinapomorfia",
+      "Semelhança por convergência evolutiva",
+      "Ancestralidade direta"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Órgãos vestigiais'?",
+    "correta": "Estruturas reduzidas sem função evidente atual",
+    "texto": "Evidência de evolução (ex.: apêndice, cóccix em humanos).",
+    "ameaca": "EVOLUÇÃO: 'ÓRGÃOS VESTIGIAIS'",
+    "alternativas": [
+      "Órgãos análogos",
+      "Órgãos homólogos funcionais",
+      "Estruturas reduzidas sem função evidente atual",
+      "Adaptações recentes"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Teoria endossimbiótica'?",
+    "correta": "Mitocôndrias e cloroplastos originaram-se de bactérias simbiontes",
+    "texto": "Explica organelas com DNA próprio e membrana dupla.",
+    "ameaca": "EVOLUÇÃO: 'TEORIA ENDOSSIMBIÓTICA'",
+    "alternativas": [
+      "Origem abiótica da vida",
+      "Geração espontânea",
+      "Mitocôndrias e cloroplastos originaram-se de bactérias simbiontes",
+      "Panspermia"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Sistema ABO'?",
+    "correta": "Determina os grupos sanguíneos A, B, AB e O",
+    "texto": "Baseado na presença de antígenos A e/ou B nas hemácias.",
+    "ameaca": "GENÉTICA: 'SISTEMA ABO'",
+    "alternativas": [
+      "Sistema Rh apenas",
+      "Sistema MN",
+      "Determina os grupos sanguíneos A, B, AB e O",
+      "Sistema HLA"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Alelo dominante'?",
+    "correta": "Se expressa mesmo em heterozigose",
+    "texto": "Mascara o efeito do alelo recessivo no fenótipo.",
+    "ameaca": "GENÉTICA: 'ALELO DOMINANTE'",
+    "alternativas": [
+      "Alelo recessivo",
+      "Alelo letal apenas",
+      "Se expressa mesmo em heterozigose",
+      "Alelo codominante apenas"
+    ]
+  },
+  {
+    "inimigo": "Alelo recessivo",
+    "correta": "Só se expressa em homozigose",
+    "texto": "O fenótipo recessivo aparece apenas quando os dois alelos são recessivos.",
+    "ameaca": "GENÉTICA: QUANDO O ALELO RECESSIVO SE EXPRESSA?",
+    "alternativas": [
+      "Em heterozigose",
+      "Sempre",
+      "Só se expressa em homozigose",
+      "Nunca"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Codominância'?",
+    "correta": "Os dois alelos se expressam plenamente no heterozigoto",
+    "texto": "Ex.: grupo sanguíneo AB.",
+    "ameaca": "GENÉTICA: 'CODOMINÂNCIA'",
+    "alternativas": [
+      "Dominância completa",
+      "Recessividade",
+      "Os dois alelos se expressam plenamente no heterozigoto",
+      "Epistasia"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Pleiotropia'?",
+    "correta": "Um gene influencia vários caracteres fenotípicos",
+    "texto": "Ex.: gene da anemia falciforme afeta hemácias e outros tecidos.",
+    "ameaca": "GENÉTICA: 'PLEIOTROPIA'",
+    "alternativas": [
+      "Poligenia",
+      "Epistasia",
+      "Um gene influencia vários caracteres fenotípicos",
+      "Codominância"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Poligenia (herança quantitativa)'?",
+    "correta": "Vários genes influenciam um mesmo caráter",
+    "texto": "Ex.: cor da pele, estatura.",
+    "ameaca": "GENÉTICA: 'POLIGENIA (HERANÇA QUANTITATIVA)'",
+    "alternativas": [
+      "Pleiotropia",
+      "Monogenia",
+      "Vários genes influenciam um mesmo caráter",
+      "Epistasia"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Epistasia'?",
+    "correta": "Um gene mascara a expressão de outro gene",
+    "texto": "Interação gênica em que o genótipo de um loco oculta o de outro.",
+    "ameaca": "GENÉTICA: 'EPISTASIA'",
+    "alternativas": [
+      "Pleiotropia",
+      "Codominância",
+      "Um gene mascara a expressão de outro gene",
+      "Ligação gênica"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Crossing-over'?",
+    "correta": "Troca de segmentos entre cromátides homólogas",
+    "texto": "Ocorre na prófase I da meiose e aumenta a recombinação genética.",
+    "ameaca": "GENÉTICA: 'CROSSING-OVER'",
+    "alternativas": [
+      "Segregação independente",
+      "Mitose",
+      "Troca de segmentos entre cromátides homólogas",
+      "Não disjunção"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Não disjunção'?",
+    "correta": "Falha na separação de cromossomos na meiose/mitose",
+    "texto": "Causa aneuploidias como a trissomia do 21.",
+    "ameaca": "GENÉTICA: 'NÃO DISJUNÇÃO'",
+    "alternativas": [
+      "Crossing-over",
+      "Translocação",
+      "Falha na separação de cromossomos na meiose/mitose",
+      "Inversão"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'DNA polimerase'?",
+    "correta": "Enzima que sintetiza novas cadeias de DNA",
+    "texto": "Atua na replicação adicionando nucleotídeos complementares.",
+    "ameaca": "BIOLOGIA MOLECULAR: 'DNA POLIMERASE'",
+    "alternativas": [
+      "RNA polimerase",
+      "Ligase apenas",
+      "Enzima que sintetiza novas cadeias de DNA",
+      "Helicase apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'RNA polimerase'?",
+    "correta": "Enzima que realiza a transcrição",
+    "texto": "Sintetiza RNA a partir do molde de DNA.",
+    "ameaca": "BIOLOGIA MOLECULAR: 'RNA POLIMERASE'",
+    "alternativas": [
+      "DNA polimerase",
+      "Ribossomo",
+      "Enzima que realiza a transcrição",
+      "Transcriptase reversa apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Transcriptase reversa'?",
+    "correta": "Sintetiza DNA a partir de RNA",
+    "texto": "Presente em retrovírus (ex.: HIV).",
+    "ameaca": "BIOLOGIA MOLECULAR: 'TRANSCRIPTASE REVERSA'",
+    "alternativas": [
+      "DNA polimerase",
+      "RNA polimerase",
+      "Sintetiza DNA a partir de RNA",
+      "Helicase"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Código genético'?",
+    "correta": "Correspondência entre códons e aminoácidos",
+    "texto": "É universal (quase), degenerado e não sobreposto.",
+    "ameaca": "GENÉTICA: 'CÓDIGO GENÉTICO'",
+    "alternativas": [
+      "Sequência de aminoácidos apenas",
+      "Estrutura do ribossomo",
+      "Correspondência entre códons e aminoácidos",
+      "Sequência de tRNA"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Códon de iniciação'?",
+    "correta": "AUG (metionina)",
+    "texto": "Inicia a tradução na maioria dos casos.",
+    "ameaca": "GENÉTICA: 'CÓDON DE INICIAÇÃO'",
+    "alternativas": [
+      "UAA",
+      "UGA",
+      "AUG (metionina)",
+      "UAG"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Códons de parada (stop)'?",
+    "correta": "UAA, UAG e UGA",
+    "texto": "Não codificam aminoácido; terminam a tradução.",
+    "ameaca": "GENÉTICA: 'CÓDONS DE PARADA (STOP)'",
+    "alternativas": [
+      "AUG",
+      "UUU",
+      "UAA, UAG e UGA",
+      "GGG"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Clorofila'?",
+    "correta": "Pigmento que capta luz na fotossíntese",
+    "texto": "Absorve principalmente luz azul e vermelha; reflete verde.",
+    "ameaca": "FISIOLOGIA VEGETAL: 'CLOROFILA'",
+    "alternativas": [
+      "Caroteno apenas",
+      "Xantofila apenas",
+      "Pigmento que capta luz na fotossíntese",
+      "Antocianina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Estômatos'?",
+    "correta": "Estruturas que controlam as trocas gasosas na folha",
+    "texto": "Abrem e fecham regulando entrada de CO2 e saída de água.",
+    "ameaca": "BOTÂNICA: 'ESTÔMATOS'",
+    "alternativas": [
+      "Lenticelas apenas",
+      "Hidatódios",
+      "Estruturas que controlam as trocas gasosas na folha",
+      "Tricomas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Xilema'?",
+    "correta": "Tecido que transporta água e sais minerais",
+    "texto": "Condução ascendente da raiz para as folhas.",
+    "ameaca": "BOTÂNICA: 'XILEMA'",
+    "alternativas": [
+      "Floema",
+      "Câmbio",
+      "Tecido que transporta água e sais minerais",
+      "Parênquima apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Floema'?",
+    "correta": "Tecido que transporta seiva elaborada (açúcar)",
+    "texto": "Condução de fotoassimilados das folhas para o resto da planta.",
+    "ameaca": "BOTÂNICA: 'FLOEMA'",
+    "alternativas": [
+      "Xilema",
+      "Câmbio",
+      "Tecido que transporta seiva elaborada (açúcar)",
+      "Esclerênquima"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Raiz - função principal'?",
+    "correta": "Absorção de água e sais e fixação da planta",
+    "texto": "Também pode armazenar reservas.",
+    "ameaca": "BOTÂNICA: 'RAIZ - FUNÇÃO PRINCIPAL'",
+    "alternativas": [
+      "Fotossíntese",
+      "Produção de sementes",
+      "Absorção de água e sais e fixação da planta",
+      "Trocas gasosas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Flor - órgãos reprodutivos'?",
+    "correta": "Estames (androceu) e carpelos/pistilo (gineceu)",
+    "texto": "Estames produzem pólen; gineceu contém os óvulos.",
+    "ameaca": "BOTÂNICA: 'FLOR - ÓRGÃOS REPRODUTIVOS'",
+    "alternativas": [
+      "Sépalas e pétalas apenas",
+      "Apenas pétalas",
+      "Estames (androceu) e carpelos/pistilo (gineceu)",
+      "Apenas ovário"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Semente'?",
+    "correta": "Óvulo fecundado e desenvolvido",
+    "texto": "Contém o embrião e reservas para a germinação.",
+    "ameaca": "BOTÂNICA: 'SEMENTE'",
+    "alternativas": [
+      "Fruto apenas",
+      "Esporo",
+      "Óvulo fecundado e desenvolvido",
+      "Grão de pólen"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fruto'?",
+    "correta": "Ovário desenvolvido após a fecundação",
+    "texto": "Protege a semente e auxilia na dispersão.",
+    "ameaca": "BOTÂNICA: 'FRUTO'",
+    "alternativas": [
+      "Semente",
+      "Óvulo",
+      "Ovário desenvolvido após a fecundação",
+      "Flor"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Sistema nervoso central'?",
+    "correta": "Encéfalo e medula espinhal",
+    "texto": "Processa informações e coordena respostas.",
+    "ameaca": "FISIOLOGIA: 'SISTEMA NERVOSO CENTRAL'",
+    "alternativas": [
+      "Nervos periféricos",
+      "Gânglios apenas",
+      "Encéfalo e medula espinhal",
+      "Sistema autônomo apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Neurônio'?",
+    "correta": "Célula especializada na condução de impulsos nervosos",
+    "texto": "Possui dendritos, corpo celular e axônio.",
+    "ameaca": "FISIOLOGIA: 'NEURÔNIO'",
+    "alternativas": [
+      "Célula da glia apenas",
+      "Fibra muscular",
+      "Célula especializada na condução de impulsos nervosos",
+      "Hemácia"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Sinapse'?",
+    "correta": "Região de comunicação entre neurônios ou neurônio-efetor",
+    "texto": "Pode ser elétrica ou química (neurotransmissora).",
+    "ameaca": "FISIOLOGIA: 'SINAPSE'",
+    "alternativas": [
+      "Axônio apenas",
+      "Dendrito",
+      "Região de comunicação entre neurônios ou neurônio-efetor",
+      "Mielina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Hormônio'?",
+    "correta": "Mensageiro químico produzido por glândulas endócrinas",
+    "texto": "Age em células-alvo via corrente sanguínea.",
+    "ameaca": "FISIOLOGIA: 'HORMÔNIO'",
+    "alternativas": [
+      "Enzima digestiva",
+      "Neurotransmissor apenas",
+      "Mensageiro químico produzido por glândulas endócrinas",
+      "Anticorpo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Insulina'?",
+    "correta": "Hormônio que reduz a glicemia",
+    "texto": "Produzida pelas células beta do pâncreas; facilita a entrada de glicose nas células.",
+    "ameaca": "FISIOLOGIA: 'INSULINA'",
+    "alternativas": [
+      "Glucagon",
+      "Adrenalina",
+      "Hormônio que reduz a glicemia",
+      "Cortisol"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Glucagon'?",
+    "correta": "Hormônio que eleva a glicemia",
+    "texto": "Produzido pelas células alfa do pâncreas; estimula a glicogenólise.",
+    "ameaca": "FISIOLOGIA: 'GLUCAGON'",
+    "alternativas": [
+      "Insulina",
+      "Tireoxina",
+      "Hormônio que eleva a glicemia",
+      "Calcitonina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Hemácia (eritrócito)'?",
+    "correta": "Célula que transporta oxigênio",
+    "texto": "Contém hemoglobina; nos mamíferos é anucleada.",
+    "ameaca": "FISIOLOGIA: 'HEMÁCIA (ERITRÓCITO)'",
+    "alternativas": [
+      "Leucócito",
+      "Plaqueta",
+      "Célula que transporta oxigênio",
+      "Neurônio"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Plaquetas (trombócitos)'?",
+    "correta": "Fragmentos celulares da coagulação",
+    "texto": "Participam da hemostasia formando o tampão plaquetário.",
+    "ameaca": "FISIOLOGIA: 'PLAQUETAS (TROMBÓCITOS)'",
+    "alternativas": [
+      "Hemácias",
+      "Leucócitos",
+      "Fragmentos celulares da coagulação",
+      "Plasma"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Anticorpo (imunoglobulina)'?",
+    "correta": "Proteína produzida por linfócitos B",
+    "texto": "Reconhece antígenos de forma específica.",
+    "ameaca": "IMUNOLOGIA: 'ANTICORPO (IMUNOGLOBULINA)'",
+    "alternativas": [
+      "Antígeno",
+      "Citocina apenas",
+      "Proteína produzida por linfócitos B",
+      "Complemento apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Antígeno'?",
+    "correta": "Molécula reconhecida pelo sistema imune",
+    "texto": "Pode induzir resposta imune específica.",
+    "ameaca": "IMUNOLOGIA: 'ANTÍGENO'",
+    "alternativas": [
+      "Anticorpo",
+      "Citocina",
+      "Molécula reconhecida pelo sistema imune",
+      "Hormônio"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Vacina'?",
+    "correta": "Preparo que induz imunidade ativa sem causar a doença",
+    "texto": "Estimula memória imunológica contra o patógeno.",
+    "ameaca": "IMUNOLOGIA: 'VACINA'",
+    "alternativas": [
+      "Soro heterólogo",
+      "Antibiótico",
+      "Preparo que induz imunidade ativa sem causar a doença",
+      "Antiviral"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Antibiótico'?",
+    "correta": "Substância que mata ou inibe bactérias",
+    "texto": "Não age contra vírus; uso inadequado gera resistência.",
+    "ameaca": "MICROBIOLOGIA: 'ANTIBIÓTICO'",
+    "alternativas": [
+      "Antiviral",
+      "Antifúngico",
+      "Substância que mata ou inibe bactérias",
+      "Vacina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Biodiversidade'?",
+    "correta": "Variedade de seres vivos em todos os níveis",
+    "texto": "Inclui diversidade genética, de espécies e de ecossistemas.",
+    "ameaca": "ECOLOGIA: 'BIODIVERSIDADE'",
+    "alternativas": [
+      "Apenas número de espécies",
+      "Apenas biomassa",
+      "Variedade de seres vivos em todos os níveis",
+      "Apenas riqueza de predadores"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Extinção'?",
+    "correta": "Desaparecimento definitivo de uma espécie",
+    "texto": "Pode ser natural ou acelerada por ações humanas.",
+    "ameaca": "ECOLOGIA: 'EXTINÇÃO'",
+    "alternativas": [
+      "Migração",
+      "Especiação",
+      "Desaparecimento definitivo de uma espécie",
+      "Adaptação"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Efeito estufa'?",
+    "correta": "Retenção de calor por gases na atmosfera",
+    "texto": "Natural e necessário; intensificado por CO2, CH4 etc. causa aquecimento global.",
+    "ameaca": "ECOLOGIA: 'EFEITO ESTUFA'",
+    "alternativas": [
+      "Camada de ozônio",
+      "Chuva ácida",
+      "Retenção de calor por gases na atmosfera",
+      "Inversão térmica"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Camada de ozônio'?",
+    "correta": "Protege a Terra da radiação UV",
+    "texto": "O ozônio estratosférico absorve grande parte da radiação ultravioleta.",
+    "ameaca": "ECOLOGIA: 'CAMADA DE OZÔNIO'",
+    "alternativas": [
+      "Efeito estufa",
+      "Chuva ácida",
+      "Protege a Terra da radiação UV",
+      "Smog fotoquímico"
+    ]
+  },
+  {
+    "inimigo": "Organela responsável pela detoxificação e metabolismo de lipídios",
+    "correta": "Retículo endoplasmático liso",
+    "texto": "O RE liso sintetiza lipídios, metaboliza fármacos e armazena cálcio em células musculares.",
+    "ameaca": "CITÓLOGIA: QUAL ORGANELA METABOLIZA LIPÍDIOS E FÁRMACOS?",
+    "alternativas": [
+      "RE rugoso",
+      "Complexo de Golgi",
+      "Retículo endoplasmático liso",
+      "Lisossomo"
+    ]
+  },
+  {
+    "inimigo": "Organela com ribossomos aderidos à sua superfície",
+    "correta": "Retículo endoplasmático rugoso",
+    "texto": "O RE rugoso sintetiza proteínas destinadas à secreção ou à membrana.",
+    "ameaca": "CITÓLOGIA: QUAL ORGANELA TEM RIBOSSOMOS ADERIDOS?",
+    "alternativas": [
+      "RE liso",
+      "Mitocôndria",
+      "Retículo endoplasmático rugoso",
+      "Peroxissomo"
+    ]
+  },
+  {
+    "inimigo": "Estrutura que organiza os microtúbulos do fuso mitótico em células animais",
+    "correta": "Centrossomo / centríolos",
+    "texto": "Os centríolos organizam o fuso mitótico e estão envolvidos na formação de cílios e flagelos.",
+    "ameaca": "CITÓLOGIA: O QUE ORGANIZA O FUSO MITÓTICO?",
+    "alternativas": [
+      "Nucléolo",
+      "Lisossomo",
+      "Centrossomo / centríolos",
+      "Peroxissomo"
+    ]
+  },
+  {
+    "inimigo": "Região do núcleo onde são montadas as subunidades ribossômicas",
+    "correta": "Nucléolo",
+    "texto": "O nucléolo é o local de síntese e montagem do RNA ribossômico e das subunidades do ribossomo.",
+    "ameaca": "CITÓLOGIA: ONDE SÃO MONTADOS OS RIBOSSOMOS?",
+    "alternativas": [
+      "Citoplasma",
+      "Mitocôndria",
+      "Nucléolo",
+      "Complexo de Golgi"
+    ]
+  },
+  {
+    "inimigo": "Organela que realiza a beta-oxidação de ácidos graxos e detoxifica H2O2",
+    "correta": "Peroxissomo",
+    "texto": "Os peroxissomos contêm catalase e oxidases, degradando peróxido de hidrogênio e ácidos graxos.",
+    "ameaca": "CITÓLOGIA: QUAL ORGANELA CONTÉM CATALASE?",
+    "alternativas": [
+      "Lisossomo",
+      "Mitocôndria",
+      "Peroxissomo",
+      "Vacúolo"
+    ]
+  },
+  {
+    "inimigo": "Fase da mitose em que os cromossomos se alinham na placa equatorial",
+    "correta": "Metáfase",
+    "texto": "Na metáfase os cromossomos estão maximamente condensados e alinhados no centro da célula.",
+    "ameaca": "CICLO CELULAR: EM QUAL FASE OS CROMOSSOMOS SE ALINHAM?",
+    "alternativas": [
+      "Prófase",
+      "Anáfase",
+      "Metáfase",
+      "Telófase"
+    ]
+  },
+  {
+    "inimigo": "Fase da mitose em que as cromátides-irmãs se separam",
+    "correta": "Anáfase",
+    "texto": "Na anáfase os microtúbulos do fuso puxam as cromátides-irmãs para polos opostos.",
+    "ameaca": "CICLO CELULAR: EM QUAL FASE AS CROMÁTIDES SE SEPARAM?",
+    "alternativas": [
+      "Metáfase",
+      "Telófase",
+      "Anáfase",
+      "Prófase"
+    ]
+  },
+  {
+    "inimigo": "Fase do ciclo celular em que ocorre a replicação do DNA",
+    "correta": "Fase S (síntese)",
+    "texto": "Na fase S o DNA é duplicado, resultando em cromossomos com duas cromátides-irmãs.",
+    "ameaca": "CICLO CELULAR: EM QUAL FASE O DNA É REPLICADO?",
+    "alternativas": [
+      "G1",
+      "G2",
+      "Fase S (síntese)",
+      "Mitose"
+    ]
+  },
+  {
+    "inimigo": "Tipo de tecido vegetal que realiza a maior parte da fotossíntese na folha",
+    "correta": "Parênquima clorofiliano (clorênquima)",
+    "texto": "O parênquima paliçádico e o lacunoso concentram cloroplastos e realizam a fotossíntese.",
+    "ameaca": "BOTÂNICA: QUAL TECIDO FOLIAR FAZ FOTOSSÍNTESE?",
+    "alternativas": [
+      "Xilema",
+      "Floema",
+      "Parênquima clorofiliano (clorênquima)",
+      "Esclerênquima"
+    ]
+  },
+  {
+    "inimigo": "Hormônio vegetal que promove o amadurecimento dos frutos",
+    "correta": "Etileno",
+    "texto": "O etileno é um gás que acelera o amadurecimento e a abscisão de folhas e frutos.",
+    "ameaca": "FISIOLOGIA VEGETAL: QUAL HORMÔNIO AMADURECE FRUTOS?",
+    "alternativas": [
+      "Auxina",
+      "Giberelina",
+      "Etileno",
+      "Citocinina"
+    ]
+  },
+  {
+    "inimigo": "Hormônio vegetal que promove o alongamento celular e o fototropismo",
+    "correta": "Auxina (AIA)",
+    "texto": "A auxina estimula o alongamento celular e é responsável pelo crescimento em direção à luz.",
+    "ameaca": "FISIOLOGIA VEGETAL: QUAL HORMÔNIO CAUSA FOTOTROPISMO?",
+    "alternativas": [
+      "Etileno",
+      "Ácido abscísico",
+      "Auxina (AIA)",
+      "Citocinina"
+    ]
+  },
+  {
+    "inimigo": "Hormônio vegetal que induz a dormência de gemas e sementes",
+    "correta": "Ácido abscísico (ABA)",
+    "texto": "O ABA promove dormência e fecha estômatos em condições de estresse hídrico.",
+    "ameaca": "FISIOLOGIA VEGETAL: QUAL HORMÔNIO INDUZ DORMÊNCIA?",
+    "alternativas": [
+      "Giberelina",
+      "Auxina",
+      "Ácido abscísico (ABA)",
+      "Etileno"
+    ]
+  },
+  {
+    "inimigo": "Grupo de plantas que possuem sementes nuas (sem fruto)",
+    "correta": "Gimnospermas",
+    "texto": "As gimnospermas (pinheiros, ciprestes) produzem sementes expostas, não protegidas por fruto.",
+    "ameaca": "BOTÂNICA: QUAL GRUPO TEM SEMENTES NUAS?",
+    "alternativas": [
+      "Angiospermas",
+      "Pteridófitas",
+      "Gimnospermas",
+      "Briófitas"
+    ]
+  },
+  {
+    "inimigo": "Grupo de plantas com flores e frutos",
+    "correta": "Angiospermas",
+    "texto": "As angiospermas são as plantas com flores e sementes protegidas pelo fruto.",
+    "ameaca": "BOTÂNICA: QUAL GRUPO TEM FLORES E FRUTOS?",
+    "alternativas": [
+      "Gimnospermas",
+      "Pteridófitas",
+      "Angiospermas",
+      "Briófitas"
+    ]
+  },
+  {
+    "inimigo": "Plantas avasculares que dependem de água para reprodução",
+    "correta": "Briófitas (musgos e hepáticas)",
+    "texto": "As briófitas não possuem vasos condutores e o gametófito é a fase dominante.",
+    "ameaca": "BOTÂNICA: QUAL GRUPO É AVASCULAR?",
+    "alternativas": [
+      "Pteridófitas",
+      "Gimnospermas",
+      "Briófitas (musgos e hepáticas)",
+      "Angiospermas"
+    ]
+  },
+  {
+    "inimigo": "Plantas vasculares sem sementes (samambaias)",
+    "correta": "Pteridófitas",
+    "texto": "As pteridófitas possuem vasos condutores, mas se reproduzem por esporos, sem sementes.",
+    "ameaca": "BOTÂNICA: QUAL GRUPO TEM VASOS MAS NÃO TEM SEMENTES?",
+    "alternativas": [
+      "Briófitas",
+      "Gimnospermas",
+      "Pteridófitas",
+      "Angiospermas"
+    ]
+  },
+  {
+    "inimigo": "Filo dos animais com corpo segmentado e exoesqueleto de quitina",
+    "correta": "Arthropoda (artrópodes)",
+    "texto": "Artrópodes incluem insetos, aracnídeos, crustáceos e milípedes; possuem apêndices articulados.",
+    "ameaca": "ZOOLOGIA: QUAL FILO TEM EXOESQUELETO DE QUITINA?",
+    "alternativas": [
+      "Mollusca",
+      "Annelida",
+      "Arthropoda (artrópodes)",
+      "Echinodermata"
+    ]
+  },
+  {
+    "inimigo": "Filo dos animais de corpo mole, muitos com concha",
+    "correta": "Mollusca (moluscos)",
+    "texto": "Moluscos incluem caracóis, polvos, lulas e bivalves; muitos possuem manto e concha.",
+    "ameaca": "ZOOLOGIA: QUAL FILO INCLUI POLVOS E CARACÓIS?",
+    "alternativas": [
+      "Annelida",
+      "Arthropoda",
+      "Mollusca (moluscos)",
+      "Cnidaria"
+    ]
+  },
+  {
+    "inimigo": "Filo dos vermes segmentados (minhocas e sanguessugas)",
+    "correta": "Annelida (anelídeos)",
+    "texto": "Anelídeos possuem corpo metamerizado e sistema circulatório fechado.",
+    "ameaca": "ZOOLOGIA: QUAL FILO TEM CORPO SEGMENTADO SEM EXOESQUELETO?",
+    "alternativas": [
+      "Nematoda",
+      "Platyhelminthes",
+      "Annelida (anelídeos)",
+      "Arthropoda"
+    ]
+  },
+  {
+    "inimigo": "Filo dos cnidários (águas-vivas, corais, anêmonas)",
+    "correta": "Cnidaria",
+    "texto": "Cnidários possuem cnidócitos (células urticantes) e simetria radial.",
+    "ameaca": "ZOOLOGIA: QUAL FILO POSSUI CÉLULAS URTICANTES?",
+    "alternativas": [
+      "Porifera",
+      "Echinodermata",
+      "Cnidaria",
+      "Mollusca"
+    ]
+  },
+  {
+    "inimigo": "Filo dos equinodermos (estrelas-do-mar, ouriços)",
+    "correta": "Echinodermata",
+    "texto": "Equinodermos têm simetria pentarradial na fase adulta e sistema hidrovascular.",
+    "ameaca": "ZOOLOGIA: QUAL FILO TEM SISTEMA AMBULACRÁRIO?",
+    "alternativas": [
+      "Chordata",
+      "Arthropoda",
+      "Echinodermata",
+      "Mollusca"
+    ]
+  },
+  {
+    "inimigo": "Característica exclusiva dos cordados",
+    "correta": "Notocorda (em alguma fase da vida)",
+    "texto": "Cordados possuem notocorda, tubo nervoso dorsal, fendas faríngeas e cauda pós-anal em algum estágio.",
+    "ameaca": "ZOOLOGIA: QUAL CARACTERÍSTICA DEFINE OS CORDADOS?",
+    "alternativas": [
+      "Exoesqueleto",
+      "Segmentação",
+      "Notocorda (em alguma fase da vida)",
+      "Simetria radial"
+    ]
+  },
+  {
+    "inimigo": "Classe dos mamíferos que põem ovos",
+    "correta": "Monotremata (ornitorrinco e équidnas)",
+    "texto": "Os monotremados são mamíferos ovíparos que ainda amamentam os filhotes.",
+    "ameaca": "ZOOLOGIA: QUAL GRUPO DE MAMÍFEROS PÕE OVOS?",
+    "alternativas": [
+      "Marsupiais",
+      "Placentários",
+      "Monotremata (ornitorrinco e équidnas)",
+      "Cetáceos"
+    ]
+  },
+  {
+    "inimigo": "Classe de vertebrados com pele seca e escamas, respiração pulmonar",
+    "correta": "Répteis",
+    "texto": "Répteis são amniotas ectotérmicos com pele queratinizada e ovos com casca.",
+    "ameaca": "ZOOLOGIA: QUAL CLASSE TEM PELE COM ESCAMAS E OVOS COM CASCA?",
+    "alternativas": [
+      "Anfíbios",
+      "Aves",
+      "Répteis",
+      "Peixes"
+    ]
+  },
+  {
+    "inimigo": "Classe de vertebrados que passam por metamorfose e têm pele úmida",
+    "correta": "Anfíbios",
+    "texto": "Anfíbios (sapos, rãs, salamandras) dependem de água para reprodução e têm respiração cutânea.",
+    "ameaca": "ZOOLOGIA: QUAL CLASSE FAZ METAMORFOSE E TEM PELE ÚMIDA?",
+    "alternativas": [
+      "Répteis",
+      "Peixes",
+      "Anfíbios",
+      "Aves"
+    ]
+  },
+  {
+    "inimigo": "Estrutura que permite o voo nas aves (além das asas)",
+    "correta": "Ossos pneumáticos e sacos aéreos",
+    "texto": "Ossos ocos e sistema de sacos aéreos reduzem o peso e aumentam a eficiência respiratória das aves.",
+    "ameaca": "ZOOLOGIA: O QUE AJUDA AS AVES A VOAR (ALÉM DAS ASAS)?",
+    "alternativas": [
+      "Bexiga natatória",
+      "Placenta",
+      "Ossos pneumáticos e sacos aéreos",
+      "Escamas"
+    ]
+  },
+  {
+    "inimigo": "Tipo de simetria típica dos cnidários e equinodermos adultos",
+    "correta": "Simetria radial",
+    "texto": "Na simetria radial o corpo pode ser dividido em partes semelhantes em torno de um eixo central.",
+    "ameaca": "ZOOLOGIA: QUAL SIMETRIA TÊM ÁGUAS-VIVAS E ESTRELAS-DO-MAR?",
+    "alternativas": [
+      "Bilateral",
+      "Esférica",
+      "Simetria radial",
+      "Assimétrica"
+    ]
+  },
+  {
+    "inimigo": "Tipo de simetria da maioria dos animais com cefalização",
+    "correta": "Simetria bilateral",
+    "texto": "A simetria bilateral está associada à cefalização e ao movimento dirigido.",
+    "ameaca": "ZOOLOGIA: QUAL SIMETRIA ESTÁ LIGADA À CEFALIZAÇÃO?",
+    "alternativas": [
+      "Radial",
+      "Esférica",
+      "Simetria bilateral",
+      "Assimétrica"
+    ]
+  },
+  {
+    "inimigo": "Processo de formação do tubo neural no embrião",
+    "correta": "Neurulação",
+    "texto": "A neurulação forma o tubo neural a partir da ectoderme, dando origem ao sistema nervoso central.",
+    "ameaca": "EMBRIOLOGIA: QUAL PROCESSO FORMA O TUBO NEURAL?",
+    "alternativas": [
+      "Gastrulação",
+      "Clivagem",
+      "Neurulação",
+      "Organogênese apenas"
+    ]
+  },
+  {
+    "inimigo": "Fase embrionária em que se formam os três folhetos germinativos",
+    "correta": "Gastrulação",
+    "texto": "Na gastrulação formam-se ectoderme, mesoderme e endoderme.",
+    "ameaca": "EMBRIOLOGIA: EM QUAL FASE SURGEM OS FOLHETOS GERMINATIVOS?",
+    "alternativas": [
+      "Clivagem",
+      "Blastulação",
+      "Gastrulação",
+      "Neurulação"
+    ]
+  },
+  {
+    "inimigo": "Folheto embrionário que dá origem à epiderme e ao sistema nervoso",
+    "correta": "Ectoderme",
+    "texto": "A ectoderme forma a pele (epiderme) e o sistema nervoso.",
+    "ameaca": "EMBRIOLOGIA: QUAL FOLHETO ORIGINA O SISTEMA NERVOSO?",
+    "alternativas": [
+      "Mesoderme",
+      "Endoderme",
+      "Ectoderme",
+      "Blastocisto"
+    ]
+  },
+  {
+    "inimigo": "Folheto embrionário que dá origem a músculos, ossos e sistema circulatório",
+    "correta": "Mesoderme",
+    "texto": "A mesoderme forma tecidos conjuntivos, musculares e o sistema cardiovascular.",
+    "ameaca": "EMBRIOLOGIA: QUAL FOLHETO ORIGINA MÚSCULOS E OSSOS?",
+    "alternativas": [
+      "Ectoderme",
+      "Endoderme",
+      "Mesoderme",
+      "Trofoblasto"
+    ]
+  },
+  {
+    "inimigo": "Folheto embrionário que dá origem ao revestimento do tubo digestivo",
+    "correta": "Endoderme",
+    "texto": "A endoderme forma o epitélio do tubo digestivo e de órgãos associados (fígado, pâncreas).",
+    "ameaca": "EMBRIOLOGIA: QUAL FOLHETO ORIGINA O TUBO DIGESTIVO?",
+    "alternativas": [
+      "Ectoderme",
+      "Mesoderme",
+      "Endoderme",
+      "Notochord"
+    ]
+  },
+  {
+    "inimigo": "Tipo de fecundação em que o espermatozoide encontra o óvulo fora do corpo",
+    "correta": "Fecundação externa",
+    "texto": "Comum em peixes e anfíbios; depende de meio aquático.",
+    "ameaca": "REPRODUÇÃO: QUAL FECUNDAÇÃO OCORRE FORA DO CORPO?",
+    "alternativas": [
+      "Fecundação interna",
+      "Partenogênese",
+      "Fecundação externa",
+      "Conjugação"
+    ]
+  },
+  {
+    "inimigo": "Desenvolvimento embrionário dentro do corpo da mãe com placenta",
+    "correta": "Viviparidade (placentários)",
+    "texto": "Nos mamíferos placentários o embrião se desenvolve no útero com nutrição via placenta.",
+    "ameaca": "REPRODUÇÃO: QUAL TIPO DE DESENVOLVIMENTO USA PLACENTA?",
+    "alternativas": [
+      "Oviparidade",
+      "Ovoviviparidade",
+      "Viviparidade (placentários)",
+      "Partenogênese"
+    ]
+  },
+  {
+    "inimigo": "Reprodução assexuada por divisão do corpo em dois",
+    "correta": "Cissiparidade / fissão binária",
+    "texto": "Comum em bactérias, protozoários e alguns invertebrados (planárias).",
+    "ameaca": "REPRODUÇÃO: QUAL PROCESSO DIVIDE O ORGANISMO AO MEIO?",
+    "alternativas": [
+      "Brotamento",
+      "Esporulação",
+      "Cissiparidade / fissão binária",
+      "Partenogênese"
+    ]
+  },
+  {
+    "inimigo": "Reprodução assexuada por formação de brotos",
+    "correta": "Brotamento (gemiparidade)",
+    "texto": "Ocorre em hidras, esponjas e leveduras; o broto pode se separar ou formar colônia.",
+    "ameaca": "REPRODUÇÃO: QUAL PROCESSO FORMA BROTOS?",
+    "alternativas": [
+      "Fissão",
+      "Esporulação",
+      "Brotamento (gemiparidade)",
+      "Conjugação"
+    ]
+  },
+  {
+    "inimigo": "Célula haploide especializada na reprodução sexuada",
+    "correta": "Gameta",
+    "texto": "Gametas (óvulo e espermatozoide) se fundem na fecundação restaurando a diploidia.",
+    "ameaca": "REPRODUÇÃO: QUAL CÉLULA É HAPLOIDE E PARTICIPA DA FECUNDAÇÃO?",
+    "alternativas": [
+      "Zigoto",
+      "Somática",
+      "Gameta",
+      "Esporo diplóide"
+    ]
+  },
+  {
+    "inimigo": "Célula diplóide resultante da fecundação",
+    "correta": "Zigoto",
+    "texto": "O zigoto é a primeira célula do novo organismo e sofre mitoses para formar o embrião.",
+    "ameaca": "REPRODUÇÃO: QUAL CÉLULA RESULTA DA UNIÃO DOS GAMETAS?",
+    "alternativas": [
+      "Gameta",
+      "Esporo",
+      "Zigoto",
+      "Blastômero apenas"
+    ]
+  },
+  {
+    "inimigo": "Barreira reprodutiva em que os gametas não se reconhecem ou não se fundem",
+    "correta": "Isolamento gamético",
+    "texto": "É um mecanismo pré-zigótico que impede a formação do zigoto entre espécies diferentes.",
+    "ameaca": "EVOLUÇÃO: QUAL ISOLAMENTO IMPEDE A FUSÃO DOS GAMETAS?",
+    "alternativas": [
+      "Isolamento geográfico",
+      "Híbrido inviável",
+      "Isolamento gamético",
+      "Estação de acasalamento"
+    ]
+  },
+  {
+    "inimigo": "Evidência de evolução: estruturas semelhantes por ancestral comum",
+    "correta": "Órgãos homólogos",
+    "texto": "Homologia indica ancestralidade comum, mesmo que a função tenha divergido.",
+    "ameaca": "EVOLUÇÃO: O QUE SÃO ÓRGÃOS HOMÓLOGOS?",
+    "alternativas": [
+      "Órgãos análogos",
+      "Órgãos vestigiais apenas",
+      "Órgãos homólogos",
+      "Convergência"
+    ]
+  },
+  {
+    "inimigo": "Evidência de evolução: estruturas semelhantes por convergência",
+    "correta": "Órgãos análogos",
+    "texto": "Analogia resulta de adaptação a funções semelhantes, sem ancestralidade comum próxima.",
+    "ameaca": "EVOLUÇÃO: O QUE SÃO ÓRGÃOS ANÁLOGOS?",
+    "alternativas": [
+      "Órgãos homólogos",
+      "Órgãos vestigiais",
+      "Órgãos análogos",
+      "Sinapomorfias"
+    ]
+  },
+  {
+    "inimigo": "Fóssil intermediário entre peixes e tetrápodes",
+    "correta": "Tiktaalik (exemplo clássico)",
+    "texto": "Fósseis de transição como Tiktaalik mostram a passagem da vida aquática para a terrestre.",
+    "ameaca": "EVOLUÇÃO: QUAL EXEMPLO DE FÓSSIL DE TRANSIÇÃO?",
+    "alternativas": [
+      "Trilobita apenas",
+      "Amônite",
+      "Tiktaalik (exemplo clássico)",
+      "Dinossauro não aviário"
+    ]
+  },
+  {
+    "inimigo": "Teoria que explica a origem das organelas com DNA próprio",
+    "correta": "Teoria endossimbiótica",
+    "texto": "Mitocôndrias e cloroplastos teriam se originado de bactérias engolfadas por células ancestrais.",
+    "ameaca": "EVOLUÇÃO: QUAL TEORIA EXPLICA MITOCÔNDRIAS E CLOROPLASTOS?",
+    "alternativas": [
+      "Geração espontânea",
+      "Panspermia",
+      "Teoria endossimbiótica",
+      "Criacionismo"
+    ]
+  },
+  {
+    "inimigo": "Ciência que classifica e nomeia os seres vivos",
+    "correta": "Taxonomia / Sistemática",
+    "texto": "A taxonomia organiza os organismos em categorias hierárquicas e atribui nomes científicos.",
+    "ameaca": "CLASSIFICAÇÃO: QUAL CIÊNCIA NOMEIA E CLASSIFICA OS SERES VIVOS?",
+    "alternativas": [
+      "Ecologia",
+      "Genética",
+      "Taxonomia / Sistemática",
+      "Fisiologia"
+    ]
+  },
+  {
+    "inimigo": "Sistema de nomenclatura binomial foi proposto por",
+    "correta": "Carl Lineu (Linnaeus)",
+    "texto": "Lineu estabeleceu o sistema gênero + espécie ainda usado hoje.",
+    "ameaca": "CLASSIFICAÇÃO: QUEM PROPÔS A NOMENCLATURA BINOMIAL?",
+    "alternativas": [
+      "Darwin",
+      "Mendel",
+      "Carl Lineu (Linnaeus)",
+      "Wallace"
+    ]
+  },
+  {
+    "inimigo": "Categoria taxonômica mais inclusiva entre as opções",
+    "correta": "Reino (ou Domínio)",
+    "texto": "A hierarquia vai de espécie (menos inclusiva) até domínio/reino (mais inclusiva).",
+    "ameaca": "CLASSIFICAÇÃO: QUAL CATEGORIA É MAIS AMPLA?",
+    "alternativas": [
+      "Gênero",
+      "Família",
+      "Reino (ou Domínio)",
+      "Espécie"
+    ]
+  },
+  {
+    "inimigo": "Domínios da vida propostos na classificação atual",
+    "correta": "Bacteria, Archaea e Eukarya",
+    "texto": "Os três domínios separam bactérias, arqueias e eucariotos com base em dados moleculares.",
+    "ameaca": "CLASSIFICAÇÃO: QUAIS SÃO OS TRÊS DOMÍNIOS?",
+    "alternativas": [
+      "Plantae, Animalia, Fungi",
+      "Prokarya e Eukarya apenas",
+      "Bacteria, Archaea e Eukarya",
+      "Monera e Protista"
+    ]
+  },
+  {
+    "inimigo": "Principal reserva de energia nas células animais",
+    "correta": "Glicogênio",
+    "texto": "O glicogênio é o polissacarídeo de reserva armazenado no fígado e nos músculos.",
+    "ameaca": "BIOQUÍMICA: QUAL A RESERVA ENERGÉTICA DOS ANIMAIS?",
+    "alternativas": [
+      "Amido",
+      "Celulose",
+      "Glicogênio",
+      "Quitina"
+    ]
+  },
+  {
+    "inimigo": "Principal reserva de energia nas células vegetais",
+    "correta": "Amido",
+    "texto": "O amido é o polissacarídeo de reserva típico das plantas.",
+    "ameaca": "BIOQUÍMICA: QUAL A RESERVA ENERGÉTICA DAS PLANTAS?",
+    "alternativas": [
+      "Glicogênio",
+      "Celulose",
+      "Amido",
+      "Quitina"
+    ]
+  },
+  {
+    "inimigo": "Polissacarídeo estrutural da parede celular vegetal",
+    "correta": "Celulose",
+    "texto": "A celulose forma microfibrilas que conferem rigidez à parede celular das plantas.",
+    "ameaca": "BIOQUÍMICA: QUAL POLISSACARÍDEO FORMA A PAREDE VEGETAL?",
+    "alternativas": [
+      "Amido",
+      "Glicogênio",
+      "Celulose",
+      "Peptideoglicano"
+    ]
+  },
+  {
+    "inimigo": "Lipídio que forma a bicamada das membranas celulares",
+    "correta": "Fosfolipídio",
+    "texto": "Os fosfolipídios têm cabeça hidrofílica e caudas hidrofóbicas, organizando-se em bicamada.",
+    "ameaca": "BIOQUÍMICA: QUAL LIPÍDIO FORMA AS MEMBRANAS?",
+    "alternativas": [
+      "Triglicerídeo",
+      "Colesterol apenas",
+      "Fosfolipídio",
+      "Cera"
+    ]
+  },
+  {
+    "inimigo": "Proteína que catalisa reações químicas",
+    "correta": "Enzima",
+    "texto": "Enzimas são catalisadores biológicos que diminuem a energia de ativação das reações.",
+    "ameaca": "BIOQUÍMICA: O QUE É UMA ENZIMA?",
+    "alternativas": [
+      "Hormônio",
+      "Anticorpo",
+      "Enzima",
+      "Transportador apenas"
+    ]
+  },
+  {
+    "inimigo": "Local onde a enzima se liga ao substrato",
+    "correta": "Sítio ativo",
+    "texto": "O sítio ativo tem forma complementar ao substrato, permitindo a catálise específica.",
+    "ameaca": "BIOQUÍMICA: ONDE O SUBSTRATO SE LIGA À ENZIMA?",
+    "alternativas": [
+      "Sítio alostérico apenas",
+      "Célula inteira",
+      "Sítio ativo",
+      "Membrana"
+    ]
+  },
+  {
+    "inimigo": "Fator que desnatura enzimas em excesso",
+    "correta": "Temperatura ou pH extremos",
+    "texto": "Temperaturas altas e pH inadequado alteram a estrutura tridimensional da enzima, inativando-a.",
+    "ameaca": "BIOQUÍMICA: O QUE PODE DESNATURAR UMA ENZIMA?",
+    "alternativas": [
+      "Água",
+      "Substrato",
+      "Temperatura ou pH extremos",
+      "Cofatores"
+    ]
+  },
+  {
+    "inimigo": "Molécula energética universal das células",
+    "correta": "ATP (adenosina trifosfato)",
+    "texto": "O ATP armazena energia em suas ligações fosfato e a libera na hidrólise para ADP + Pi.",
+    "ameaca": "METABOLISMO: QUAL A 'MOEDA ENERGÉTICA' DA CÉLULA?",
+    "alternativas": [
+      "Glicose apenas",
+      "NADH apenas",
+      "ATP (adenosina trifosfato)",
+      "DNA"
+    ]
+  },
+  {
+    "inimigo": "Processo que libera energia pela quebra de moléculas",
+    "correta": "Catabolismo",
+    "texto": "O catabolismo degrada moléculas complexas em outras mais simples, liberando energia.",
+    "ameaca": "METABOLISMO: QUAL PROCESSO QUEBRA MOLÉCULAS E LIBERA ENERGIA?",
+    "alternativas": [
+      "Anabolismo",
+      "Fotossíntese apenas",
+      "Catabolismo",
+      "Transcrição"
+    ]
+  },
+  {
+    "inimigo": "Processo que consome energia para sintetizar moléculas complexas",
+    "correta": "Anabolismo",
+    "texto": "O anabolismo constrói macromoléculas a partir de precursores, gastando ATP.",
+    "ameaca": "METABOLISMO: QUAL PROCESSO SINTETIZA MOLÉCULAS E CONSOME ENERGIA?",
+    "alternativas": [
+      "Catabolismo",
+      "Respiração",
+      "Anabolismo",
+      "Digestão"
+    ]
+  },
+  {
+    "inimigo": "Pigmento respiratório dos vertebrados que transporta O2",
+    "correta": "Hemoglobina",
+    "texto": "A hemoglobina nos eritrócitos liga oxigênio nos pulmões e o libera nos tecidos.",
+    "ameaca": "FISIOLOGIA: QUAL PROTEÍNA TRANSPORTA OXIGÊNIO NO SANGUE?",
+    "alternativas": [
+      "Mioglobina apenas",
+      "Hemocianina",
+      "Hemoglobina",
+      "Clorofila"
+    ]
+  },
+  {
+    "inimigo": "Estrutura do néfron onde ocorre a filtração do sangue",
+    "correta": "Corpúsculo renal (glomérulo + cápsula de Bowman)",
+    "texto": "No glomérulo o sangue é filtrado formando o filtrado glomerular.",
+    "ameaca": "FISIOLOGIA: ONDE OCORRE A FILTRAÇÃO RENAL?",
+    "alternativas": [
+      "Túbulo contorcido distal",
+      "Alça de Henle apenas",
+      "Corpúsculo renal (glomérulo + cápsula de Bowman)",
+      "Ureter"
+    ]
+  },
+  {
+    "inimigo": "Hormônio que aumenta a reabsorção de água nos rins",
+    "correta": "ADH (hormônio antidiurético / vasopressina)",
+    "texto": "O ADH torna o túbulo coletor permeável à água, concentrando a urina.",
+    "ameaca": "FISIOLOGIA: QUAL HORMÔNIO REDUZ O VOLUME DE URINA?",
+    "alternativas": [
+      "Aldosterona apenas",
+      "Insulina",
+      "ADH (hormônio antidiurético / vasopressina)",
+      "Adrenalina"
+    ]
+  },
+  {
+    "inimigo": "Válvula que impede o refluxo entre átrio e ventrículo esquerdos",
+    "correta": "Válvula mitral (bicúspide)",
+    "texto": "A válvula mitral garante o fluxo unidirecional do átrio esquerdo para o ventrículo esquerdo.",
+    "ameaca": "FISIOLOGIA: QUAL VÁLVULA ESTÁ ENTRE ÁTRIO E VENTRÍCULO ESQUERDOS?",
+    "alternativas": [
+      "Tricúspide",
+      "Aórtica",
+      "Válvula mitral (bicúspide)",
+      "Pulmonar"
+    ]
+  },
+  {
+    "inimigo": "Circuito sanguíneo que vai do coração aos pulmões e volta",
+    "correta": "Circulação pulmonar (pequena circulação)",
+    "texto": "A circulação pulmonar oxigena o sangue e elimina CO2.",
+    "ameaca": "FISIOLOGIA: QUAL CIRCUITO PASSA PELOS PULMÕES?",
+    "alternativas": [
+      "Circulação sistêmica",
+      "Circulação portal",
+      "Circulação pulmonar (pequena circulação)",
+      "Circulação coronária apenas"
+    ]
+  },
+  {
+    "inimigo": "Circuito sanguíneo que leva sangue oxigenado aos tecidos",
+    "correta": "Circulação sistêmica (grande circulação)",
+    "texto": "A circulação sistêmica distribui O2 e nutrientes e recolhe CO2 e resíduos.",
+    "ameaca": "FISIOLOGIA: QUAL CIRCUITO IRRIGAÇÃO OS TECIDOS DO CORPO?",
+    "alternativas": [
+      "Circulação pulmonar",
+      "Circulação linfática",
+      "Circulação sistêmica (grande circulação)",
+      "Circulação portal apenas"
+    ]
+  },
+  {
+    "inimigo": "Enzima da saliva que inicia a digestão do amido",
+    "correta": "Amilase salivar (ptialina)",
+    "texto": "A amilase salivar quebra o amido em maltose já na boca.",
+    "ameaca": "FISIOLOGIA: QUAL ENZIMA DIGERE AMIDO NA BOCA?",
+    "alternativas": [
+      "Pepsina",
+      "Lipase",
+      "Amilase salivar (ptialina)",
+      "Tripsina"
+    ]
+  },
+  {
+    "inimigo": "Enzima gástrica que digere proteínas",
+    "correta": "Pepsina",
+    "texto": "A pepsina é ativada pelo HCl e inicia a digestão proteica no estômago.",
+    "ameaca": "FISIOLOGIA: QUAL ENZIMA DIGERE PROTEÍNAS NO ESTÔMAGO?",
+    "alternativas": [
+      "Amilase",
+      "Lipase",
+      "Pepsina",
+      "Sacarase"
+    ]
+  },
+  {
+    "inimigo": "Órgão que produz bile",
+    "correta": "Fígado",
+    "texto": "O fígado produz bile, armazenada na vesícula e liberada no duodeno para emulsificar gorduras.",
+    "ameaca": "FISIOLOGIA: QUAL ÓRGÃO PRODUZ BILE?",
+    "alternativas": [
+      "Pâncreas",
+      "Estômago",
+      "Fígado",
+      "Baço"
+    ]
+  },
+  {
+    "inimigo": "Órgão que produz enzimas digestivas e hormônios (insulina/glucagon)",
+    "correta": "Pâncreas",
+    "texto": "O pâncreas tem função exócrina (enzimas) e endócrina (ilhotas de Langerhans).",
+    "ameaca": "FISIOLOGIA: QUAL ÓRGÃO É EXÓCRINO E ENDÓCRINO NA DIGESTÃO?",
+    "alternativas": [
+      "Fígado",
+      "Estômago",
+      "Pâncreas",
+      "Vesícula biliar"
+    ]
+  },
+  {
+    "inimigo": "Local principal de absorção de nutrientes no tubo digestivo",
+    "correta": "Intestino delgado",
+    "texto": "O intestino delgado (jejuno e íleo) possui vilosidades e microvilosidades que ampliam a superfície de absorção.",
+    "ameaca": "FISIOLOGIA: ONDE A MAIOR PARTE DOS NUTRIENTES É ABSORVIDA?",
+    "alternativas": [
+      "Estômago",
+      "Intestino grosso",
+      "Intestino delgado",
+      "Boca"
+    ]
+  },
+  {
+    "inimigo": "Vitamina cuja deficiência causa escorbuto",
+    "correta": "Vitamina C (ácido ascórbico)",
+    "texto": "A vitamina C é cofator na síntese de colágeno; sua falta causa escorbuto.",
+    "ameaca": "NUTRIÇÃO: QUAL VITAMINA PREVINE O ESCORBUTO?",
+    "alternativas": [
+      "Vitamina A",
+      "Vitamina D",
+      "Vitamina C (ácido ascórbico)",
+      "Vitamina K"
+    ]
+  },
+  {
+    "inimigo": "Vitamina cuja deficiência causa raquitismo",
+    "correta": "Vitamina D",
+    "texto": "A vitamina D regula o cálcio; sua falta em crianças causa raquitismo.",
+    "ameaca": "NUTRIÇÃO: QUAL VITAMINA PREVINE O RAQUITISMO?",
+    "alternativas": [
+      "Vitamina C",
+      "Vitamina A",
+      "Vitamina D",
+      "Vitamina B12"
+    ]
+  },
+  {
+    "inimigo": "Vitamina importante para a coagulação sanguínea",
+    "correta": "Vitamina K",
+    "texto": "A vitamina K é necessária à síntese de fatores de coagulação no fígado.",
+    "ameaca": "NUTRIÇÃO: QUAL VITAMINA É ESSENCIAL À COAGULAÇÃO?",
+    "alternativas": [
+      "Vitamina C",
+      "Vitamina A",
+      "Vitamina K",
+      "Vitamina E"
+    ]
+  },
+  {
+    "inimigo": "Mineral essencial à hemoglobina",
+    "correta": "Ferro",
+    "texto": "O ferro faz parte do grupo heme da hemoglobina e da mioglobina.",
+    "ameaca": "NUTRIÇÃO: QUAL MINERAL COMPÕE A HEMOGLOBINA?",
+    "alternativas": [
+      "Cálcio",
+      "Sódio",
+      "Ferro",
+      "Potássio"
+    ]
+  },
+  {
+    "inimigo": "Doença causada pela deficiência de iodo",
+    "correta": "Bócio / hipotireoidismo",
+    "texto": "O iodo é necessário à síntese dos hormônios tireoidianos; sua falta causa bócio.",
+    "ameaca": "NUTRIÇÃO: QUAL DOENÇA ESTÁ LIGADA À FALTA DE IODO?",
+    "alternativas": [
+      "Anemia ferropriva",
+      "Escorbuto",
+      "Bócio / hipotireoidismo",
+      "Raquitismo"
+    ]
+  },
+  {
+    "inimigo": "Relação ecológica em que ambos os organismos se beneficiam",
+    "correta": "Mutualismo",
+    "texto": "No mutualismo as duas espécies obtêm vantagem (ex.: liquens, micorrizas).",
+    "ameaca": "ECOLOGIA: QUAL RELAÇÃO BENEFICIA OS DOIS LADOS?",
+    "alternativas": [
+      "Competição",
+      "Predação",
+      "Mutualismo",
+      "Amensalismo"
+    ]
+  },
+  {
+    "inimigo": "Relação em que um se beneficia e o outro não é afetado",
+    "correta": "Comensalismo",
+    "texto": "No comensalismo uma espécie ganha e a outra permanece neutra (ex.: epífitas).",
+    "ameaca": "ECOLOGIA: QUAL RELAÇÃO BENEFICIA APENAS UM SEM PREJUDICAR O OUTRO?",
+    "alternativas": [
+      "Mutualismo",
+      "Parasitismo",
+      "Comensalismo",
+      "Competição"
+    ]
+  },
+  {
+    "inimigo": "Relação em que um se beneficia e o outro é prejudicado",
+    "correta": "Parasitismo",
+    "texto": "No parasitismo o parasita obtém recursos do hospedeiro, causando prejuízo.",
+    "ameaca": "ECOLOGIA: QUAL RELAÇÃO PREJUDICA O HOSPEDEIRO?",
+    "alternativas": [
+      "Mutualismo",
+      "Comensalismo",
+      "Parasitismo",
+      "Protocooperação"
+    ]
+  },
+  {
+    "inimigo": "Relação em que um organismo mata e consome o outro",
+    "correta": "Predação",
+    "texto": "Na predação o predador captura e mata a presa para se alimentar.",
+    "ameaca": "ECOLOGIA: QUAL RELAÇÃO ENVOLVE CAÇA E CONSUMO?",
+    "alternativas": [
+      "Parasitismo",
+      "Competição",
+      "Predação",
+      "Comensalismo"
+    ]
+  },
+  {
+    "inimigo": "Competição entre indivíduos da mesma espécie",
+    "correta": "Competição intraespecífica",
+    "texto": "A competição intraespecífica regula o crescimento populacional e pode levar à territorialidade.",
+    "ameaca": "ECOLOGIA: QUAL COMPETIÇÃO OCORRE DENTRO DA MESMA ESPÉCIE?",
+    "alternativas": [
+      "Interespecífica",
+      "Predação",
+      "Competição intraespecífica",
+      "Mutualismo"
+    ]
+  },
+  {
+    "inimigo": "Camada da atmosfera que concentra o ozônio protetor",
+    "correta": "Estratosfera",
+    "texto": "A camada de ozônio na estratosfera absorve grande parte da radiação UV-B.",
+    "ameaca": "ECOLOGIA: ONDE ESTÁ A CAMADA DE OZÔNIO?",
+    "alternativas": [
+      "Troposfera",
+      "Mesosfera",
+      "Estratosfera",
+      "Termosfera"
+    ]
+  },
+  {
+    "inimigo": "Principal gás responsável pelo aumento do efeito estufa antropogênico",
+    "correta": "Dióxido de carbono (CO2)",
+    "texto": "O CO2 proveniente da queima de combustíveis fósseis e desmatamento é o principal gás de efeito estufa antrópico.",
+    "ameaca": "ECOLOGIA: QUAL O PRINCIPAL GÁS DO EFEITO ESTUFA ANTRÓPICO?",
+    "alternativas": [
+      "Oxigênio",
+      "Nitrogênio",
+      "Dióxido de carbono (CO2)",
+      "Argônio"
+    ]
+  },
+  {
+    "inimigo": "Processo de enriquecimento de água por nutrientes levando à proliferação de algas",
+    "correta": "Eutrofização",
+    "texto": "A eutrofização reduz o oxigênio dissolvido e pode matar peixes e outros organismos aquáticos.",
+    "ameaca": "ECOLOGIA: QUAL PROCESSO CAUSA BLOOM DE ALGAS EM LAGOS?",
+    "alternativas": [
+      "Acidificação",
+      "Salinização",
+      "Eutrofização",
+      "Desertificação"
+    ]
+  },
+  {
+    "inimigo": "Bioma brasileiro caracterizado por árvores retorcidas e solo ácido",
+    "correta": "Cerrado",
+    "texto": "O Cerrado é uma savana com alta biodiversidade e estações seca e chuvosa bem definidas.",
+    "ameaca": "ECOLOGIA: QUAL BIOMA TEM ÁRVORES RETORCIDAS E FOGO NATURAL?",
+    "alternativas": [
+      "Amazônia",
+      "Mata Atlântica",
+      "Cerrado",
+      "Pampa"
+    ]
+  },
+  {
+    "inimigo": "Bioma brasileiro de maior biodiversidade e floresta tropical úmida",
+    "correta": "Amazônia (Floresta Amazônica)",
+    "texto": "A Amazônia abriga a maior floresta tropical do mundo e enorme diversidade de espécies.",
+    "ameaca": "ECOLOGIA: QUAL BIOMA É A MAIOR FLORESTA TROPICAL?",
+    "alternativas": [
+      "Cerrado",
+      "Caatinga",
+      "Amazônia (Floresta Amazônica)",
+      "Pantanal"
+    ]
+  },
+  {
+    "inimigo": "Bioma brasileiro semiárido com plantas xerófitas",
+    "correta": "Caatinga",
+    "texto": "A Caatinga possui adaptação à seca (espinhos, folhas pequenas, caules suculentos).",
+    "ameaca": "ECOLOGIA: QUAL BIOMA É SEMIÁRIDO NO NORDESTE?",
+    "alternativas": [
+      "Cerrado",
+      "Pampa",
+      "Caatinga",
+      "Mata de Araucárias"
+    ]
+  },
+  {
+    "inimigo": "Maior planície inundável do mundo (bioma brasileiro)",
+    "correta": "Pantanal",
+    "texto": "O Pantanal é marcado por ciclos de cheia e seca e rica fauna aquática e de aves.",
+    "ameaca": "ECOLOGIA: QUAL BIOMA É A MAIOR ÁREA ÚMIDA?",
+    "alternativas": [
+      "Amazônia",
+      "Cerrado",
+      "Pantanal",
+      "Mata Atlântica"
+    ]
+  },
+  {
+    "inimigo": "DNA mitocondrial é herdado preferencialmente de",
+    "correta": "Mãe (herança materna)",
+    "texto": "As mitocôndrias do zigoto vêm principalmente do óvulo, por isso o mtDNA é de herança materna.",
+    "ameaca": "GENÉTICA: DE QUEM HERDAMOS O DNA MITOCONDRIAL?",
+    "alternativas": [
+      "Pai",
+      "Ambos igualmente",
+      "Mãe (herança materna)",
+      "Avós paternos"
+    ]
+  },
+  {
+    "inimigo": "Técnica que amplifica fragmentos de DNA in vitro",
+    "correta": "PCR (Reação em Cadeia da Polimerase)",
+    "texto": "A PCR usa ciclos de temperatura e DNA polimerase para multiplicar exponencialmente um segmento de DNA.",
+    "ameaca": "BIOLOGIA MOLECULAR: QUAL TÉCNICA AMPLIFICA DNA?",
+    "alternativas": [
+      "Eletroforese",
+      "Western blot",
+      "PCR (Reação em Cadeia da Polimerase)",
+      "Clonagem apenas"
+    ]
+  },
+  {
+    "inimigo": "Enzimas que cortam DNA em sítios específicos",
+    "correta": "Enzimas de restrição",
+    "texto": "As endonucleases de restrição são ferramentas essenciais da engenharia genética.",
+    "ameaca": "BIOLOGIA MOLECULAR: O QUE SÃO ENZIMAS DE RESTRIÇÃO?",
+    "alternativas": [
+      "DNA polimerases",
+      "Ligases",
+      "Enzimas de restrição",
+      "Helicases apenas"
+    ]
+  },
+  {
+    "inimigo": "Organismo que recebeu gene de outra espécie",
+    "correta": "Organismo geneticamente modificado (transgênico)",
+    "texto": "Transgênicos contêm DNA de outra espécie inserido por técnicas de engenharia genética.",
+    "ameaca": "BIOTECNOLOGIA: O QUE É UM ORGANISMO TRANSGÊNICO?",
+    "alternativas": [
+      "Híbrido natural",
+      "Clone",
+      "Organismo geneticamente modificado (transgênico)",
+      "Mutante espontâneo"
+    ]
+  },
+  {
+    "inimigo": "Projeto que sequenciou o genoma humano",
+    "correta": "Projeto Genoma Humano",
+    "texto": "O Projeto Genoma Humano mapeou e sequenciou os aproximadamente 3 bilhões de pares de bases do DNA humano.",
+    "ameaca": "GENÉTICA: QUAL PROJETO SEQUENCIOU O DNA HUMANO?",
+    "alternativas": [
+      "Projeto Proteoma",
+      "Projeto Célula-tronco",
+      "Projeto Genoma Humano",
+      "Projeto Microbioma apenas"
+    ]
+  },
+  {
+    "inimigo": "Células capazes de se diferenciar em vários tipos celulares",
+    "correta": "Células-tronco",
+    "texto": "Células-tronco embrionárias são pluripotentes; as adultas são multipotentes ou unipotentes.",
+    "ameaca": "BIOLOGIA CELULAR: QUAL CÉLULA PODE SE DIFERENCIAR EM VÁRIOS TIPOS?",
+    "alternativas": [
+      "Neurônio maduro",
+      "Hemácia",
+      "Células-tronco",
+      "Célula muscular esquelética madura"
+    ]
+  },
+  {
+    "inimigo": "Morte celular programada",
+    "correta": "Apoptose",
+    "texto": "A apoptose é um processo ordenado de morte celular importante no desenvolvimento e na homeostase.",
+    "ameaca": "CITÓLOGIA: QUAL O NOME DA MORTE CELULAR PROGRAMADA?",
+    "alternativas": [
+      "Necrose",
+      "Autofagia apenas",
+      "Apoptose",
+      "Lise viral"
+    ]
+  },
+  {
+    "inimigo": "Morte celular por trauma ou falta de oxigênio (desordenada)",
+    "correta": "Necrose",
+    "texto": "A necrose libera conteúdo celular e provoca inflamação, diferentemente da apoptose.",
+    "ameaca": "CITÓLOGIA: QUAL MORTE CELULAR CAUSA INFLAMAÇÃO?",
+    "alternativas": [
+      "Apoptose",
+      "Autofagia",
+      "Necrose",
+      "Senescência"
+    ]
+  },
+  {
+    "inimigo": "Estruturas nas extremidades dos cromossomos que protegem o DNA",
+    "correta": "Telômeros",
+    "texto": "Os telômeros encurtam a cada divisão; a telomerase pode recompô-los em células germinativas e cancerosas.",
+    "ameaca": "GENÉTICA: O QUE SÃO TELÔMEROS?",
+    "alternativas": [
+      "Centrômeros",
+      "Nucléolos",
+      "Telômeros",
+      "Plasmídeos"
+    ]
+  },
+  {
+    "inimigo": "Região do cromossomo que une as cromátides-irmãs",
+    "correta": "Centrômero",
+    "texto": "O centrômero é o ponto de ligação dos cinetocoros e dos microtúbulos do fuso.",
+    "ameaca": "GENÉTICA: O QUE UNE AS CROMÁTIDES-IRMÃS?",
+    "alternativas": [
+      "Telômero",
+      "Nucléolo",
+      "Centrômero",
+      "Plasmídeo"
+    ]
+  },
+  {
+    "inimigo": "Principal componente orgânico da urina humana",
+    "correta": "Ureia",
+    "texto": "A ureia é o principal resíduo nitrogenado excretado pelos mamíferos, produto do ciclo da ureia no fígado.",
+    "ameaca": "FISIOLOGIA: QUAL O PRINCIPAL COMPOSTO NITROGENADO DA URINA?",
+    "alternativas": [
+      "Ácido úrico",
+      "Amônia",
+      "Ureia",
+      "Creatinina"
+    ]
+  },
+  {
+    "inimigo": "Principal resíduo nitrogenado excretado por aves e répteis",
+    "correta": "Ácido úrico",
+    "texto": "O ácido úrico economiza água e é típico de animais com ovos de casca terrestre.",
+    "ameaca": "FISIOLOGIA: QUAL EXCRETA ÁCIDO ÚRICO?",
+    "alternativas": [
+      "Ureia",
+      "Amônia",
+      "Ácido úrico",
+      "Creatinina"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🌿 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA BIOLÓGICO] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🌳`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A questão sobre '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE BIOLÓGICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE BIOLÓGICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

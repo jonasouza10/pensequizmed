@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0b1220">
+
+    <title>PenseQuizMed — Quizzes & Resumos & Game de Simulação Médica</title>
+
+    <meta name="description" content="PenseQuizMed — Quizzes, resumos e games de simulação médica para estudantes de Medicina.">
+    <meta name="keywords" content="PenseQuizMed, quiz médico, medicina, ECG, simulador clínico, farmacologia, fisiopatologia, prescrição">
+    <meta name="author" content="PenseQuizMed">
+    <meta name="robots" content="index, follow">
+
+    <link rel="icon" type="image/png" href="iconepq.png">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #0b1220;
+            --bg-soft: #111827;
+            --surface: #152033;
+            --surface-2: #1a2740;
+            --border: rgba(148, 163, 184, 0.14);
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-2: #06b6d4;
+            --warning: #f59e0b;
+            --success: #22c55e;
+            --radius: 18px;
+            --radius-sm: 14px;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.45;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 460px;
+            margin: 0 auto;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app::before {
+            content: "";
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, transparent 70%);
+            top: -140px;
+            right: -100px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app::after {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.14) 0%, transparent 70%);
+            bottom: 80px;
+            left: -120px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* HEADER */
+        .header {
+            position: relative;
+            z-index: 1;
+            padding: 28px 20px 18px;
+            text-align: center;
+        }
+
+        .logo-wrap {
+            width: 78px;
+            height: 78px;
+            margin: 0 auto 14px;
+            border-radius: 24px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, #1d4ed8, #2563eb 45%, #0ea5e9);
+            box-shadow:
+                0 12px 30px rgba(37, 99, 235, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            position: relative;
+        }
+
+        .logo-wrap::after {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.25), transparent 40%, rgba(6,182,212,0.3));
+            z-index: -1;
+            opacity: 0.7;
+        }
+
+        .logo-wrap i {
+            font-size: 34px;
+            color: #fff;
+        }
+
+        .brand {
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: -1.3px;
+            line-height: 1.1;
+        }
+
+        .brand span {
+            background: linear-gradient(135deg, #60a5fa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            margin-top: 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .tagline strong {
+            color: #93c5fd;
+            font-weight: 700;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 14px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.22);
+            color: #86efac;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .status-pill i {
+            font-size: 0.65rem;
+            color: var(--success);
+        }
+
+        /* CONTENT */
+        .content {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            padding: 8px 14px 12px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Warning card */
+        .alert-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: #fef3c7;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(217, 119, 6, 0.1));
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08);
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+
+        .alert-card:active {
+            transform: scale(0.985);
+        }
+
+        .alert-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, #f59e0b, #d97706);
+            color: #fff;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
+        }
+
+        .alert-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .alert-text strong {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .alert-text span {
+            font-size: 0.72rem;
+            opacity: 0.85;
+            font-weight: 500;
+        }
+
+        .alert-card > .fa-chevron-right {
+            color: rgba(254, 243, 199, 0.6);
+            font-size: 0.75rem;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 18px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 4px 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .section-title i {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+
+        /* Grid of cards */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* Feature card */
+        .card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            min-height: 118px;
+            padding: 14px;
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: var(--text);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .card:active {
+            transform: scale(0.975);
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, var(--glow, rgba(59,130,246,0.12)), transparent 55%);
+            pointer-events: none;
+        }
+
+        .card-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            font-size: 1.15rem;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-label {
+            position: relative;
+            z-index: 1;
+            font-size: 0.84rem;
+            font-weight: 650;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+
+        .card-sub {
+            position: relative;
+            z-index: 1;
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: -6px;
+        }
+
+        /* Icon color variants */
+        .c-blue .card-icon   { background: linear-gradient(145deg, #2563eb, #1d4ed8); }
+        .c-cyan .card-icon   { background: linear-gradient(145deg, #06b6d4, #0891b2); }
+        .c-violet .card-icon { background: linear-gradient(145deg, #8b5cf6, #7c3aed); }
+        .c-emerald .card-icon{ background: linear-gradient(145deg, #10b981, #059669); }
+        .c-rose .card-icon   { background: linear-gradient(145deg, #f43f5e, #e11d48); }
+        .c-amber .card-icon  { background: linear-gradient(145deg, #f59e0b, #d97706); }
+        .c-indigo .card-icon { background: linear-gradient(145deg, #6366f1, #4f46e5); }
+        .c-teal .card-icon   { background: linear-gradient(145deg, #14b8a6, #0d9488); }
+        .c-sky .card-icon    { background: linear-gradient(145deg, #0ea5e9, #0284c7); }
+        .c-fuchsia .card-icon{ background: linear-gradient(145deg, #d946ef, #c026d3); }
+        .c-lime .card-icon   { background: linear-gradient(145deg, #84cc16, #65a30d); }
+        .c-orange .card-icon { background: linear-gradient(145deg, #f97316, #ea580c); }
+
+        .c-blue   { --glow: rgba(37, 99, 235, 0.18); }
+        .c-cyan   { --glow: rgba(6, 182, 212, 0.18); }
+        .c-violet { --glow: rgba(139, 92, 246, 0.18); }
+        .c-emerald{ --glow: rgba(16, 185, 129, 0.18); }
+        .c-rose   { --glow: rgba(244, 63, 94, 0.18); }
+        .c-amber  { --glow: rgba(245, 158, 11, 0.18); }
+        .c-indigo { --glow: rgba(99, 102, 241, 0.18); }
+        .c-teal   { --glow: rgba(20, 184, 166, 0.18); }
+        .c-sky    { --glow: rgba(14, 165, 233, 0.18); }
+        .c-fuchsia{ --glow: rgba(217, 70, 239, 0.18); }
+        .c-lime   { --glow: rgba(132, 204, 22, 0.18); }
+        .c-orange { --glow: rgba(249, 115, 22, 0.18); }
+
+        /* Wide card (full row) */
+        .card.wide {
+            min-height: 84px;
+            flex-direction: row;
+            align-items: center;
+            gap: 14px;
+            grid-column: 1 / -1;
+        }
+
+        .card.wide .card-label {
+            flex: 1;
+        }
+
+        .card.wide .card-arrow {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* FOOTER */
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 16px 18px calc(18px + var(--safe-bottom));
+            text-align: center;
+            border-top: 1px solid var(--border);
+            background: rgba(11, 18, 32, 0.85);
+            backdrop-filter: blur(8px);
+            font-size: 0.74rem;
+            color: var(--text-muted);
+        }
+
+        .footer p { margin: 4px 0; }
+
+        .footer a {
+            color: #93c5fd;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer a:active { opacity: 0.8; }
+
+        .footer-brand {
+            font-weight: 800;
+            color: var(--text);
+            font-size: 0.82rem;
+            letter-spacing: -0.02em;
+        }
+
+        .footer-brand span {
+            background: linear-gradient(135deg, #60a5fa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .copyright {
+            margin-top: 10px !important;
+            font-size: 0.68rem;
+            opacity: 0.65;
+        }
+
+        /* Back to top */
+        #topBtn {
+            position: fixed;
+            right: 16px;
+            bottom: calc(16px + var(--safe-bottom));
+            width: 44px;
+            height: 44px;
+            border: 0;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2563eb, #1d4ed8);
+            color: #fff;
+            cursor: pointer;
+            display: none;
+            place-items: center;
+            box-shadow: 0 8px 22px rgba(37, 99, 235, 0.4);
+            z-index: 50;
+            font-size: 0.9rem;
+        }
+
+        #topBtn:active { transform: scale(0.94); }
+
+        /* Desktop polish */
+        @media (min-width: 480px) {
+            body {
+                background: #070b14;
+                padding: 24px 16px;
+            }
+
+            .app {
+                min-height: auto;
+                border-radius: 24px;
+                border: 1px solid var(--border);
+                box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+                background: var(--bg);
+            }
+        }
+
+        @media (hover: hover) {
+            .card:hover {
+                border-color: rgba(148, 163, 184, 0.28);
+                background: var(--surface-2);
+            }
+
+            .alert-card:hover {
+                background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(217, 119, 6, 0.14));
+            }
+
+            .footer a:hover {
+                text-decoration: underline;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .header { padding: 22px 16px 14px; }
+            .logo-wrap { width: 68px; height: 68px; border-radius: 20px; }
+            .logo-wrap i { font-size: 28px; }
+            .brand { font-size: 1.6rem; }
+            .content { padding: 6px 10px 10px; }
+            .grid { gap: 8px; }
+            .card { min-height: 108px; padding: 12px; }
+            .card-icon { width: 42px; height: 42px; font-size: 1.05rem; }
+            .card-label { font-size: 0.8rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+
+        <header class="header">
+            <div class="logo-wrap" aria-label="PenseQuizMed">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+            <h1 class="brand">Pense<span>QuizMed</span></h1>
+            <p class="tagline">
+                <strong>Quizzes</strong> · <strong>Resumos</strong> · <strong>Simulação Médica</strong>
+            </p>
+            <div class="status-pill">
+                <i class="fas fa-circle"></i>
+                Estudos &amp; Simulações Fictícias
+            </div>
+        </header>
+
+        <main class="content">
+
+            <!-- AVISO (link original) -->
+            <a href="sobre.html" class="alert-card">
+                <div class="alert-icon">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+                <div class="alert-text">
+                    <strong>AVISO!!! Informações importantes</strong>
+                    <span>Leia antes de começar</span>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            </a>
+
+            <!-- CONTEÚDO -->
+            <section class="section">
+                <div class="section-title">
+                    <i class="fas fa-book-open"></i>
+                    Conteúdo
+                </div>
+                <div class="grid">
+                    <a href="resumomedicina.html" class="card c-blue">
+                        <div class="card-icon"><i class="fas fa-book-medical"></i></div>
+                        <div class="card-label">Resumos Básicos</div>
+                        <div class="card-sub">Teoria essencial</div>
+                    </a>
+
+                    <a href="PenseQuizMed_Semiologia.html" class="card c-violet">
+                        <div class="card-icon"><i class="fas fa-user-doctor"></i></div>
+                        <div class="card-label">Desafio Semiologia</div>
+                        <div class="card-sub">Exame clínico</div>
+                    </a>
+
+                    <a href="fisiopatologia2.html" class="card c-cyan">
+                        <div class="card-icon"><i class="fas fa-lungs"></i></div>
+                        <div class="card-label">Fisiopatologia</div>
+                        <div class="card-sub">Mecanismos</div>
+                    </a>
+
+                    <a href="farmacologia2.html" class="card c-emerald">
+                        <div class="card-icon"><i class="fas fa-pills"></i></div>
+                        <div class="card-label">Farmacologia</div>
+                        <div class="card-sub">Fármacos</div>
+                    </a>
+
+                    <a href="PenseQuizBioMed.html" class="card c-fuchsia wide">
+                        <div class="card-icon"><i class="fas fa-flask"></i></div>
+                        <div class="card-label">Desafio Quiz BioMed</div>
+                        <i class="fas fa-chevron-right card-arrow"></i>
+                    </a>
+                </div>
+            </section>
+
+            <!-- SIMULADORES -->
+            <section class="section">
+                <div class="section-title">
+                    <i class="fas fa-laptop-medical"></i>
+                    Simuladores
+                </div>
+                <div class="grid">
+                    <a href="ENAMED2026.html" class="card c-indigo">
+                        <div class="card-icon"><i class="fas fa-stethoscope"></i></div>
+                        <div class="card-label">Simulador EnaMed</div>
+                        <div class="card-sub">Prova nacional</div>
+                    </a>
+
+                    <a href="analiseclinica2.html" class="card c-sky">
+                        <div class="card-icon"><i class="fas fa-hospital-user"></i></div>
+                        <div class="card-label">Análise Clínica</div>
+                        <div class="card-sub">Raciocínio</div>
+                    </a>
+
+                    <a href="MedicinaPraticaCompleta.html" class="card c-teal">
+                        <div class="card-icon"><i class="fas fa-notes-medical"></i></div>
+                        <div class="card-label">Casos Clínicos</div>
+                        <div class="card-sub">Prática completa</div>
+                    </a>
+
+                    <a href="PenseQuizMed.html" class="card c-rose">
+                        <div class="card-icon"><i class="fas fa-user-md"></i></div>
+                        <div class="card-label">Revalida Clínico</div>
+                        <div class="card-sub">Simulado</div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- GAMES -->
+            <section class="section">
+                <div class="section-title">
+                    <i class="fas fa-gamepad"></i>
+                    Games
+                </div>
+                <div class="grid">
+                    <a href="menudesafiomed.html" class="card c-amber">
+                        <div class="card-icon"><i class="fas fa-layer-group"></i></div>
+                        <div class="card-label">Ciclo Básico Pro</div>
+                        <div class="card-sub">Game</div>
+                    </a>
+
+                    <a href="gamerclinica.html" class="card c-orange">
+                        <div class="card-icon"><i class="fas fa-clinic-medical"></i></div>
+                        <div class="card-label">Clínica Game</div>
+                        <div class="card-sub">Cenários</div>
+                    </a>
+
+                    <a href="gamesprescricao.html" class="card c-lime">
+                        <div class="card-icon"><i class="fas fa-file-prescription"></i></div>
+                        <div class="card-label">Prescrição Game</div>
+                        <div class="card-sub">Receituário</div>
+                    </a>
+
+                    <a href="gamerECG.html" class="card c-rose">
+                        <div class="card-icon"><i class="fas fa-heart-pulse"></i></div>
+                        <div class="card-label">ECG Game</div>
+                        <div class="card-sub">Eletrocardiograma</div>
+                    </a>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="footer">
+            <p><span class="footer-brand">Pense<span>QuizMed</span></span></p>
+            <p>Contato: <a href="mailto:juniosilvasouza@yahoo.com.br">juniosilvasouza@yahoo.com.br</a></p>
+            <p>Telefone: <a href="tel:+5592988562216">(92) 98856-2216</a></p>
+            <p class="copyright">© <span id="year"></span> PenseQuizMed — Todos os direitos reservados</p>
+        </footer>
+    </div>
+
+    <button id="topBtn" aria-label="Voltar ao topo" title="Voltar ao topo">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script>
+        document.getElementById("year").textContent = new Date().getFullYear();
+
+        const topBtn = document.getElementById("topBtn");
+        window.addEventListener("scroll", () => {
+            topBtn.style.display = window.scrollY > 220 ? "grid" : "none";
+        }, { passive: true });
+
+        topBtn.addEventListener("click", () => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+    </script>
+</body>
+</html>

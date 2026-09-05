@@ -1,0 +1,2830 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Bioquímica - Um quiz de Bioquímica para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Bioquímica</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Bioquímica</h1>
+  <p>Decifre as reações da vida! 🧪</p>
+
+  <div id="terminal">[SISTEMA DE TESTE BIOQUÍMICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | ⚛️ Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE BIOQUÍMICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE BIOQUÍMICA</h2>
+      <p>Bem-vindo, Futuro Bioquímico! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre as moléculas e processos químicos da vida.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente estruturas moleculares, vias metabólicas e funções enzimáticas.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre a química da vida.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Bioquímica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A compreensão da bioquímica é a base para a biologia e a medicina. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Bioquímica foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica e biológica:</p>
+      <ul>
+        <li>**LIVRO:** Nelson & Cox - Lehninger Princípios de Bioquímica [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Voet, Voet & Pratt - Fundamentos de Bioquímica [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Stryer - Bioquímica [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Bioquímica.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico e biológico reconhecidas, como sites de universidades com materiais e cursos de Bioquímica.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Molecula portadora de energia universal nas celulas",
+    "correta": "ATP (Adenosina Trifosfato)",
+    "texto": "O ATP armazena energia em ligacoes fosfato e impulsiona a maioria dos processos celulares.",
+    "ameaca": "ENERGIA: QUAL A MOEDA ENERGETICA UNIVERSAL?",
+    "alternativas": [
+      "Glicose",
+      "NAD+",
+      "FAD",
+      "ATP (Adenosina Trifosfato)"
+    ]
+  },
+  {
+    "inimigo": "Vitamina hidrossoluvel essencial para a sintese de colageno",
+    "correta": "Vitamina C (Acido Ascorbico)",
+    "texto": "A vitamina C e cofator na hidroxilacao de prolina e lisina na sintese de colageno.",
+    "ameaca": "VITAMINAS: QUAL VITAMINA E ESSENCIAL AO COLAGENO?",
+    "alternativas": [
+      "Vitamina A",
+      "Vitamina D",
+      "Vitamina K",
+      "Vitamina C (Acido Ascorbico)"
+    ]
+  },
+  {
+    "inimigo": "Enzima que catalisa a quebra de amido em acucares menores",
+    "correta": "Amilase",
+    "texto": "A amilase inicia a digestao de carboidratos, quebrando amido em maltose e oligossacarideos.",
+    "ameaca": "ENZIMAS: QUAL ENZIMA QUEBRA O AMIDO?",
+    "alternativas": [
+      "Lipase",
+      "Protease",
+      "Sacarase",
+      "Amilase"
+    ]
+  },
+  {
+    "inimigo": "Via metabolica que converte glicose em piruvato",
+    "correta": "Glicolise",
+    "texto": "A glicolise ocorre no citoplasma e gera 2 ATP liquidos e 2 NADH por glicose.",
+    "ameaca": "METABOLISMO: QUAL VIA CONVERTE GLICOSE EM PIRUVATO?",
+    "alternativas": [
+      "Ciclo de Krebs",
+      "Cadeia de transporte de eletrons",
+      "Glicogenese",
+      "Glicolise"
+    ]
+  },
+  {
+    "inimigo": "Unidades monomerica das proteinas",
+    "correta": "Aminoacidos",
+    "texto": "Aminoacidos unem-se por ligacoes peptidicas; a sequencia determina estrutura e funcao.",
+    "ameaca": "PROTEINAS: QUAIS SAO AS UNIDADES BASICAS?",
+    "alternativas": [
+      "Nucleotidios",
+      "Monossacarideos",
+      "Acidos graxos",
+      "Aminoacidos"
+    ]
+  },
+  {
+    "inimigo": "Processo de sintese de RNA a partir de DNA",
+    "correta": "Transcricao",
+    "texto": "A RNA polimerase copia a informacao do DNA em RNA mensageiro, ribossomico ou transportador.",
+    "ameaca": "GENETICA: QUAL PROCESSO SINTETIZA RNA A PARTIR DE DNA?",
+    "alternativas": [
+      "Traducao",
+      "Replicacao",
+      "Mutacao",
+      "Transcricao"
+    ]
+  },
+  {
+    "inimigo": "Lipidio principal componente das membranas celulares",
+    "correta": "Fosfolipidio",
+    "texto": "Fosfolipidios formam a bicamada por serem anfifilicos (cabeca hidrofilica e caudas hidrofobicas).",
+    "ameaca": "LIPIDIOS: QUAL E O PRINCIPAL LIPIDIO DE MEMBRANA?",
+    "alternativas": [
+      "Colesterol",
+      "Triglicerideo",
+      "Cera",
+      "Fosfolipidio"
+    ]
+  },
+  {
+    "inimigo": "Organela onde ocorre a maior parte da producao de ATP aerobica",
+    "correta": "Mitocondria",
+    "texto": "Na matriz e na membrana interna mitocondrial ocorrem o ciclo de Krebs e a fosforilacao oxidativa.",
+    "ameaca": "CELULA: ONDE SE PRODUZ A MAIOR PARTE DO ATP?",
+    "alternativas": [
+      "Ribossomo",
+      "RE",
+      "Golgi",
+      "Mitocondria"
+    ]
+  },
+  {
+    "inimigo": "Acucar encontrado no DNA",
+    "correta": "Desoxirribose",
+    "texto": "A desoxirribose e a pentose do DNA; no RNA a pentose e a ribose.",
+    "ameaca": "ACIDOS NUCLEICOS: QUAL A PENTOSE DO DNA?",
+    "alternativas": [
+      "Ribose",
+      "Glicose",
+      "Frutose",
+      "Desoxirribose"
+    ]
+  },
+  {
+    "inimigo": "Tipo de ligacao que une aminoacidos em uma proteina",
+    "correta": "Ligacao peptidica",
+    "texto": "Forma-se entre o grupo carboxila de um aminoacido e o grupo amino de outro, com liberacao de agua.",
+    "ameaca": "PROTEINAS: QUAL LIGACAO UNE OS AMINOACIDOS?",
+    "alternativas": [
+      "Glicosidica",
+      "Fosfodiester",
+      "Ponte de hidrogenio",
+      "Ligacao peptidica"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'NADH e FADH2'?",
+    "correta": "Coenzimas que transportam eletrons para a cadeia respiratoria",
+    "texto": "Doam eletrons aos complexos da cadeia, gerando forca protomotora.",
+    "ameaca": "METABOLISMO: 'NADH E FADH2'",
+    "alternativas": [
+      "ATP apenas",
+      "Glicose",
+      "Coenzimas que transportam eletrons para a cadeia respiratoria",
+      "Oxigenio"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Ciclo de Krebs (acido citrico)'?",
+    "correta": "Oxida o acetil-CoA na matriz mitocondrial gerando NADH, FADH2 e CO2",
+    "texto": "Conecta a glicolise/beta-oxidacao a fosforilacao oxidativa.",
+    "ameaca": "METABOLISMO: 'CICLO DE KREBS (ACIDO CITRICO)'",
+    "alternativas": [
+      "Glicolise",
+      "Via das pentoses",
+      "Oxida o acetil-CoA na matriz mitocondrial gerando NADH, FADH2 e CO2",
+      "Fermentacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Cadeia transportadora de eletrons'?",
+    "correta": "Serie de complexos na membrana interna que bombeiam H+ e reduzem O2 a agua",
+    "texto": "Cria o gradiente de protons usado pela ATP sintase.",
+    "ameaca": "METABOLISMO: 'CADEIA TRANSPORTADORA DE ELETRONS'",
+    "alternativas": [
+      "Ciclo de Krebs",
+      "Glicolise",
+      "Serie de complexos na membrana interna que bombeiam H+ e reduzem O2 a agua",
+      "Beta-oxidacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Fosforilacao oxidativa'?",
+    "correta": "Sintese de ATP acoplada ao fluxo de eletrons e ao gradiente de protons",
+    "texto": "Realizada pela ATP sintase (complexo V).",
+    "ameaca": "METABOLISMO: 'FOSFORILACAO OXIDATIVA'",
+    "alternativas": [
+      "Fosforilacao em nivel de substrato apenas",
+      "Fotofosforilacao",
+      "Sintese de ATP acoplada ao fluxo de eletrons e ao gradiente de protons",
+      "Glicolise"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'ATP sintase'?",
+    "correta": "Enzima que usa o fluxo de H+ para fosforilar ADP a ATP",
+    "texto": "Funciona como turbina molecular na membrana mitocondrial interna.",
+    "ameaca": "METABOLISMO: 'ATP SINTASE'",
+    "alternativas": [
+      "NADH desidrogenase",
+      "Citocromo c oxidase",
+      "Enzima que usa o fluxo de H+ para fosforilar ADP a ATP",
+      "Hexoquinase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Gliconeogenese'?",
+    "correta": "Sintese de glicose a partir de precursores nao glicidicos",
+    "texto": "Ocorre principalmente no figado; essencial no jejum.",
+    "ameaca": "METABOLISMO: 'GLICONEOGENESE'",
+    "alternativas": [
+      "Glicolise",
+      "Glicogenolise",
+      "Sintese de glicose a partir de precursores nao glicidicos",
+      "Via das pentoses"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Glicogenese'?",
+    "correta": "Sintese de glicogenio a partir de glicose",
+    "texto": "Armazena glicose no figado e musculo sob acao da insulina.",
+    "ameaca": "METABOLISMO: 'GLICOGENESE'",
+    "alternativas": [
+      "Glicogenolise",
+      "Glicolise",
+      "Sintese de glicogenio a partir de glicose",
+      "Gliconeogenese"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Glicogenolise'?",
+    "correta": "Quebra do glicogenio em glicose-1-fosfato",
+    "texto": "Ativada por glucagon e adrenalina no jejum ou estresse.",
+    "ameaca": "METABOLISMO: 'GLICOGENOLISE'",
+    "alternativas": [
+      "Glicogenese",
+      "Glicolise",
+      "Quebra do glicogenio em glicose-1-fosfato",
+      "Via das pentoses"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Via das pentoses-fosfato'?",
+    "correta": "Gera NADPH e ribose-5-fosfato",
+    "texto": "Importante para biossinteses redutoras e acidos nucleicos.",
+    "ameaca": "METABOLISMO: 'VIA DAS PENTOSES-FOSFATO'",
+    "alternativas": [
+      "Glicolise",
+      "Ciclo de Krebs",
+      "Gera NADPH e ribose-5-fosfato",
+      "Beta-oxidacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Beta-oxidacao'?",
+    "correta": "Degradacao de acidos graxos a acetil-CoA na mitocondria",
+    "texto": "Gera NADH e FADH2 a cada ciclo de 2 carbonos.",
+    "ameaca": "METABOLISMO: 'BETA-OXIDACAO'",
+    "alternativas": [
+      "Lipogenese",
+      "Cetogenese apenas",
+      "Degradacao de acidos graxos a acetil-CoA na mitocondria",
+      "Glicolise"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Cetogenese'?",
+    "correta": "Formacao de corpos cetonicos no figado a partir de acetil-CoA",
+    "texto": "Importante no jejum prolongado e no diabetes descompensado.",
+    "ameaca": "METABOLISMO: 'CETOGENESE'",
+    "alternativas": [
+      "Beta-oxidacao apenas",
+      "Lipogenese",
+      "Formacao de corpos cetonicos no figado a partir de acetil-CoA",
+      "Gliconeogenese"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Lipogenese'?",
+    "correta": "Sintese de acidos graxos a partir de acetil-CoA (citosol)",
+    "texto": "Estimulada por insulina; usa NADPH da via das pentoses.",
+    "ameaca": "METABOLISMO: 'LIPOGENESE'",
+    "alternativas": [
+      "Beta-oxidacao",
+      "Cetogenese",
+      "Sintese de acidos graxos a partir de acetil-CoA (citosol)",
+      "Glicogenolise"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Ciclo da ureia'?",
+    "correta": "Converte amonia toxica em ureia no figado",
+    "texto": "Elimina nitrogenio aminoacidico pela urina.",
+    "ameaca": "METABOLISMO: 'CICLO DA UREIA'",
+    "alternativas": [
+      "Ciclo de Krebs",
+      "Transaminacao apenas",
+      "Converte amonia toxica em ureia no figado",
+      "Desaminacao oxidativa apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Transaminacao'?",
+    "correta": "Transferencia do grupo amino de um aminoacido a um cetoacido",
+    "texto": "Catalisada por aminotransferases (ALT, AST); cofator PLP (vitamina B6).",
+    "ameaca": "METABOLISMO: 'TRANSAMINACAO'",
+    "alternativas": [
+      "Desaminacao oxidativa",
+      "Ciclo da ureia",
+      "Transferencia do grupo amino de um aminoacido a um cetoacido",
+      "Descarboxilacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Enzima'?",
+    "correta": "Catalisador biologico proteico que acelera reacoes",
+    "texto": "Diminui a energia de ativacao sem ser consumida na reacao.",
+    "ameaca": "ENZIMAS: 'ENZIMA'",
+    "alternativas": [
+      "Hormonio",
+      "Coenzima apenas",
+      "Catalisador biologico proteico que acelera reacoes",
+      "Substrato"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Sitio ativo'?",
+    "correta": "Regiao da enzima onde o substrato se liga e a reacao ocorre",
+    "texto": "Complementar ao substrato em forma e carga (modelo chave-fechadura ou encaixe induzido).",
+    "ameaca": "ENZIMAS: 'SITIO ATIVO'",
+    "alternativas": [
+      "Sitio alosterico apenas",
+      "Cofator",
+      "Regiao da enzima onde o substrato se liga e a reacao ocorre",
+      "Produto"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Km (constante de Michaelis)'?",
+    "correta": "Concentracao de substrato para atingir metade da Vmax",
+    "texto": "Baixo Km indica alta afinidade da enzima pelo substrato.",
+    "ameaca": "ENZIMAS: 'KM (CONSTANTE DE MICHAELIS)'",
+    "alternativas": [
+      "Vmax",
+      "Kcat apenas",
+      "Concentracao de substrato para atingir metade da Vmax",
+      "Ki"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vmax'?",
+    "correta": "Velocidade maxima da reacao enzimatica a saturacao de substrato",
+    "texto": "Proporcional a concentracao de enzima.",
+    "ameaca": "ENZIMAS: 'VMAX'",
+    "alternativas": [
+      "Km",
+      "Keq",
+      "Velocidade maxima da reacao enzimatica a saturacao de substrato",
+      "Ki"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Inibicao competitiva'?",
+    "correta": "Inibidor compete pelo sitio ativo; aumenta Km aparente, Vmax inalterada",
+    "texto": "Pode ser superada por excesso de substrato.",
+    "ameaca": "ENZIMAS: 'INIBICAO COMPETITIVA'",
+    "alternativas": [
+      "Nao competitiva",
+      "Incompetitiva",
+      "Inibidor compete pelo sitio ativo; aumenta Km aparente, Vmax inalterada",
+      "Irreversivel apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Inibicao nao competitiva'?",
+    "correta": "Inibidor liga-se a sitio distinto; diminui Vmax, Km inalterado",
+    "texto": "Nao e superada por excesso de substrato.",
+    "ameaca": "ENZIMAS: 'INIBICAO NAO COMPETITIVA'",
+    "alternativas": [
+      "Competitiva",
+      "Incompetitiva",
+      "Inibidor liga-se a sitio distinto; diminui Vmax, Km inalterado",
+      "Alosterica apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Regulacao alosterica'?",
+    "correta": "Modulador liga-se a sitio distinto e altera a atividade da enzima",
+    "texto": "Comum em enzimas reguladoras de vias (ex.: fosfofrutoquinase-1).",
+    "ameaca": "ENZIMAS: 'REGULACAO ALOSTERICA'",
+    "alternativas": [
+      "Apenas competitiva",
+      "Apenas covalente",
+      "Modulador liga-se a sitio distinto e altera a atividade da enzima",
+      "Desnaturacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Fosforilacao de proteinas'?",
+    "correta": "Modificacao covalente que ativa ou inibe enzimas",
+    "texto": "Catalisada por quinases (ATP) e revertida por fosfatases.",
+    "ameaca": "ENZIMAS: 'FOSFORILACAO DE PROTEINAS'",
+    "alternativas": [
+      "Glicosilacao apenas",
+      "Acetilacao apenas",
+      "Modificacao covalente que ativa ou inibe enzimas",
+      "Denaturacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Cofator'?",
+    "correta": "Componente nao proteico necessario a atividade enzimatica",
+    "texto": "Pode ser ion metalico ou molecula organica (coenzima).",
+    "ameaca": "ENZIMAS: 'COFATOR'",
+    "alternativas": [
+      "Substrato",
+      "Produto",
+      "Componente nao proteico necessario a atividade enzimatica",
+      "Inibidor"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Coenzima'?",
+    "correta": "Cofator organico (muitas derivadas de vitaminas)",
+    "texto": "Ex.: NAD+, FAD, CoA, PLP, tiamina pirofosfato.",
+    "ameaca": "ENZIMAS: 'COENZIMA'",
+    "alternativas": [
+      "Ion metalico apenas",
+      "Apoenzima",
+      "Cofator organico (muitas derivadas de vitaminas)",
+      "Substrato"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Apoenzima'?",
+    "correta": "Parte proteica da enzima sem o cofator",
+    "texto": "Inativa ate se ligar ao cofator formando a holoenzima.",
+    "ameaca": "ENZIMAS: 'APOENZIMA'",
+    "alternativas": [
+      "Holoenzima",
+      "Coenzima",
+      "Parte proteica da enzima sem o cofator",
+      "Zimogenio"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Zimogenio (proenzima)'?",
+    "correta": "Precursor inativo de enzima ativado por clivagem proteolitica",
+    "texto": "Ex.: pepsinogenio, tripsinogenio, fatores de coagulacao.",
+    "ameaca": "ENZIMAS: 'ZIMOGENIO (PROENZIMA)'",
+    "alternativas": [
+      "Apoenzima",
+      "Holoenzima",
+      "Precursor inativo de enzima ativado por clivagem proteolitica",
+      "Inibidor"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Estrutura primaria da proteina'?",
+    "correta": "Sequencia linear de aminoacidos",
+    "texto": "Determinada geneticamente; base de todas as estruturas superiores.",
+    "ameaca": "PROTEINAS: 'ESTRUTURA PRIMARIA DA PROTEINA'",
+    "alternativas": [
+      "Helice alfa",
+      "Folha beta",
+      "Sequencia linear de aminoacidos",
+      "Estrutura quaternaria"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Estrutura secundaria'?",
+    "correta": "Padroes locais estabilizados por pontes de hidrogenio (helice alfa, folha beta)",
+    "texto": "Nao envolve a cadeia lateral de forma principal.",
+    "ameaca": "PROTEINAS: 'ESTRUTURA SECUNDARIA'",
+    "alternativas": [
+      "Sequencia primaria",
+      "Dobramento terciario",
+      "Padroes locais estabilizados por pontes de hidrogenio (helice alfa, folha beta)",
+      "Associacao de subunidades"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Estrutura terciaria'?",
+    "correta": "Dobramento tridimensional completo de uma cadeia polipeptidica",
+    "texto": "Estabilizada por interacoes hidrofobicas, pontes S-S, ionicas e H.",
+    "ameaca": "PROTEINAS: 'ESTRUTURA TERCIARIA'",
+    "alternativas": [
+      "Primaria",
+      "Secundaria apenas",
+      "Dobramento tridimensional completo de uma cadeia polipeptidica",
+      "Quaternaria"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Estrutura quaternaria'?",
+    "correta": "Associacao de duas ou mais cadeias polipeptidicas (subunidades)",
+    "texto": "Ex.: hemoglobina (4 subunidades).",
+    "ameaca": "PROTEINAS: 'ESTRUTURA QUATERNARIA'",
+    "alternativas": [
+      "Primaria",
+      "Terciaria de uma cadeia",
+      "Associacao de duas ou mais cadeias polipeptidicas (subunidades)",
+      "Secundaria"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Desnaturacao proteica'?",
+    "correta": "Perda da estrutura nativa sem quebrar ligacoes peptidicas",
+    "texto": "Causada por calor, pH extremo, ureia, detergentes; pode ser reversivel ou nao.",
+    "ameaca": "PROTEINAS: 'DESNATURACAO PROTEICA'",
+    "alternativas": [
+      "Hidrolise",
+      "Digestao",
+      "Perda da estrutura nativa sem quebrar ligacoes peptidicas",
+      "Sintese"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Ponte dissulfeto'?",
+    "correta": "Ligacao covalente entre duas cisteinas (S-S)",
+    "texto": "Estabiliza a estrutura terciaria/quaternaria de muitas proteinas extracelulares.",
+    "ameaca": "PROTEINAS: 'PONTE DISSULFETO'",
+    "alternativas": [
+      "Ponte de hidrogenio",
+      "Interacao hidrofobica",
+      "Ligacao covalente entre duas cisteinas (S-S)",
+      "Ligacao ionica"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Aminoacido essencial'?",
+    "correta": "Nao e sintetizado adequadamente pelo organismo; deve vir da dieta",
+    "texto": "Ex.: leucina, lisina, triptofano, fenilalanina, etc.",
+    "ameaca": "PROTEINAS: 'AMINOACIDO ESSENCIAL'",
+    "alternativas": [
+      "Qualquer aminoacido",
+      "Apenas glicina",
+      "Nao e sintetizado adequadamente pelo organismo; deve vir da dieta",
+      "Apenas alanina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Codigo genetico'?",
+    "correta": "Correspondencia entre codon (mRNA) e aminoacido",
+    "texto": "Universal, degenerado e nao sobreposto.",
+    "ameaca": "GENETICA: 'CODIGO GENETICO'",
+    "alternativas": [
+      "Sequencia de tRNA apenas",
+      "Estrutura do ribossomo",
+      "Correspondencia entre codon (mRNA) e aminoacido",
+      "Sequencia de DNA apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Codon de iniciacao'?",
+    "correta": "AUG (metionina)",
+    "texto": "Inicia a traducao na maioria dos casos.",
+    "ameaca": "GENETICA: 'CODON DE INICIACAO'",
+    "alternativas": [
+      "UAA",
+      "UGA",
+      "AUG (metionina)",
+      "UAG"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Codons de parada'?",
+    "correta": "UAA, UAG e UGA",
+    "texto": "Nao codificam aminoacido; terminam a traducao.",
+    "ameaca": "GENETICA: 'CODONS DE PARADA'",
+    "alternativas": [
+      "AUG",
+      "UUU",
+      "UAA, UAG e UGA",
+      "GGG"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Traducao'?",
+    "correta": "Sintese de proteina a partir do mRNA nos ribossomos",
+    "texto": "Envolve tRNA, aminoacil-tRNA sintetases e fatores de iniciacao/elongacao/terminacao.",
+    "ameaca": "GENETICA: 'TRADUCAO'",
+    "alternativas": [
+      "Transcricao",
+      "Replicacao",
+      "Sintese de proteina a partir do mRNA nos ribossomos",
+      "Recombinacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Replicacao do DNA'?",
+    "correta": "Duplicacao semiconservativa da dupla helice",
+    "texto": "Cada fita serve de molde; DNA polimerase adiciona nucleotidios na direcao 5'->3'.",
+    "ameaca": "GENETICA: 'REPLICACAO DO DNA'",
+    "alternativas": [
+      "Transcricao",
+      "Traducao",
+      "Duplicacao semiconservativa da dupla helice",
+      "Reparo apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Pares de bases no DNA'?",
+    "correta": "A-T (2 pontes H) e C-G (3 pontes H)",
+    "texto": "Complementaridade garante a fidelidade da replicacao e transcricao.",
+    "ameaca": "GENETICA: 'PARES DE BASES NO DNA'",
+    "alternativas": [
+      "A-C e G-T",
+      "A-G e C-T",
+      "A-T (2 pontes H) e C-G (3 pontes H)",
+      "A-U apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Ligacao fosfodiester'?",
+    "correta": "Une nucleotidios na fita de DNA/RNA",
+    "texto": "Liga o carbono 3' de um acucar ao 5' do seguinte via fosfato.",
+    "ameaca": "GENETICA: 'LIGACAO FOSFODIESTER'",
+    "alternativas": [
+      "Peptidica",
+      "Glicosidica",
+      "Une nucleotidios na fita de DNA/RNA",
+      "Dissulfeto"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Histonas'?",
+    "correta": "Proteinas basicas que empacotam o DNA em nucleossomos",
+    "texto": "Ricas em lisina e arginina; regulam acesso a cromatina.",
+    "ameaca": "GENETICA: 'HISTONAS'",
+    "alternativas": [
+      "Polimerases",
+      "Helicases",
+      "Proteinas basicas que empacotam o DNA em nucleossomos",
+      "Ribossomos"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Nucleossomo'?",
+    "correta": "Unidade basica da cromatina: DNA enrolado em octamero de histonas",
+    "texto": "Primeiro nivel de empacotamento do DNA eucariotico.",
+    "ameaca": "GENETICA: 'NUCLEOSSOMO'",
+    "alternativas": [
+      "Cromossomo inteiro",
+      "Solenoide apenas",
+      "Unidade basica da cromatina: DNA enrolado em octamero de histonas",
+      "Telomero"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Monossacarideo'?",
+    "correta": "Acucar simples (ex.: glicose, frutose, galactose)",
+    "texto": "Unidade basica dos carboidratos.",
+    "ameaca": "CARBOIDRATOS: 'MONOSSACARIDEO'",
+    "alternativas": [
+      "Dissacarideo",
+      "Polissacarideo",
+      "Acucar simples (ex.: glicose, frutose, galactose)",
+      "Amido"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Dissacarideo'?",
+    "correta": "Dois monossacarideos unidos por ligacao glicosidica",
+    "texto": "Ex.: sacarose, lactose, maltose.",
+    "ameaca": "CARBOIDRATOS: 'DISSACARIDEO'",
+    "alternativas": [
+      "Monossacarideo",
+      "Polissacarideo",
+      "Dois monossacarideos unidos por ligacao glicosidica",
+      "Celulose"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Ligacao glicosidica'?",
+    "correta": "Une monossacarideos em di e polissacarideos",
+    "texto": "Pode ser alfa ou beta, determinando digestibilidade.",
+    "ameaca": "CARBOIDRATOS: 'LIGACAO GLICOSIDICA'",
+    "alternativas": [
+      "Peptidica",
+      "Fosfodiester",
+      "Une monossacarideos em di e polissacarideos",
+      "Ester"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Amido'?",
+    "correta": "Polissacarideo de reserva vegetal (amilose + amilopectina)",
+    "texto": "Principal fonte de carboidrato na dieta humana.",
+    "ameaca": "CARBOIDRATOS: 'AMIDO'",
+    "alternativas": [
+      "Glicogenio",
+      "Celulose",
+      "Polissacarideo de reserva vegetal (amilose + amilopectina)",
+      "Quitina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Glicogenio'?",
+    "correta": "Polissacarideo de reserva animal, muito ramificado",
+    "texto": "Armazenado no figado e musculo.",
+    "ameaca": "CARBOIDRATOS: 'GLICOGENIO'",
+    "alternativas": [
+      "Amido",
+      "Celulose",
+      "Polissacarideo de reserva animal, muito ramificado",
+      "Sacarose"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Celulose'?",
+    "correta": "Polissacarideo estrutural vegetal com ligacoes beta-1,4",
+    "texto": "Nao digerida por humanos; fibra alimentar.",
+    "ameaca": "CARBOIDRATOS: 'CELULOSE'",
+    "alternativas": [
+      "Amido",
+      "Glicogenio",
+      "Polissacarideo estrutural vegetal com ligacoes beta-1,4",
+      "Maltose"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Triglicerideo'?",
+    "correta": "Glicerol + tres acidos graxos; principal reserva energetica lipidica",
+    "texto": "Armazenado no tecido adiposo.",
+    "ameaca": "LIPIDIOS: 'TRIGLICERIDEO'",
+    "alternativas": [
+      "Fosfolipidio",
+      "Colesterol",
+      "Glicerol + tres acidos graxos; principal reserva energetica lipidica",
+      "Esfingolipidio"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Acido graxo saturado'?",
+    "correta": "Sem duplas ligacoes na cadeia hidrocarbonica",
+    "texto": "Geralmente solido a temperatura ambiente (gorduras animais).",
+    "ameaca": "LIPIDIOS: 'ACIDO GRAXO SATURADO'",
+    "alternativas": [
+      "Insaturado",
+      "Poli-insaturado apenas",
+      "Sem duplas ligacoes na cadeia hidrocarbonica",
+      "Essencial sempre"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Acido graxo insaturado'?",
+    "correta": "Possui uma ou mais duplas ligacoes",
+    "texto": "Geralmente liquido (oleos vegetais); inclui essenciais (omega-3, omega-6).",
+    "ameaca": "LIPIDIOS: 'ACIDO GRAXO INSATURADO'",
+    "alternativas": [
+      "Saturado",
+      "Sempre essencial",
+      "Possui uma ou mais duplas ligacoes",
+      "Sempre solido"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Colesterol'?",
+    "correta": "Esterol componente de membranas e precursor de hormonios esteroides",
+    "texto": "Tambem precursor de acidos biliares e vitamina D.",
+    "ameaca": "LIPIDIOS: 'COLESTEROL'",
+    "alternativas": [
+      "Triglicerideo",
+      "Fosfolipidio apenas",
+      "Esterol componente de membranas e precursor de hormonios esteroides",
+      "Acido graxo"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Lipoproteinas'?",
+    "correta": "Particulas que transportam lipidios no plasma (quilomicrons, VLDL, LDL, HDL)",
+    "texto": "LDL leva colesterol aos tecidos; HDL remove (transporte reverso).",
+    "ameaca": "LIPIDIOS: 'LIPOPROTEINAS'",
+    "alternativas": [
+      "Apenas albumina",
+      "Apenas acidos graxos livres",
+      "Particulas que transportam lipidios no plasma (quilomicrons, VLDL, LDL, HDL)",
+      "Glicogenio"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'LDL'?",
+    "correta": "Lipoproteina de baixa densidade; 'colesterol ruim'",
+    "texto": "Elevada associa-se a aterosclerose.",
+    "ameaca": "LIPIDIOS: 'LDL'",
+    "alternativas": [
+      "HDL",
+      "VLDL apenas",
+      "Lipoproteina de baixa densidade; 'colesterol ruim'",
+      "Quilomicron"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'HDL'?",
+    "correta": "Lipoproteina de alta densidade; 'colesterol bom'",
+    "texto": "Participa do transporte reverso de colesterol ao figado.",
+    "ameaca": "LIPIDIOS: 'HDL'",
+    "alternativas": [
+      "LDL",
+      "VLDL",
+      "Lipoproteina de alta densidade; 'colesterol bom'",
+      "Quilomicron"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina A'?",
+    "correta": "Essencial a visao (retinal) e diferenciacao celular",
+    "texto": "Deficiencia causa xeroftalmia e cegueira noturna.",
+    "ameaca": "VITAMINAS: 'VITAMINA A'",
+    "alternativas": [
+      "Vitamina C",
+      "Vitamina D",
+      "Essencial a visao (retinal) e diferenciacao celular",
+      "Vitamina K"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina D'?",
+    "correta": "Regula calcio e fosforo; deficiencia causa raquitismo/osteomalacia",
+    "texto": "Sintetizada na pele por UV ou obtida na dieta.",
+    "ameaca": "VITAMINAS: 'VITAMINA D'",
+    "alternativas": [
+      "Vitamina A",
+      "Vitamina C",
+      "Regula calcio e fosforo; deficiencia causa raquitismo/osteomalacia",
+      "Vitamina B12"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina K'?",
+    "correta": "Essencial a coagulacao (fatores II, VII, IX, X)",
+    "texto": "Deficiencia causa sangramentos; antagonizada por varfarina.",
+    "ameaca": "VITAMINAS: 'VITAMINA K'",
+    "alternativas": [
+      "Vitamina C",
+      "Vitamina E",
+      "Essencial a coagulacao (fatores II, VII, IX, X)",
+      "Vitamina A"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina B1 (tiamina)'?",
+    "correta": "Cofator em descarboxilacoes (piruvato desidrogenase)",
+    "texto": "Deficiencia causa beriberi e sindrome de Wernicke-Korsakoff.",
+    "ameaca": "VITAMINAS: 'VITAMINA B1 (TIAMINA)'",
+    "alternativas": [
+      "B2",
+      "B3",
+      "Cofator em descarboxilacoes (piruvato desidrogenase)",
+      "B12"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina B3 (niacina)'?",
+    "correta": "Precursora de NAD+ e NADP+",
+    "texto": "Deficiencia causa pelagra (dermatite, diarreia, demencia).",
+    "ameaca": "VITAMINAS: 'VITAMINA B3 (NIACINA)'",
+    "alternativas": [
+      "B1",
+      "B6",
+      "Precursora de NAD+ e NADP+",
+      "B12"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina B6 (piridoxina)'?",
+    "correta": "Precursora do PLP; essencial em transaminacoes",
+    "texto": "Importante no metabolismo de aminoacidos.",
+    "ameaca": "VITAMINAS: 'VITAMINA B6 (PIRIDOXINA)'",
+    "alternativas": [
+      "B1",
+      "B2",
+      "Precursora do PLP; essencial em transaminacoes",
+      "B12"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina B12 (cobalamina)'?",
+    "correta": "Essencial a sintese de metionina e metabolismo do folato; eritropoiese",
+    "texto": "Deficiencia causa anemia megaloblastica e neuropatia.",
+    "ameaca": "VITAMINAS: 'VITAMINA B12 (COBALAMINA)'",
+    "alternativas": [
+      "B6",
+      "Folato apenas",
+      "Essencial a sintese de metionina e metabolismo do folato; eritropoiese",
+      "Vitamina C"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Acido folico (B9)'?",
+    "correta": "Essencial a transferencia de unidades de um carbono e sintese de DNA",
+    "texto": "Deficiencia causa anemia megaloblastica e defeitos do tubo neural no feto.",
+    "ameaca": "VITAMINAS: 'ACIDO FOLICO (B9)'",
+    "alternativas": [
+      "B12 apenas",
+      "B6",
+      "Essencial a transferencia de unidades de um carbono e sintese de DNA",
+      "Vitamina C"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Vitamina E'?",
+    "correta": "Antioxidante lipossoluvel que protege membranas",
+    "texto": "Deficiencia rara; associada a neuropatia e hemolise.",
+    "ameaca": "VITAMINAS: 'VITAMINA E'",
+    "alternativas": [
+      "Vitamina C",
+      "Vitamina A",
+      "Antioxidante lipossoluvel que protege membranas",
+      "Vitamina K"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Insulina'?",
+    "correta": "Hormonio que reduz a glicemia e promove armazenamento",
+    "texto": "Estimula glicolise, glicogenese e lipogenese; inibe gliconeogenese.",
+    "ameaca": "HORMONIOS: 'INSULINA'",
+    "alternativas": [
+      "Glucagon",
+      "Adrenalina",
+      "Hormonio que reduz a glicemia e promove armazenamento",
+      "Cortisol"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Glucagon'?",
+    "correta": "Hormonio que eleva a glicemia no jejum",
+    "texto": "Estimula glicogenolise e gliconeogenese hepaticas.",
+    "ameaca": "HORMONIOS: 'GLUCAGON'",
+    "alternativas": [
+      "Insulina",
+      "GH",
+      "Hormonio que eleva a glicemia no jejum",
+      "Tireoxina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Adrenalina (epinefrina)'?",
+    "correta": "Catecolamina que mobiliza energia no estresse",
+    "texto": "Estimula glicogenolise muscular e hepatica e lipolise.",
+    "ameaca": "HORMONIOS: 'ADRENALINA (EPINEFRINA)'",
+    "alternativas": [
+      "Insulina",
+      "Aldosterona",
+      "Catecolamina que mobiliza energia no estresse",
+      "ADH"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Cortisol'?",
+    "correta": "Glicocorticoide que eleva glicemia e tem efeito anti-inflamatorio",
+    "texto": "Estimula gliconeogenese e lipolise; cronico causa catabolismo proteico.",
+    "ameaca": "HORMONIOS: 'CORTISOL'",
+    "alternativas": [
+      "Insulina",
+      "Aldosterona",
+      "Glicocorticoide que eleva glicemia e tem efeito anti-inflamatorio",
+      "ADH"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Equilibrio acido-base - tampao bicarbonato'?",
+    "correta": "Principal tampao do plasma (H2CO3 / HCO3-)",
+    "texto": "Regulado por pulmao (CO2) e rim (HCO3-).",
+    "ameaca": "EQUILIBRIO: 'EQUILIBRIO ACIDO-BASE - TAMPAO BICARBONATO'",
+    "alternativas": [
+      "Tampao fosfato apenas",
+      "Proteinas apenas",
+      "Principal tampao do plasma (H2CO3 / HCO3-)",
+      "Hemoglobina apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Acidose metabolica'?",
+    "correta": "Queda de pH por reducao de HCO3- ou ganho de acidos",
+    "texto": "Ex.: cetoacidose, acidose latica, insuficiencia renal.",
+    "ameaca": "EQUILIBRIO: 'ACIDOSE METABOLICA'",
+    "alternativas": [
+      "Alcalose metabolica",
+      "Acidose respiratoria",
+      "Queda de pH por reducao de HCO3- ou ganho de acidos",
+      "Alcalose respiratoria"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Alcalose respiratoria'?",
+    "correta": "Aumento de pH por hiperventilacao (queda de pCO2)",
+    "texto": "Ex.: ansiedade, altitude, sepse.",
+    "ameaca": "EQUILIBRIO: 'ALCALOSE RESPIRATORIA'",
+    "alternativas": [
+      "Acidose respiratoria",
+      "Alcalose metabolica",
+      "Aumento de pH por hiperventilacao (queda de pCO2)",
+      "Acidose metabolica"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Anion gap'?",
+    "correta": "Na+ - (Cl- + HCO3-); ajuda a classificar acidoses metabolicas",
+    "texto": "Elevado em cetoacidose, acidose latica, intoxicacoes.",
+    "ameaca": "EQUILIBRIO: 'ANION GAP'",
+    "alternativas": [
+      "Osmolar gap",
+      "Delta gap apenas",
+      "Na+ - (Cl- + HCO3-); ajuda a classificar acidoses metabolicas",
+      "pH apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Hemoglobina e transporte de O2'?",
+    "correta": "Proteina tetramerica que liga O2 de forma cooperativa",
+    "texto": "Curva sigmoidal; modulada por pH, CO2, 2,3-BPG e temperatura.",
+    "ameaca": "PROTEINAS: 'HEMOGLOBINA E TRANSPORTE DE O2'",
+    "alternativas": [
+      "Mioglobina apenas",
+      "Citocromo",
+      "Proteina tetramerica que liga O2 de forma cooperativa",
+      "Albumina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Efeito Bohr'?",
+    "correta": "Queda de pH ou aumento de CO2 reduz a afinidade da Hb pelo O2",
+    "texto": "Facilita a liberacao de O2 nos tecidos ativos.",
+    "ameaca": "PROTEINAS: 'EFEITO BOHR'",
+    "alternativas": [
+      "Efeito Haldane",
+      "Cooperatividade apenas",
+      "Queda de pH ou aumento de CO2 reduz a afinidade da Hb pelo O2",
+      "Aumento de afinidade"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza '2,3-BPG'?",
+    "correta": "Metabolito eritrocitario que reduz a afinidade da Hb pelo O2",
+    "texto": "Aumenta na altitude e na insuficiencia cardiaca, facilitando entrega de O2.",
+    "ameaca": "METABOLISMO: '2,3-BPG'",
+    "alternativas": [
+      "1,3-BPG apenas",
+      "Fosfoenolpiruvato",
+      "Metabolito eritrocitario que reduz a afinidade da Hb pelo O2",
+      "Frutose-2,6-BP"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Mioglobina'?",
+    "correta": "Proteina monomérica de armazenamento de O2 no musculo",
+    "texto": "Curva hiperbolica; maior afinidade que a Hb.",
+    "ameaca": "PROTEINAS: 'MIOGLOBINA'",
+    "alternativas": [
+      "Hemoglobina",
+      "Citocromo c",
+      "Proteina monomérica de armazenamento de O2 no musculo",
+      "Albumina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Albumina serica'?",
+    "correta": "Principal proteina plasmatica; mantem pressao oncotica e transporta substancias",
+    "texto": "Hipoalbuminemia causa edema.",
+    "ameaca": "PROTEINAS: 'ALBUMINA SERICA'",
+    "alternativas": [
+      "Globulinas apenas",
+      "Fibrinogenio",
+      "Principal proteina plasmatica; mantem pressao oncotica e transporta substancias",
+      "Hemoglobina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Enzimas hepaticas AST e ALT'?",
+    "correta": "Marcadores de lesao hepatocelular",
+    "texto": "ALT mais especifica do figado; AST tambem em musculo e coracao.",
+    "ameaca": "ENZIMAS: 'ENZIMAS HEPATICAS AST E ALT'",
+    "alternativas": [
+      "Fosfatase alcalina apenas",
+      "GGT apenas",
+      "Marcadores de lesao hepatocelular",
+      "Amilase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Fosfatase alcalina (FA)'?",
+    "correta": "Elevada em colestase e crescimento/doenca ossea",
+    "texto": "Isoformas hepatica e ossea.",
+    "ameaca": "ENZIMAS: 'FOSFATASE ALCALINA (FA)'",
+    "alternativas": [
+      "ALT",
+      "AST",
+      "Elevada em colestase e crescimento/doenca ossea",
+      "CK"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'CK (creatina quinase)'?",
+    "correta": "Marcador de lesao muscular e miocardica (CK-MB)",
+    "texto": "CK-MB foi classicamente usada no IAM; troponina e mais especifica.",
+    "ameaca": "ENZIMAS: 'CK (CREATINA QUINASE)'",
+    "alternativas": [
+      "ALT",
+      "Amilase",
+      "Marcador de lesao muscular e miocardica (CK-MB)",
+      "Lipase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Amilase e lipase'?",
+    "correta": "Enzimas elevadas na pancreatite aguda",
+    "texto": "Lipase mais especifica e permanece elevada por mais tempo.",
+    "ameaca": "ENZIMAS: 'AMILASE E LIPASE'",
+    "alternativas": [
+      "ALT/AST",
+      "CK",
+      "Enzimas elevadas na pancreatite aguda",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'PCR (proteina C reativa)'?",
+    "correta": "Reagente de fase aguda sintetizado no figado",
+    "texto": "Eleva-se rapidamente em inflamacao e infeccao.",
+    "ameaca": "PROTEINAS: 'PCR (PROTEINA C REATIVA)'",
+    "alternativas": [
+      "Albumina",
+      "Transferrina",
+      "Reagente de fase aguda sintetizado no figado",
+      "Hemoglobina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Fermentacao latica'?",
+    "correta": "Regeneracao de NAD+ a partir de piruvato formando lactato",
+    "texto": "Permite continuidade da glicolise em anaerobiose.",
+    "ameaca": "METABOLISMO: 'FERMENTACAO LATICA'",
+    "alternativas": [
+      "Fermentacao alcoolica",
+      "Ciclo de Krebs",
+      "Regeneracao de NAD+ a partir de piruvato formando lactato",
+      "Cadeia respiratoria"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Fermentacao alcoolica'?",
+    "correta": "Conversao de piruvato em etanol e CO2 (leveduras)",
+    "texto": "Regenera NAD+; base da panificacao e bebidas.",
+    "ameaca": "METABOLISMO: 'FERMENTACAO ALCOOLICA'",
+    "alternativas": [
+      "Fermentacao latica",
+      "Respiracao",
+      "Conversao de piruvato em etanol e CO2 (leveduras)",
+      "Beta-oxidacao"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Piruvato desidrogenase'?",
+    "correta": "Converte piruvato em acetil-CoA (mitocondria)",
+    "texto": "Complexo enzimatico com TPP, lipoamida, CoA, FAD e NAD+.",
+    "ameaca": "METABOLISMO: 'PIRUVATO DESIDROGENASE'",
+    "alternativas": [
+      "Lactato desidrogenase",
+      "Hexoquinase",
+      "Converte piruvato em acetil-CoA (mitocondria)",
+      "Fosfofrutoquinase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Hexoquinase / Glicoquinase'?",
+    "correta": "Fosforilam glicose a glicose-6-fosfato",
+    "texto": "Primeira etapa da glicolise; glicoquinase hepatica tem Km alto.",
+    "ameaca": "METABOLISMO: 'HEXOQUINASE / GLICOQUINASE'",
+    "alternativas": [
+      "Fosfofrutoquinase",
+      "Piruvato quinase",
+      "Fosforilam glicose a glicose-6-fosfato",
+      "Glicose-6-fosfatase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Fosfofrutoquinase-1 (PFK-1)'?",
+    "correta": "Enzima chave reguladora da glicolise",
+    "texto": "Inibida por ATP e citrato; ativada por AMP e frutose-2,6-BP.",
+    "ameaca": "METABOLISMO: 'FOSFOFRUTOQUINASE-1 (PFK-1)'",
+    "alternativas": [
+      "Hexoquinase",
+      "Piruvato quinase",
+      "Enzima chave reguladora da glicolise",
+      "Enolase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Frutose-2,6-bisfosfato'?",
+    "correta": "Principal ativador alosterico da PFK-1 no figado",
+    "texto": "Concentracao controlada por insulina/glucagon via PFK-2/FBPase-2.",
+    "ameaca": "METABOLISMO: 'FRUTOSE-2,6-BISFOSFATO'",
+    "alternativas": [
+      "Frutose-1,6-BP",
+      "Glicose-6-P",
+      "Principal ativador alosterico da PFK-1 no figado",
+      "AMP apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Piruvato quinase'?",
+    "correta": "Ultima enzima da glicolise; gera ATP e piruvato",
+    "texto": "Regulada por fosforilacao (figado) e por frutose-1,6-BP.",
+    "ameaca": "METABOLISMO: 'PIRUVATO QUINASE'",
+    "alternativas": [
+      "Hexoquinase",
+      "PFK-1",
+      "Ultima enzima da glicolise; gera ATP e piruvato",
+      "Enolase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Glicose-6-fosfatase'?",
+    "correta": "Libera glicose livre no figado (gliconeogenese/glicogenolise)",
+    "texto": "Ausente no musculo; por isso musculo nao exporta glicose.",
+    "ameaca": "METABOLISMO: 'GLICOSE-6-FOSFATASE'",
+    "alternativas": [
+      "Hexoquinase",
+      "PFK-1",
+      "Libera glicose livre no figado (gliconeogenese/glicogenolise)",
+      "Glicogenio sintase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Carnitina'?",
+    "correta": "Transporta acil-graxos longos para a mitocondria",
+    "texto": "Essencial a beta-oxidacao de acidos graxos de cadeia longa.",
+    "ameaca": "METABOLISMO: 'CARNITINA'",
+    "alternativas": [
+      "CoA apenas",
+      "Albumina",
+      "Transporta acil-graxos longos para a mitocondria",
+      "HDL"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Malonil-CoA'?",
+    "correta": "Intermediario da lipogenese; inibe a carnitina aciltransferase I",
+    "texto": "Impede beta-oxidacao simultanea a sintese de acidos graxos.",
+    "ameaca": "METABOLISMO: 'MALONIL-COA'",
+    "alternativas": [
+      "Acetil-CoA apenas",
+      "Succinil-CoA",
+      "Intermediario da lipogenese; inibe a carnitina aciltransferase I",
+      "HMG-CoA"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'HMG-CoA redutase'?",
+    "correta": "Enzima limitante da sintese de colesterol",
+    "texto": "Alvo das estatinas; regulada por colesterol e fosforilacao.",
+    "ameaca": "METABOLISMO: 'HMG-COA REDUTASE'",
+    "alternativas": [
+      "HMG-CoA sintase",
+      "Acetil-CoA carboxilase",
+      "Enzima limitante da sintese de colesterol",
+      "Lipase hormonssensivel"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Acetil-CoA carboxilase'?",
+    "correta": "Enzima limitante da sintese de acidos graxos",
+    "texto": "Converte acetil-CoA em malonil-CoA; ativada por citrato e desfosforilacao.",
+    "ameaca": "METABOLISMO: 'ACETIL-COA CARBOXILASE'",
+    "alternativas": [
+      "HMG-CoA redutase",
+      "Acil-CoA desidrogenase",
+      "Enzima limitante da sintese de acidos graxos",
+      "Carnitina palmitoiltransferase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Lipase hormonssensivel'?",
+    "correta": "Quebra triglicerideos no adipocito sob estimulo hormonal",
+    "texto": "Ativada por fosforilacao (glucagon, adrenalina); inibida por insulina.",
+    "ameaca": "METABOLISMO: 'LIPASE HORMONSSENSIVEL'",
+    "alternativas": [
+      "Lipoproteina lipase",
+      "Pancreatica",
+      "Quebra triglicerideos no adipocito sob estimulo hormonal",
+      "Fosfolipase A2"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Lipoproteina lipase (LPL)'?",
+    "correta": "Hidrolisa triglicerideos de quilomicrons e VLDL no endotelio",
+    "texto": "Libera acidos graxos para tecidos; ativada por apoC-II.",
+    "ameaca": "METABOLISMO: 'LIPOPROTEINA LIPASE (LPL)'",
+    "alternativas": [
+      "Lipase hormonssensivel",
+      "Pancreatica",
+      "Hidrolisa triglicerideos de quilomicrons e VLDL no endotelio",
+      "HMG-CoA redutase"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Apolipoproteinas'?",
+    "correta": "Proteinas estruturais e funcionais das lipoproteinas",
+    "texto": "ApoB-100 no LDL; apoA-I no HDL; apoC-II ativa LPL; apoE no clearance.",
+    "ameaca": "LIPIDIOS: 'APOLIPOPROTEINAS'",
+    "alternativas": [
+      "Albumina apenas",
+      "Fibrinogenio",
+      "Proteinas estruturais e funcionais das lipoproteinas",
+      "Hemoglobina"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Corpos cetonicos'?",
+    "correta": "Acetoacetato, beta-hidroxibutirato e acetona",
+    "texto": "Combustivel alternativo para cerebro e musculo no jejum.",
+    "ameaca": "METABOLISMO: 'CORPOS CETONICOS'",
+    "alternativas": [
+      "Acidos graxos livres apenas",
+      "Glicose",
+      "Acetoacetato, beta-hidroxibutirato e acetona",
+      "Aminoacidos"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Cetoacidose diabetica'?",
+    "correta": "Acumulo de corpos cetonicos com acidose metabolica no DM1 descompensado",
+    "texto": "Hiperglicemia, desidratacao e anion gap elevado.",
+    "ameaca": "METABOLISMO: 'CETOACIDOSE DIABETICA'",
+    "alternativas": [
+      "Hipoglicemia",
+      "Alcalose",
+      "Acumulo de corpos cetonicos com acidose metabolica no DM1 descompensado",
+      "Hiperamonemia"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'NADPH'?",
+    "correta": "Coenzima redutora para biossinteses e defesa antioxidante (GSH)",
+    "texto": "Gerado principalmente na via das pentoses-fosfato.",
+    "ameaca": "METABOLISMO: 'NADPH'",
+    "alternativas": [
+      "NADH apenas",
+      "FADH2",
+      "Coenzima redutora para biossinteses e defesa antioxidante (GSH)",
+      "ATP"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Glutationa (GSH)'?",
+    "correta": "Tripeptideo antioxidante (Glu-Cys-Gly)",
+    "texto": "Neutraliza perxidos via glutationa peroxidase; regenerada por NADPH.",
+    "ameaca": "METABOLISMO: 'GLUTATIONA (GSH)'",
+    "alternativas": [
+      "Ascorbato apenas",
+      "Vitamina E apenas",
+      "Tripeptideo antioxidante (Glu-Cys-Gly)",
+      "Catalase apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Especies reativas de oxigenio (EROs)'?",
+    "correta": "O2-, H2O2, OH- gerados no metabolismo e defensas",
+    "texto": "Em excesso causam dano oxidativo a lipidios, proteinas e DNA.",
+    "ameaca": "METABOLISMO: 'ESPECIES REATIVAS DE OXIGENIO (EROS)'",
+    "alternativas": [
+      "Apenas O2",
+      "Apenas CO2",
+      "O2-, H2O2, OH- gerados no metabolismo e defensas",
+      "Apenas N2"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Superoxido dismutase (SOD)'?",
+    "correta": "Converte superoxido em H2O2 e O2",
+    "texto": "Primeira linha de defesa enzimatica contra EROs.",
+    "ameaca": "ENZIMAS: 'SUPEROXIDO DISMUTASE (SOD)'",
+    "alternativas": [
+      "Catalase",
+      "Glutationa peroxidase",
+      "Converte superoxido em H2O2 e O2",
+      "Peroxidase apenas"
+    ]
+  },
+  {
+    "inimigo": "O que e / caracteriza 'Catalase'?",
+    "correta": "Decompoe H2O2 em agua e oxigenio",
+    "texto": "Abundante em peroxissomos.",
+    "ameaca": "ENZIMAS: 'CATALASE'",
+    "alternativas": [
+      "SOD",
+      "Glutationa peroxidase",
+      "Decompoe H2O2 em agua e oxigenio",
+      "Peroxidase de mielina"
+    ]
+  },
+  {
+    "inimigo": "Aminoacido com grupo SH",
+    "correta": "Cisteina",
+    "texto": "Forma pontes dissulfeto essenciais a estrutura proteica.",
+    "ameaca": "AMINOACIDOS: QUAL TEM GRUPO SH?",
+    "alternativas": [
+      "Metionina",
+      "Serina",
+      "Cisteina",
+      "Treonina"
+    ]
+  },
+  {
+    "inimigo": "Aminoacido precursor de serotonina",
+    "correta": "Triptofano",
+    "texto": "Gera serotonina, melatonina e parte da niacina.",
+    "ameaca": "AMINOACIDOS: PRECURSOR DE SEROTONINA?",
+    "alternativas": [
+      "Tirosina",
+      "Fenilalanina",
+      "Triptofano",
+      "Histidina"
+    ]
+  },
+  {
+    "inimigo": "Aminoacido precursor de catecolaminas",
+    "correta": "Tirosina",
+    "texto": "Via das catecolaminas parte da tirosina.",
+    "ameaca": "AMINOACIDOS: PRECURSOR DE DOPAMINA?",
+    "alternativas": [
+      "Triptofano",
+      "Histidina",
+      "Tirosina",
+      "Glicina"
+    ]
+  },
+  {
+    "inimigo": "Doenca por deficiencia de fenilalanina hidroxilase",
+    "correta": "Fenilcetonuria (PKU)",
+    "texto": "Acumulo de fenilalanina; dieta restrita evita deficiencia intelectual.",
+    "ameaca": "PATOLOGIA: O QUE E PKU?",
+    "alternativas": [
+      "Alcaptonuria",
+      "Xarope de bordo",
+      "Fenilcetonuria (PKU)",
+      "Homocistinuria"
+    ]
+  },
+  {
+    "inimigo": "Segundo mensageiro AMP ciclico",
+    "correta": "AMPc",
+    "texto": "Gerado pela adenilato ciclase; ativa proteina quinase A.",
+    "ameaca": "SINALIZACAO: QUAL E O AMP CICLICO?",
+    "alternativas": [
+      "GMPc",
+      "ATP",
+      "AMPc",
+      "ADP"
+    ]
+  },
+  {
+    "inimigo": "Enzima que forma AMPc",
+    "correta": "Adenilato ciclase",
+    "texto": "Ativada por proteinas G acopladas a receptores.",
+    "ameaca": "SINALIZACAO: QUAL ENZIMA GERA AMPc?",
+    "alternativas": [
+      "Fosfodiesterase",
+      "Guanilato ciclase",
+      "Adenilato ciclase",
+      "PKA"
+    ]
+  },
+  {
+    "inimigo": "Enzima que degrada AMPc",
+    "correta": "Fosfodiesterase",
+    "texto": "Inibida por cafeina; prolonga o sinal do AMPc.",
+    "ameaca": "SINALIZACAO: QUAL ENZIMA DEGRADA AMPc?",
+    "alternativas": [
+      "Adenilato ciclase",
+      "PKA",
+      "Fosfodiesterase",
+      "Fosfatase"
+    ]
+  },
+  {
+    "inimigo": "Proteina G",
+    "correta": "Proteina ligante de GTP que transmite sinal de receptores 7TM",
+    "texto": "Cicla entre GDP (inativa) e GTP (ativa).",
+    "ameaca": "SINALIZACAO: O QUE E PROTEINA G?",
+    "alternativas": [
+      "Enzima apenas",
+      "Canal",
+      "Proteina ligante de GTP que transmite sinal de receptores 7TM",
+      "Hormonio"
+    ]
+  },
+  {
+    "inimigo": "Receptor tirosina quinase",
+    "correta": "Receptor que se autofosforila em tirosina apos ligar o ligante",
+    "texto": "Ex.: receptor de insulina e fatores de crescimento.",
+    "ameaca": "SINALIZACAO: O QUE E RTK?",
+    "alternativas": [
+      "GPCR apenas",
+      "Canal",
+      "Receptor que se autofosforila em tirosina apos ligar o ligante",
+      "Nuclear"
+    ]
+  },
+  {
+    "inimigo": "Receptor nuclear",
+    "correta": "Receptor intracelular que regula transcricão",
+    "texto": "Ligantes: esteroides, tireoidianos, vitamina D.",
+    "ameaca": "SINALIZACAO: O QUE E RECEPTOR NUCLEAR?",
+    "alternativas": [
+      "De membrana",
+      "Canal",
+      "Receptor intracelular que regula transcricão",
+      "Proteina G"
+    ]
+  },
+  {
+    "inimigo": "Calmodulina",
+    "correta": "Proteina ligante de Ca2+ que modula enzimas",
+    "texto": "Ativa apos ligar calcio.",
+    "ameaca": "SINALIZACAO: O QUE E CALMODULINA?",
+    "alternativas": [
+      "Canal de Ca",
+      "Hormonio",
+      "Proteina ligante de Ca2+ que modula enzimas",
+      "Fosfolipase"
+    ]
+  },
+  {
+    "inimigo": "IP3",
+    "correta": "Segundo mensageiro que libera Ca2+ do RE",
+    "texto": "Gerado pela fosfolipase C a partir de PIP2.",
+    "ameaca": "SINALIZACAO: O QUE FAZ O IP3?",
+    "alternativas": [
+      "Ativa PKA",
+      "Gera AMPc",
+      "Segundo mensageiro que libera Ca2+ do RE",
+      "Degrada cAMP"
+    ]
+  },
+  {
+    "inimigo": "DAG",
+    "correta": "Segundo mensageiro que ativa proteina quinase C",
+    "texto": "Gerado junto com IP3 pela fosfolipase C.",
+    "ameaca": "SINALIZACAO: O QUE FAZ O DAG?",
+    "alternativas": [
+      "Libera Ca2+",
+      "Ativa AC",
+      "Segundo mensageiro que ativa proteina quinase C",
+      "Inibe PKA"
+    ]
+  },
+  {
+    "inimigo": "Fosfolipase C",
+    "correta": "Cliva PIP2 em IP3 e DAG",
+    "texto": "Ativada por Gq ou tirosina quinases.",
+    "ameaca": "SINALIZACAO: O QUE FAZ A PLC?",
+    "alternativas": [
+      "Gera AMPc",
+      "Degrada tudo",
+      "Cliva PIP2 em IP3 e DAG",
+      "Sintetiza PIP2"
+    ]
+  },
+  {
+    "inimigo": "Proteina quinase A",
+    "correta": "Quinase ativada por AMPc",
+    "texto": "Medeia efeitos de glucagon e adrenalina.",
+    "ameaca": "SINALIZACAO: O QUE E PKA?",
+    "alternativas": [
+      "Tirosina quinase",
+      "Fosfatase",
+      "Quinase ativada por AMPc",
+      "Proteina G"
+    ]
+  },
+  {
+    "inimigo": "Proteina quinase C",
+    "correta": "Quinase ativada por DAG e Ca2+",
+    "texto": "Participa de proliferacao e respostas celulares.",
+    "ameaca": "SINALIZACAO: O QUE E PKC?",
+    "alternativas": [
+      "Ativada por AMPc",
+      "Fosfatase",
+      "Quinase ativada por DAG e Ca2+",
+      "Receptor"
+    ]
+  },
+  {
+    "inimigo": "MAP quinases",
+    "correta": "Cascata que transmite sinais de crescimento e estresse",
+    "texto": "Inclui ERK, JNK e p38.",
+    "ameaca": "SINALIZACAO: O QUE SAO MAPK?",
+    "alternativas": [
+      "Apenas PKA",
+      "Apenas PKC",
+      "Cascata que transmite sinais de crescimento e estresse",
+      "Fosfatases"
+    ]
+  },
+  {
+    "inimigo": "Via mitocondrial da apoptose",
+    "correta": "Citocromo c libera e ativa caspases via apoptossomo",
+    "texto": "Regulada pela familia Bcl-2.",
+    "ameaca": "CELULA: VIA MITOCONDRIAL DA APOPTOSE?",
+    "alternativas": [
+      "Apenas receptores de morte",
+      "Necrose",
+      "Citocromo c libera e ativa caspases via apoptossomo",
+      "Autofagia"
+    ]
+  },
+  {
+    "inimigo": "Caspases",
+    "correta": "Proteases de cisteina que executam a apoptose",
+    "texto": "Iniciadoras e efetoras.",
+    "ameaca": "CELULA: O QUE SAO CASPASES?",
+    "alternativas": [
+      "Quinases",
+      "Fosfatases",
+      "Proteases de cisteina que executam a apoptose",
+      "Lipases"
+    ]
+  },
+  {
+    "inimigo": "Citocromo c",
+    "correta": "Transporta eletrons e dispara apoptose no citosol",
+    "texto": "Na membrana interna e no citosol tem papeis distintos.",
+    "ameaca": "METABOLISMO: DUPLO PAPEL DO CITOCROMO C?",
+    "alternativas": [
+      "Apenas O2",
+      "Apenas estrutural",
+      "Transporta eletrons e dispara apoptose no citosol",
+      "Hormonio"
+    ]
+  },
+  {
+    "inimigo": "Coenzima Q (ubiquinona)",
+    "correta": "Transportador movel de eletrons na cadeia respiratoria",
+    "texto": "Recebe eletrons de I e II e doa ao III.",
+    "ameaca": "METABOLISMO: O QUE E COENZIMA Q?",
+    "alternativas": [
+      "Citocromo c",
+      "Complexo IV",
+      "Transportador movel de eletrons na cadeia respiratoria",
+      "ATP sintase"
+    ]
+  },
+  {
+    "inimigo": "Complexo I",
+    "correta": "NADH desidrogenase; oxida NADH e bombeia H+",
+    "texto": "Inibido por rotenona.",
+    "ameaca": "METABOLISMO: COMPLEXO I?",
+    "alternativas": [
+      "Oxida FADH2",
+      "Reduz O2",
+      "NADH desidrogenase; oxida NADH e bombeia H+",
+      "Sintetiza ATP"
+    ]
+  },
+  {
+    "inimigo": "Complexo II",
+    "correta": "Succinato desidrogenase; oxida FADH2 sem bombear H+",
+    "texto": "Parte do Krebs e da cadeia.",
+    "ameaca": "METABOLISMO: COMPLEXO II?",
+    "alternativas": [
+      "Oxida NADH",
+      "Bombeia muito H+",
+      "Succinato desidrogenase; oxida FADH2 sem bombear H+",
+      "Reduz O2"
+    ]
+  },
+  {
+    "inimigo": "Complexo IV",
+    "correta": "Citocromo oxidase; reduz O2 a H2O",
+    "texto": "Inibido por cianeto e CO.",
+    "ameaca": "METABOLISMO: COMPLEXO IV?",
+    "alternativas": [
+      "Oxida NADH",
+      "Sintetiza ATP",
+      "Citocromo oxidase; reduz O2 a H2O",
+      "Oxida succinato"
+    ]
+  },
+  {
+    "inimigo": "Desacopladores",
+    "correta": "Dissipam gradiente de H+ gerando calor sem ATP",
+    "texto": "Ex.: termogenina, DNP.",
+    "ameaca": "METABOLISMO: O QUE FAZEM DESACOPLADORES?",
+    "alternativas": [
+      "Bloqueiam cadeia",
+      "Aumentam ATP",
+      "Dissipam gradiente de H+ gerando calor sem ATP",
+      "Inibem glicolise"
+    ]
+  },
+  {
+    "inimigo": "Termogenina (UCP1)",
+    "correta": "Desacopladora do tecido adiposo marrom",
+    "texto": "Gera calor em recem-nascidos.",
+    "ameaca": "METABOLISMO: O QUE E TERMOGENINA?",
+    "alternativas": [
+      "Enzima glicolise",
+      "Hormonio",
+      "Desacopladora do tecido adiposo marrom",
+      "Transportador glicose"
+    ]
+  },
+  {
+    "inimigo": "Shuttle glicerol-fosfato",
+    "correta": "Transfere eletrons do NADH citosolico gerando FADH2",
+    "texto": "Menos eficiente que malato-aspartato.",
+    "ameaca": "METABOLISMO: SHUTTLE GLICEROL-FOSFATO?",
+    "alternativas": [
+      "Transporta ATP",
+      "Transporta acetil-CoA",
+      "Transfere eletrons do NADH citosolico gerando FADH2",
+      "Transporta AG"
+    ]
+  },
+  {
+    "inimigo": "Shuttle malato-aspartato",
+    "correta": "Transfere eletrons gerando NADH mitocondrial",
+    "texto": "Mais eficiente; predominante no figado e coracao.",
+    "ameaca": "METABOLISMO: SHUTTLE MALATO-ASPARTATO?",
+    "alternativas": [
+      "Gera so FADH2",
+      "Transporta glicose",
+      "Transfere eletrons gerando NADH mitocondrial",
+      "Transporta ureia"
+    ]
+  },
+  {
+    "inimigo": "ATP por glicose aerobica",
+    "correta": "Cerca de 30-32 ATP",
+    "texto": "Depende do shuttle do NADH citosolico.",
+    "ameaca": "METABOLISMO: ATP POR GLICOSE AEROBICA?",
+    "alternativas": [
+      "2",
+      "8",
+      "Cerca de 30-32 ATP",
+      "100"
+    ]
+  },
+  {
+    "inimigo": "ATP na glicolise anaerobica",
+    "correta": "2 ATP liquidos por glicose",
+    "texto": "NAD+ regenerado pela LDH.",
+    "ameaca": "METABOLISMO: ATP NA GLICOLISE ANAEROBICA?",
+    "alternativas": [
+      "32",
+      "8",
+      "2 ATP liquidos por glicose",
+      "0"
+    ]
+  },
+  {
+    "inimigo": "Lactato desidrogenase",
+    "correta": "Converte piruvato em lactato regenerando NAD+",
+    "texto": "Essencial na fermentacao latica e ciclo de Cori.",
+    "ameaca": "METABOLISMO: O QUE FAZ A LDH?",
+    "alternativas": [
+      "Piruvato a acetil-CoA",
+      "Gera ATP direto",
+      "Converte piruvato em lactato regenerando NAD+",
+      "Oxida NADH na cadeia"
+    ]
+  },
+  {
+    "inimigo": "Ciclo de Cori",
+    "correta": "Lactato muscular vira glicose no figado",
+    "texto": "Conecta glicolise anaerobica a gliconeogenese.",
+    "ameaca": "METABOLISMO: O QUE E CICLO DE CORI?",
+    "alternativas": [
+      "Krebs",
+      "Ureia",
+      "Lactato muscular vira glicose no figado",
+      "Beta-oxidacao"
+    ]
+  },
+  {
+    "inimigo": "Ciclo glicose-alanina",
+    "correta": "Transfere nitrogenio muscular ao figado como alanina",
+    "texto": "Alanina no figado gera ureia e glicose.",
+    "ameaca": "METABOLISMO: CICLO GLICOSE-ALANINA?",
+    "alternativas": [
+      "Cori",
+      "Krebs",
+      "Transfere nitrogenio muscular ao figado como alanina",
+      "Cetogenese"
+    ]
+  },
+  {
+    "inimigo": "Aminoacidos cetogenicos",
+    "correta": "Geram acetil-CoA ou acetoacetato",
+    "texto": "Leucina e lisina sao exclusivamente cetogenicos.",
+    "ameaca": "METABOLISMO: AMINOACIDOS CETOGENICOS?",
+    "alternativas": [
+      "So glicose",
+      "So ureia",
+      "Geram acetil-CoA ou acetoacetato",
+      "So piruvato"
+    ]
+  },
+  {
+    "inimigo": "Aminoacidos glicogenicos",
+    "correta": "Geram intermediarios da gliconeogenese",
+    "texto": "Permitem sintese de glicose no jejum.",
+    "ameaca": "METABOLISMO: AMINOACIDOS GLICOGENICOS?",
+    "alternativas": [
+      "So cetogenicos",
+      "Nao metabolizam",
+      "Geram intermediarios da gliconeogenese",
+      "So ureia"
+    ]
+  },
+  {
+    "inimigo": "Piruvato carboxilase",
+    "correta": "Piruvato a oxaloacetato",
+    "texto": "Dependente de biotina; ativada por acetil-CoA.",
+    "ameaca": "METABOLISMO: PIRUVATO CARBOXILASE?",
+    "alternativas": [
+      "Piruvato a acetil-CoA",
+      "Piruvato a lactato",
+      "Piruvato a oxaloacetato",
+      "OAA a PEP"
+    ]
+  },
+  {
+    "inimigo": "PEPCK",
+    "correta": "Oxaloacetato a fosfoenolpiruvato",
+    "texto": "Enzima chave da gliconeogenese.",
+    "ameaca": "METABOLISMO: O QUE FAZ A PEPCK?",
+    "alternativas": [
+      "Piruvato a OAA",
+      "F16BP a F6P",
+      "Oxaloacetato a fosfoenolpiruvato",
+      "G6P a glicose"
+    ]
+  },
+  {
+    "inimigo": "Frutose-1,6-bisfosfatase",
+    "correta": "Enzima da gliconeogenese que opoe PFK-1",
+    "texto": "Inibida por AMP e F2,6BP.",
+    "ameaca": "METABOLISMO: F-1,6-BISFOSFATASE?",
+    "alternativas": [
+      "PFK-1",
+      "Hexoquinase",
+      "Enzima da gliconeogenese que opoe PFK-1",
+      "Piruvato quinase"
+    ]
+  },
+  {
+    "inimigo": "Biotina",
+    "correta": "Cofator de carboxilases",
+    "texto": "Vitamina B7.",
+    "ameaca": "VITAMINAS: COFATOR DAS CARBOXILASES?",
+    "alternativas": [
+      "Tiamina",
+      "Niacina",
+      "Biotina",
+      "Cofator de carboxilases"
+    ]
+  },
+  {
+    "inimigo": "Tiamina pirofosfato",
+    "correta": "Cofator de descarboxilases",
+    "texto": "Derivado da B1.",
+    "ameaca": "VITAMINAS: O QUE E TPP?",
+    "alternativas": [
+      "PLP",
+      "CoA",
+      "Cofator de descarboxilases",
+      "FAD"
+    ]
+  },
+  {
+    "inimigo": "Coenzima A",
+    "correta": "Transporta grupos acila",
+    "texto": "Derivada do acido pantotenico (B5).",
+    "ameaca": "VITAMINAS: COENZIMA A?",
+    "alternativas": [
+      "B1",
+      "B6",
+      "Transporta grupos acila",
+      "B12"
+    ]
+  },
+  {
+    "inimigo": "FAD e FMN",
+    "correta": "Cofatores derivados da riboflavina (B2)",
+    "texto": "Em oxidorredutases da cadeia e desidrogenases.",
+    "ameaca": "VITAMINAS: FAD/FMN VEM DE?",
+    "alternativas": [
+      "B1",
+      "B3",
+      "Cofatores derivados da riboflavina (B2)",
+      "B6"
+    ]
+  },
+  {
+    "inimigo": "S-adenosilmetionina (SAM)",
+    "correta": "Doador universal de grupos metila",
+    "texto": "Gerada de metionina + ATP.",
+    "ameaca": "METABOLISMO: O QUE E SAM?",
+    "alternativas": [
+      "Doador de fosfato",
+      "Doador de acila",
+      "Doador universal de grupos metila",
+      "Aceptor de eletrons"
+    ]
+  },
+  {
+    "inimigo": "Homocisteina",
+    "correta": "Intermediario da metionina; risco vascular se elevada",
+    "texto": "Remetilada com B12/folato ou vira cisteina com B6.",
+    "ameaca": "METABOLISMO: O QUE E HOMOCISTEINA?",
+    "alternativas": [
+      "Aminoacido essencial",
+      "Corpo cetônico",
+      "Intermediario da metionina; risco vascular se elevada",
+      "Acido graxo"
+    ]
+  },
+  {
+    "inimigo": "Acido urico",
+    "correta": "Produto final das purinas em humanos",
+    "texto": "Elevado na gota.",
+    "ameaca": "METABOLISMO: PRODUTO FINAL DAS PURINAS?",
+    "alternativas": [
+      "Ureia",
+      "Amonia",
+      "Acido urico",
+      "Produto final das purinas em humanos"
+    ]
+  },
+  {
+    "inimigo": "Xantina oxidase",
+    "correta": "Forma acido urico; alvo do alopurinol",
+    "texto": "Inibida no tratamento da gota.",
+    "ameaca": "METABOLISMO: QUAL ENZIMA GERA ACIDO URICO?",
+    "alternativas": [
+      "Urease",
+      "Guanase",
+      "Forma acido urico; alvo do alopurinol",
+      "ADA"
+    ]
+  },
+  {
+    "inimigo": "Nucleosideo",
+    "correta": "Base + acucar (sem fosfato)",
+    "texto": "Ex.: adenosina, guanosina.",
+    "ameaca": "ACIDOS NUCLEICOS: O QUE E NUCLEOSIDEO?",
+    "alternativas": [
+      "Base livre",
+      "Nucleotideo",
+      "Base + acucar (sem fosfato)",
+      "Polinucleotideo"
+    ]
+  },
+  {
+    "inimigo": "Nucleotideo",
+    "correta": "Base + acucar + fosfato",
+    "texto": "Unidade dos acidos nucleicos.",
+    "ameaca": "ACIDOS NUCLEICOS: O QUE E NUCLEOTIDEO?",
+    "alternativas": [
+      "Apenas base",
+      "Nucleosideo",
+      "Base + acucar + fosfato",
+      "Aminoacido"
+    ]
+  },
+  {
+    "inimigo": "Purinas",
+    "correta": "Adenina e guanina",
+    "texto": "Anel duplo.",
+    "ameaca": "ACIDOS NUCLEICOS: QUAIS SAO AS PURINAS?",
+    "alternativas": [
+      "C T U",
+      "Apenas A",
+      "Adenina e guanina",
+      "Apenas G"
+    ]
+  },
+  {
+    "inimigo": "Pirimidinas",
+    "correta": "Citosina, timina e uracila",
+    "texto": "Anel simples.",
+    "ameaca": "ACIDOS NUCLEICOS: QUAIS SAO AS PIRIMIDINAS?",
+    "alternativas": [
+      "A e G",
+      "Apenas C",
+      "Citosina, timina e uracila",
+      "Apenas T"
+    ]
+  },
+  {
+    "inimigo": "Timina vs uracila",
+    "correta": "Timina tem metila e esta no DNA",
+    "texto": "Uracila esta no RNA.",
+    "ameaca": "ACIDOS NUCLEICOS: DIFERENCA T/U?",
+    "alternativas": [
+      "Uracila no DNA",
+      "Iguais",
+      "Timina tem metila e esta no DNA",
+      "Timina no RNA"
+    ]
+  },
+  {
+    "inimigo": "Regras de Chargaff",
+    "correta": "No DNA A=T e C=G",
+    "texto": "Base da complementaridade.",
+    "ameaca": "GENETICA: REGRAS DE CHARGAFF?",
+    "alternativas": [
+      "A=C e G=T",
+      "A=G e C=T",
+      "No DNA A=T e C=G",
+      "Todas iguais"
+    ]
+  },
+  {
+    "inimigo": "Direcao da DNA polimerase",
+    "correta": "5' para 3'",
+    "texto": "Adiciona ao 3'-OH livre.",
+    "ameaca": "GENETICA: DIRECAO DA DNA POLIMERASE?",
+    "alternativas": [
+      "3' para 5'",
+      "Ambas",
+      "5' para 3'",
+      "Aleatoria"
+    ]
+  },
+  {
+    "inimigo": "Fita lagging",
+    "correta": "Sintetizada em fragmentos de Okazaki",
+    "texto": "Porque polimerase so vai 5'->3'.",
+    "ameaca": "GENETICA: COMO E A FITA TARDIA?",
+    "alternativas": [
+      "Continua na direcao da forquilha",
+      "3'->5'",
+      "Sintetizada em fragmentos de Okazaki",
+      "Sem primer"
+    ]
+  },
+  {
+    "inimigo": "Primer de RNA",
+    "correta": "Inicia sintese de DNA fornecendo 3'-OH",
+    "texto": "Colocado pela primase.",
+    "ameaca": "GENETICA: PARA QUE SERVE O PRIMER?",
+    "alternativas": [
+      "Termina sintese",
+      "Une Okazaki",
+      "Inicia sintese de DNA fornecendo 3'-OH",
+      "Desenrola"
+    ]
+  },
+  {
+    "inimigo": "DNA ligase",
+    "correta": "Une fragmentos de Okazaki",
+    "texto": "Forma a ligacao fosfodiester.",
+    "ameaca": "GENETICA: O QUE FAZ A LIGASE?",
+    "alternativas": [
+      "Desenrola",
+      "Adiciona primers",
+      "Une fragmentos de Okazaki",
+      "Remove primers"
+    ]
+  },
+  {
+    "inimigo": "Helicase",
+    "correta": "Desenrola a dupla helice",
+    "texto": "Consome ATP.",
+    "ameaca": "GENETICA: O QUE FAZ A HELICASE?",
+    "alternativas": [
+      "Liga Okazaki",
+      "Adiciona nucleotidios",
+      "Desenrola a dupla helice",
+      "Corrige erros"
+    ]
+  },
+  {
+    "inimigo": "Topoisomerase",
+    "correta": "Alivia superenrolamento",
+    "texto": "Alvo de farmacos anticancer e antibioticos.",
+    "ameaca": "GENETICA: O QUE FAZ A TOPOISOMERASE?",
+    "alternativas": [
+      "Desenrola local",
+      "Sintetiza DNA",
+      "Alivia superenrolamento",
+      "Une Okazaki"
+    ]
+  },
+  {
+    "inimigo": "Telomerase",
+    "correta": "Estende telomeros com molde de RNA",
+    "texto": "Ativa em germinativas e canceres.",
+    "ameaca": "GENETICA: O QUE FAZ A TELOMERASE?",
+    "alternativas": [
+      "Encurta telomeros",
+      "Repara mismatch",
+      "Estende telomeros com molde de RNA",
+      "Liga Okazaki"
+    ]
+  },
+  {
+    "inimigo": "Promotor",
+    "correta": "Onde a RNA polimerase se liga para iniciar transcricão",
+    "texto": "Contem TATA box em eucariotos.",
+    "ameaca": "GENETICA: O QUE E PROMOTOR?",
+    "alternativas": [
+      "Terminador",
+      "Intron",
+      "Onde a RNA polimerase se liga para iniciar transcricão",
+      "Exon"
+    ]
+  },
+  {
+    "inimigo": "Intron",
+    "correta": "Sequencia removida do pre-mRNA por splicing",
+    "texto": "Nao codificante.",
+    "ameaca": "GENETICA: O QUE E INTRON?",
+    "alternativas": [
+      "Exon",
+      "Promotor",
+      "Sequencia removida do pre-mRNA por splicing",
+      "Stop codon"
+    ]
+  },
+  {
+    "inimigo": "Exon",
+    "correta": "Sequencia codificante no mRNA maduro",
+    "texto": "Pode sofrer splicing alternativo.",
+    "ameaca": "GENETICA: O QUE E EXON?",
+    "alternativas": [
+      "Intron",
+      "Promotor",
+      "Sequencia codificante no mRNA maduro",
+      "Enhancer"
+    ]
+  },
+  {
+    "inimigo": "Splicing",
+    "correta": "Remocao de introns e uniao de exons",
+    "texto": "Catalisado pelo spliceossomo.",
+    "ameaca": "GENETICA: O QUE E SPLICING?",
+    "alternativas": [
+      "Poli-A apenas",
+      "Cap 5' apenas",
+      "Remocao de introns e uniao de exons",
+      "Traducao"
+    ]
+  },
+  {
+    "inimigo": "Cap 5' do mRNA",
+    "correta": "7-metilguanosina no inicio do mRNA",
+    "texto": "Protege e auxilia traducao.",
+    "ameaca": "GENETICA: O QUE E O CAP 5'?",
+    "alternativas": [
+      "Poli-A",
+      "Intron",
+      "7-metilguanosina no inicio do mRNA",
+      "Anticodon"
+    ]
+  },
+  {
+    "inimigo": "Cauda poli-A",
+    "correta": "Adeninas no final 3' do mRNA",
+    "texto": "Estabiliza e auxilia traducao.",
+    "ameaca": "GENETICA: O QUE E A CAUDA POLI-A?",
+    "alternativas": [
+      "Cap 5'",
+      "Promotor",
+      "Adeninas no final 3' do mRNA",
+      "Intron"
+    ]
+  },
+  {
+    "inimigo": "Anticodon",
+    "correta": "Triplete no tRNA complementar ao codon",
+    "texto": "Garante o aminoacido correto.",
+    "ameaca": "GENETICA: O QUE E ANTICODON?",
+    "alternativas": [
+      "Codon",
+      "Promotor",
+      "Triplete no tRNA complementar ao codon",
+      "Aminoacido"
+    ]
+  },
+  {
+    "inimigo": "Aminoacil-tRNA sintetase",
+    "correta": "Liga o aminoacido correto ao tRNA",
+    "texto": "Fidelidade da traducao.",
+    "ameaca": "GENETICA: O QUE FAZ A AMINOACIL-tRNA SINTETASE?",
+    "alternativas": [
+      "Forma ligacao peptidica",
+      "Inicia transcricão",
+      "Liga o aminoacido correto ao tRNA",
+      "Remove introns"
+    ]
+  },
+  {
+    "inimigo": "Sitios A P E do ribossomo",
+    "correta": "A aminoacil, P peptidil, E saida",
+    "texto": "Ordem do ciclo de elongacao.",
+    "ameaca": "GENETICA: SITIOS DO RIBOSSOMO?",
+    "alternativas": [
+      "Apenas A e P",
+      "Apenas P",
+      "A aminoacil, P peptidil, E saida",
+      "Apenas E"
+    ]
+  },
+  {
+    "inimigo": "Peptidil transferase",
+    "correta": "Ribozyma do rRNA que forma a ligacao peptidica",
+    "texto": "Catalise pelo RNA ribossomico.",
+    "ameaca": "GENETICA: QUEM FORMA A LIGACAO PEPTIDICA?",
+    "alternativas": [
+      "Proteina quinase",
+      "DNA polimerase",
+      "Ribozyma do rRNA que forma a ligacao peptidica",
+      "Helicase"
+    ]
+  },
+  {
+    "inimigo": "Chaperonas",
+    "correta": "Auxiliam o dobramento correto de proteinas",
+    "texto": "Incluem HSP70 e chaperoninas.",
+    "ameaca": "PROTEINAS: O QUE SAO CHAPERONAS?",
+    "alternativas": [
+      "Enzimas digestivas",
+      "Anticorpos",
+      "Auxiliam o dobramento correto de proteinas",
+      "Hormônios"
+    ]
+  },
+  {
+    "inimigo": "Ubiquitina",
+    "correta": "Marca proteinas para degradacao no proteassomo",
+    "texto": "Poliubiquitinacao e o sinal.",
+    "ameaca": "PROTEINAS: O QUE FAZ A UBIQUITINA?",
+    "alternativas": [
+      "Ativa enzimas",
+      "Transporta O2",
+      "Marca proteinas para degradacao no proteassomo",
+      "Sintetiza ATP"
+    ]
+  },
+  {
+    "inimigo": "Proteassomo",
+    "correta": "Degrada proteinas ubiquitinadas",
+    "texto": "Essencial a renovacao proteica.",
+    "ameaca": "PROTEINAS: O QUE E O PROTEASSOMO?",
+    "alternativas": [
+      "Lisossomo",
+      "Ribossomo",
+      "Degrada proteinas ubiquitinadas",
+      "Mitocondria"
+    ]
+  },
+  {
+    "inimigo": "Prion",
+    "correta": "Proteina infecciosa mal enovelada",
+    "texto": "Causa CJD, scrapie, BSE.",
+    "ameaca": "PROTEINAS: O QUE E UM PRION?",
+    "alternativas": [
+      "Virus",
+      "Bacteria",
+      "Proteina infecciosa mal enovelada",
+      "Plasmidio"
+    ]
+  },
+  {
+    "inimigo": "Isoenzimas",
+    "correta": "Formas diferentes da mesma enzima",
+    "texto": "Ex.: CK-MB, LDH isoformas; uteis no diagnostico.",
+    "ameaca": "ENZIMAS: O QUE SAO ISOENZIMAS?",
+    "alternativas": [
+      "Inibidores",
+      "Cofatores",
+      "Formas diferentes da mesma enzima",
+      "Zimogenios"
+    ]
+  },
+  {
+    "inimigo": "Energia de ativacao",
+    "correta": "Barreira energetica que a enzima diminui",
+    "texto": "Acelera a reacao sem alterar o equilibrio.",
+    "ameaca": "ENZIMAS: O QUE E ENERGIA DE ATIVACAO?",
+    "alternativas": [
+      "Delta G da reacao",
+      "Km",
+      "Barreira energetica que a enzima diminui",
+      "Vmax"
+    ]
+  },
+  {
+    "inimigo": "Modelo do encaixe induzido",
+    "correta": "Enzima e substrato ajustam-se mutuamente na ligacao",
+    "texto": "Complementa o modelo chave-fechadura.",
+    "ameaca": "ENZIMAS: O QUE E ENCAIXE INDUZIDO?",
+    "alternativas": [
+      "Chave-fechadura rigido",
+      "Apenas colisao",
+      "Enzima e substrato ajustam-se mutuamente na ligacao",
+      "Inibicao"
+    ]
+  },
+  {
+    "inimigo": "Especificidade enzimatica",
+    "correta": "Capacidade de atuar sobre substratos definidos",
+    "texto": "Pode ser absoluta, de grupo ou de ligacao.",
+    "ameaca": "ENZIMAS: O QUE E ESPECIFICIDADE?",
+    "alternativas": [
+      "Velocidade apenas",
+      "Estabilidade",
+      "Capacidade de atuar sobre substratos definidos",
+      "Cor apenas"
+    ]
+  },
+  {
+    "inimigo": "pH otimo enzimatico",
+    "correta": "pH em que a atividade e maxima",
+    "texto": "Reflete ionizacao do sitio ativo e do substrato.",
+    "ameaca": "ENZIMAS: O QUE E PH OTIMO?",
+    "alternativas": [
+      "pH neutro sempre",
+      "pH 0",
+      "pH em que a atividade e maxima",
+      "pH 14"
+    ]
+  },
+  {
+    "inimigo": "Temperatura e enzimas",
+    "correta": "Ate certo ponto acelera; depois desnatura",
+    "texto": "Otimo em torno de 37C para enzimas humanas.",
+    "ameaca": "ENZIMAS: COMO A TEMPERATURA AFETA?",
+    "alternativas": [
+      "Sempre aumenta",
+      "Sempre diminui",
+      "Ate certo ponto acelera; depois desnatura",
+      "Nao afeta"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | ⚛️ PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA BIOQUÍMICO] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🧪`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A questão sobre '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE BIOQUÍMICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE BIOQUÍMICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

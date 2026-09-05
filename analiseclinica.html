@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Análises Clínicas - Um quiz sobre o mundo dos exames laboratoriais.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Análises Clínicas</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Análises Clínicas</h1>
+  <p>Decifre os resultados e desvende os mistérios do laboratório! 🧪</p>
+
+  <div id="terminal">[SISTEMA DE ANÁLISE CLÍNICA INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🔬 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR ANÁLISE CLÍNICA</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE ANÁLISES CLÍNICAS</h2>
+      <p>Bem-vindo, Analista Clínico! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre os exames laboratoriais e a interpretação de seus resultados.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente os princípios de exames, valores de referência e interpretações clínicas.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis, baseadas em conhecimentos laboratoriais.</li>
+        <li>Aumentar sua capacidade de correlacionar resultados laboratoriais com condições clínicas.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão de Laboratório" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! As análises clínicas são a base para um diagnóstico preciso e um tratamento eficaz. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Análises Clínicas foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura:</p>
+      <ul>
+        <li>**LIVRO:** Henry's Clinical Diagnosis and Management by Laboratory Methods [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** McPherson & Pincus - Henry's Clinical Diagnosis and Management by Laboratory Methods [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Burtis, Ashwood, Bruns - Tietz Fundamentals of Clinical Chemistry and Molecular Diagnostics [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Garcia & Fernandes - Laboratório de Exames Clínicos [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**GUIAS/NORMAS:** Documentos e guias de boas práticas de laboratórios clínicos de órgãos reguladores e associações profissionais (ex: CLSI, SBPC/ML).</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Análises Clínicas e Medicina Laboratorial.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "O exame que avalia as células sanguíneas (hemácias, leucócitos e plaquetas)",
+    "correta": "Hemograma completo",
+    "texto": "O hemograma completo analisa as três séries celulares do sangue e auxilia no diagnóstico de anemias, infecções e distúrbios de coagulação.",
+    "ameaca": "HEMATOLOGIA: QUAL EXAME AVALIA AS CÉLULAS SANGUÍNEAS?",
+    "alternativas": [
+      "Glicemia",
+      "Colesterol total",
+      "Ureia e Creatinina",
+      "Hemograma completo"
+    ]
+  },
+  {
+    "inimigo": "A proteína sérica que indica inflamação aguda (marcador de fase aguda)",
+    "correta": "Proteína C Reativa (PCR)",
+    "texto": "A PCR eleva-se rapidamente em processos inflamatórios e infecciosos, sendo um marcador inespecífico de inflamação.",
+    "ameaca": "BIOQUÍMICA: QUAL PROTEÍNA INDICA INFLAMAÇÃO AGUDA?",
+    "alternativas": [
+      "Albumina",
+      "Hemoglobina glicada",
+      "Creatinina",
+      "Proteína C Reativa (PCR)"
+    ]
+  },
+  {
+    "inimigo": "O anticoagulante mais usado em tubos para hemograma",
+    "correta": "EDTA (Ácido Etilenodiaminotetracético)",
+    "texto": "O EDTA preserva a morfologia celular e impede a coagulação ao quelar o cálcio, sendo o anticoagulante de escolha para hematologia.",
+    "ameaca": "COLETA: QUAL ANTICOAGULANTE PARA HEMOGRAMA?",
+    "alternativas": [
+      "Heparina",
+      "Citrato de sódio",
+      "Fluoreto de sódio",
+      "EDTA (Ácido Etilenodiaminotetracético)"
+    ]
+  },
+  {
+    "inimigo": "O exame de urina que avalia aspectos físicos, químicos e sedimentoscopia",
+    "correta": "Urinálise (EAS - Exame de Urina Tipo I)",
+    "texto": "A urinálise (EAS) é exame de triagem que pode indicar ITU, doenças renais, diabetes e outras condições.",
+    "ameaca": "URINÁLISE: QUAL EXAME AVALIA FÍSICO, QUÍMICO E MICROSCÓPICO DA URINA?",
+    "alternativas": [
+      "Urocultura",
+      "Clearance de creatinina",
+      "Proteinúria de 24h",
+      "Urinálise (EAS - Exame de Urina Tipo I)"
+    ]
+  },
+  {
+    "inimigo": "O hormônio mais usado na triagem da função tireoidiana",
+    "correta": "TSH (Hormônio Estimulante da Tireoide)",
+    "texto": "O TSH é o exame mais sensível para rastrear hipotireoidismo e hipertireoidismo.",
+    "ameaca": "HORMÔNIOS: QUAL HORMÔNIO AVALIA A TIREOIDE?",
+    "alternativas": [
+      "Cortisol",
+      "Insulina",
+      "Prolactina",
+      "TSH (Hormônio Estimulante da Tireoide)"
+    ]
+  },
+  {
+    "inimigo": "O 'colesterol ruim' associado à aterosclerose no lipidograma",
+    "correta": "LDL-colesterol",
+    "texto": "O LDL-colesterol elevado favorece o depósito de placas nas artérias e aumenta o risco cardiovascular.",
+    "ameaca": "LIPIDOGRAMA: QUAL É O 'COLESTEROL RUIM'?",
+    "alternativas": [
+      "HDL-colesterol",
+      "Triglicerídeos",
+      "Colesterol total",
+      "LDL-colesterol"
+    ]
+  },
+  {
+    "inimigo": "O pigmento produto da degradação da hemoglobina, dosado na avaliação hepática",
+    "correta": "Bilirrubina",
+    "texto": "A bilirrubina elevada (direta, indireta ou total) indica hemólise ou disfunção hepática/biliar e causa icterícia.",
+    "ameaca": "HEPÁTICO: QUAL PIGMENTO CAUSA ICTERÍCIA QUANDO ELEVADO?",
+    "alternativas": [
+      "Creatinina",
+      "Amilase",
+      "Lipase",
+      "Bilirrubina"
+    ]
+  },
+  {
+    "inimigo": "O exame fundamental para diagnóstico e monitoramento do diabetes em jejum",
+    "correta": "Glicemia de jejum",
+    "texto": "A glicemia de jejum mede a glicose após jejum e é o principal exame de rastreamento do diabetes mellitus.",
+    "ameaca": "GLICEMIA: QUAL EXAME MEDE A GLICOSE EM JEJUM?",
+    "alternativas": [
+      "Hemoglobina glicada",
+      "Teste de tolerância à glicose",
+      "Insulina",
+      "Glicemia de jejum"
+    ]
+  },
+  {
+    "inimigo": "A amostra mais comum para exames bioquímicos e hormonais",
+    "correta": "Plasma ou Soro sanguíneo",
+    "texto": "Soro (sem anticoagulante) e plasma (com anticoagulante) são as matrizes mais usadas para dosagens bioquímicas e hormonais.",
+    "ameaca": "COLETA: QUAL AMOSTRA É MAIS USADA EM BIOQUÍMICA E HORMÔNIOS?",
+    "alternativas": [
+      "Urina",
+      "Saliva",
+      "Líquor",
+      "Plasma ou Soro sanguíneo"
+    ]
+  },
+  {
+    "inimigo": "O exame que identifica bactérias e testa a sensibilidade a antibióticos",
+    "correta": "Cultura e Antibiograma",
+    "texto": "A cultura isola o microrganismo e o antibiograma orienta o antibiótico eficaz para o tratamento.",
+    "ameaca": "MICROBIOLOGIA: QUAL EXAME IDENTIFICA BACTÉRIAS E SENSIBILIDADE?",
+    "alternativas": [
+      "Hemocultura apenas",
+      "Sorologia",
+      "PCR",
+      "Cultura e Antibiograma"
+    ]
+  },
+  {
+    "inimigo": "O 'colesterol bom' que tem efeito protetor cardiovascular",
+    "correta": "HDL-colesterol",
+    "texto": "O HDL remove o colesterol dos tecidos e o transporta ao fígado, tendo ação antiaterogênica.",
+    "ameaca": "LIPIDOGRAMA: QUAL É O 'COLESTEROL BOM'?",
+    "alternativas": [
+      "LDL-colesterol",
+      "VLDL",
+      "Triglicerídeos",
+      "HDL-colesterol"
+    ]
+  },
+  {
+    "inimigo": "O exame que reflete a glicemia média dos últimos 2-3 meses",
+    "correta": "Hemoglobina glicada (HbA1c)",
+    "texto": "A HbA1c mostra o controle glicêmico de médio prazo e é usada no diagnóstico e acompanhamento do diabetes.",
+    "ameaca": "DIABETES: QUAL EXAME REFLETE A GLICEMIA MÉDIA DE 2-3 MESES?",
+    "alternativas": [
+      "Glicemia de jejum",
+      "Insulina",
+      "Peptídeo C",
+      "Hemoglobina glicada (HbA1c)"
+    ]
+  },
+  {
+    "inimigo": "O marcador de função renal mais usado na rotina",
+    "correta": "Creatinina sérica",
+    "texto": "A creatinina é produto do metabolismo muscular e sua elevação indica redução da taxa de filtração glomerular.",
+    "ameaca": "FUNÇÃO RENAL: QUAL MARCADOR É MAIS USADO?",
+    "alternativas": [
+      "Ureia",
+      "Ácido úrico",
+      "Sódio",
+      "Creatinina sérica"
+    ]
+  },
+  {
+    "inimigo": "O anticoagulante usado em tubos de coagulação (TP e TTPA)",
+    "correta": "Citrato de sódio",
+    "texto": "O citrato de sódio a 3,2% é o anticoagulante padrão para testes de coagulação, na proporção 1:9.",
+    "ameaca": "COAGULAÇÃO: QUAL ANTICOAGULANTE PARA TP E TTPA?",
+    "alternativas": [
+      "EDTA",
+      "Heparina",
+      "Fluoreto",
+      "Citrato de sódio"
+    ]
+  },
+  {
+    "inimigo": "O exame que detecta sangue oculto nas fezes",
+    "correta": "Pesquisa de sangue oculto nas fezes (PSOF)",
+    "texto": "A PSOF auxilia no rastreamento de câncer colorretal e na investigação de sangramento digestivo oculto.",
+    "ameaca": "FEZES: QUAL EXAME DETECTA SANGUE OCULTO?",
+    "alternativas": [
+      "Coprocultura",
+      "Parasitológico",
+      "Elastase fecal",
+      "Pesquisa de sangue oculto nas fezes (PSOF)"
+    ]
+  },
+  {
+    "inimigo": "O exame parasitológico de fezes pesquisa",
+    "correta": "Ovos, cistos e parasitas intestinais",
+    "texto": "O parasitológico de fezes identifica helmintos e protozoários por métodos de concentração e microscopia.",
+    "ameaca": "PARASITOLOGIA: O QUE O EXAME DE FEZES PESQUISA?",
+    "alternativas": [
+      "Bactérias",
+      "Vírus",
+      "Fungos",
+      "Ovos, cistos e parasitas intestinais"
+    ]
+  },
+  {
+    "inimigo": "A enzima mais específica de lesão pancreática aguda",
+    "correta": "Lipase",
+    "texto": "A lipase é mais específica que a amilase para o diagnóstico de pancreatite aguda.",
+    "ameaca": "PÂNCREAS: QUAL ENZIMA É MAIS ESPECÍFICA NA PANCREATITE?",
+    "alternativas": [
+      "Amilase",
+      "TGO/AST",
+      "Fosfatase alcalina",
+      "Lipase"
+    ]
+  },
+  {
+    "inimigo": "As transaminases (TGO/AST e TGP/ALT) avaliam principalmente",
+    "correta": "Lesão de hepatócitos (função/lesão hepática)",
+    "texto": "AST e ALT elevam-se em hepatites, esteatose, isquemia hepática e outras agressões ao fígado.",
+    "ameaca": "HEPÁTICO: O QUE AS TRANSAMINASES AVALIAM?",
+    "alternativas": [
+      "Função renal",
+      "Função cardíaca exclusiva",
+      "Função pancreática",
+      "Lesão de hepatócitos (função/lesão hepática)"
+    ]
+  },
+  {
+    "inimigo": "O exame de tipagem sanguínea determina",
+    "correta": "Grupo ABO e fator Rh",
+    "texto": "A tipagem ABO/Rh é essencial antes de transfusões e no pré-natal para prevenir incompatibilidade.",
+    "ameaca": "IMUNOHEMATOLOGIA: O QUE A TIPAGEM SANGUÍNEA DETERMINA?",
+    "alternativas": [
+      "Hemoglobina",
+      "Fator de coagulação",
+      "Anticorpos irregulares apenas",
+      "Grupo ABO e fator Rh"
+    ]
+  },
+  {
+    "inimigo": "O teste de Coombs direto detecta",
+    "correta": "Anticorpos ou complemento ligados às hemácias do paciente",
+    "texto": "O Coombs direto (TAD) investiga anemias hemolíticas autoimunes e doença hemolítica do recém-nascido.",
+    "ameaca": "IMUNOHEMATOLOGIA: O QUE O COOMBS DIRETO DETECTA?",
+    "alternativas": [
+      "Anticorpos livres no soro",
+      "Grupo sanguíneo",
+      "Fator Rh apenas",
+      "Anticorpos ou complemento ligados às hemácias do paciente"
+    ]
+  },
+  {
+    "inimigo": "O VHS (velocidade de hemossedimentação) é marcador de",
+    "correta": "Inflamação inespecífica",
+    "texto": "O VHS eleva-se em inflamação, infecção, neoplasias e anemia; é inespecífico, porém útil no acompanhamento.",
+    "ameaca": "HEMATOLOGIA: O VHS É MARCADOR DE QUÊ?",
+    "alternativas": [
+      "Função renal",
+      "Glicemia",
+      "Coagulação",
+      "Inflamação inespecífica"
+    ]
+  },
+  {
+    "inimigo": "O exame que quantifica a carga viral de HIV ou hepatites",
+    "correta": "PCR quantitativa (carga viral)",
+    "texto": "A PCR quantitativa mede a quantidade de material genético viral e monitora resposta ao tratamento.",
+    "ameaca": "BIOLOGIA MOLECULAR: QUAL EXAME QUANTIFICA CARGA VIRAL?",
+    "alternativas": [
+      "Sorologia ELISA",
+      "Western blot",
+      "Cultura viral",
+      "PCR quantitativa (carga viral)"
+    ]
+  },
+  {
+    "inimigo": "O fluoreto de sódio nos tubos de glicemia serve para",
+    "correta": "Inibir a glicólise e preservar a glicose",
+    "texto": "O fluoreto inibe enzimas glicolíticas, evitando o consumo de glicose pelas células após a coleta.",
+    "ameaca": "COLETA: PARA QUE SERVE O FLUORETO NO TUBO DE GLICEMIA?",
+    "alternativas": [
+      "Anticoagular apenas",
+      "Preservar células",
+      "Ativar coagulação",
+      "Inibir a glicólise e preservar a glicose"
+    ]
+  },
+  {
+    "inimigo": "O gasometria arterial avalia",
+    "correta": "pH, pO2, pCO2 e equilíbrio ácido-base",
+    "texto": "A gasometria arterial analisa a oxigenação e o equilíbrio ácido-base do paciente.",
+    "ameaca": "GASOMETRIA: O QUE ESSE EXAME AVALIA?",
+    "alternativas": [
+      "Apenas glicose",
+      "Eletrólitos apenas",
+      "Hemograma",
+      "pH, pO2, pCO2 e equilíbrio ácido-base"
+    ]
+  },
+  {
+    "inimigo": "O tempo de protrombina (TP/INR) avalia a via",
+    "correta": "Via extrínseca da coagulação",
+    "texto": "O TP avalia os fatores da via extrínseca e comum; o INR padroniza o monitoramento de anticoagulantes orais.",
+    "ameaca": "COAGULAÇÃO: O TP/INR AVALIA QUAL VIA?",
+    "alternativas": [
+      "Via intrínseca",
+      "Via das plaquetas",
+      "Fibrinólise apenas",
+      "Via extrínseca da coagulação"
+    ]
+  },
+  {
+    "inimigo": "O TTPA (tempo de tromboplastina parcial ativada) avalia",
+    "correta": "Via intrínseca da coagulação",
+    "texto": "O TTPA monitora a via intrínseca e comum e é usado no controle da heparina não fracionada.",
+    "ameaca": "COAGULAÇÃO: O TTPA AVALIA QUAL VIA?",
+    "alternativas": [
+      "Via extrínseca",
+      "Apenas plaquetas",
+      "Fibrinogênio isolado",
+      "Via intrínseca da coagulação"
+    ]
+  },
+  {
+    "inimigo": "O D-dímero elevado sugere",
+    "correta": "Ativação da coagulação e fibrinólise (ex.: TEV)",
+    "texto": "O D-dímero eleva-se em trombose venosa, embolia pulmonar, CIVD e outros estados pró-trombóticos.",
+    "ameaca": "COAGULAÇÃO: O QUE O D-DÍMERO ELEVADO SUGERE?",
+    "alternativas": [
+      "Anemia",
+      "Infecção viral",
+      "Hipoglicemia",
+      "Ativação da coagulação e fibrinólise (ex.: TEV)"
+    ]
+  },
+  {
+    "inimigo": "A urocultura é o exame padrão-ouro para",
+    "correta": "Diagnóstico de infecção do trato urinário",
+    "texto": "A urocultura identifica e quantifica bactérias na urina, confirmando ITU e orientando o tratamento.",
+    "ameaca": "MICROBIOLOGIA: A UROCULTURA É PADRÃO-OURO PARA?",
+    "alternativas": [
+      "Função renal",
+      "Diabetes",
+      "Cálculo renal",
+      "Diagnóstico de infecção do trato urinário"
+    ]
+  },
+  {
+    "inimigo": "O PSA (antígeno prostático específico) é usado no rastreamento de",
+    "correta": "Câncer de próstata e hiperplasia prostática",
+    "texto": "O PSA é um marcador prostático; eleva-se no câncer, hiperplasia e prostatite, exigindo interpretação clínica.",
+    "ameaca": "MARCADORES TUMORAIS: O PSA RASTREIA QUAL CONDIÇÃO?",
+    "alternativas": [
+      "Câncer de mama",
+      "Câncer de cólon",
+      "Câncer de tireoide",
+      "Câncer de próstata e hiperplasia prostática"
+    ]
+  },
+  {
+    "inimigo": "O exame de escarro BAAR pesquisa",
+    "correta": "Bacilos álcool-ácido resistentes (Mycobacterium)",
+    "texto": "A pesquisa de BAAR no escarro é fundamental na investigação de tuberculose pulmonar.",
+    "ameaca": "MICROBIOLOGIA: O QUE O BAAR NO ESCARRO PESQUISA?",
+    "alternativas": [
+      "Fungos",
+      "Vírus",
+      "Parasitas",
+      "Bacilos álcool-ácido resistentes (Mycobacterium)"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Hematócrito'?",
+    "correta": "Porcentagem do volume sanguíneo ocupado pelas hemácias",
+    "texto": "Reflete a proporção de glóbulos vermelhos no sangue total.",
+    "ameaca": "HEMATOLOGIA: 'HEMATÓCRITO'",
+    "alternativas": [
+      "Número absoluto de leucócitos",
+      "Concentração de hemoglobina apenas",
+      "Volume plaquetário",
+      "Porcentagem do volume sanguíneo ocupado pelas hemácias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'VCM (Volume Corpuscular Médio)'?",
+    "correta": "Tamanho médio das hemácias",
+    "texto": "Ajuda a classificar anemias em micro, normo ou macrocíticas.",
+    "ameaca": "HEMATOLOGIA: 'VCM (VOLUME CORPUSCULAR MÉDIO)'",
+    "alternativas": [
+      "Quantidade de hemoglobina por hemácia",
+      "Número de reticulócitos",
+      "Volume de plaquetas",
+      "Tamanho médio das hemácias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CHCM'?",
+    "correta": "Concentração de hemoglobina dentro das hemácias",
+    "texto": "Indica se as hemácias são hipo, normo ou hipercromicas.",
+    "ameaca": "HEMATOLOGIA: 'CHCM'",
+    "alternativas": [
+      "Tamanho das hemácias",
+      "Número de hemácias",
+      "Hemoglobina total apenas",
+      "Concentração de hemoglobina dentro das hemácias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Reticulócitos'?",
+    "correta": "Hemácias jovens recém-liberadas da medula",
+    "texto": "Indicam a atividade regenerativa da medula óssea.",
+    "ameaca": "HEMATOLOGIA: 'RETICULÓCITOS'",
+    "alternativas": [
+      "Leucócitos jovens",
+      "Plaquetas jovens",
+      "Linfócitos ativados",
+      "Hemácias jovens recém-liberadas da medula"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Neutrofilia'?",
+    "correta": "Aumento de neutrófilos no sangue",
+    "texto": "Comum em infecções bacterianas agudas e inflamação.",
+    "ameaca": "HEMATOLOGIA: 'NEUTROFILIA'",
+    "alternativas": [
+      "Aumento de linfócitos",
+      "Aumento de eosinófilos",
+      "Diminuição de neutrófilos",
+      "Aumento de neutrófilos no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Linfocitose'?",
+    "correta": "Aumento de linfócitos no sangue",
+    "texto": "Frequente em infecções virais e algumas leucemias.",
+    "ameaca": "HEMATOLOGIA: 'LINFOCITOSE'",
+    "alternativas": [
+      "Aumento de neutrófilos",
+      "Aumento de monócitos apenas",
+      "Diminuição de linfócitos",
+      "Aumento de linfócitos no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Eosinofilia'?",
+    "correta": "Aumento de eosinófilos",
+    "texto": "Associada a alergias, parasitoses e algumas doenças.",
+    "ameaca": "HEMATOLOGIA: 'EOSINOFILIA'",
+    "alternativas": [
+      "Aumento de basófilos",
+      "Aumento de neutrófilos",
+      "Diminuição de eosinófilos",
+      "Aumento de eosinófilos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Trombocitose'?",
+    "correta": "Aumento do número de plaquetas",
+    "texto": "Pode ser reativa ou primária (síndromes mieloproliferativas).",
+    "ameaca": "HEMATOLOGIA: 'TROMBOCITOSE'",
+    "alternativas": [
+      "Diminuição de plaquetas",
+      "Aumento de hemácias",
+      "Aumento de leucócitos",
+      "Aumento do número de plaquetas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Trombocitopenia'?",
+    "correta": "Diminuição do número de plaquetas",
+    "texto": "Aumenta o risco de sangramento; causas variadas.",
+    "ameaca": "HEMATOLOGIA: 'TROMBOCITOPENIA'",
+    "alternativas": [
+      "Aumento de plaquetas",
+      "Anemia",
+      "Leucopenia",
+      "Diminuição do número de plaquetas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anisocitose'?",
+    "correta": "Variação no tamanho das hemácias",
+    "texto": "Observada no RDW elevado e em várias anemias.",
+    "ameaca": "HEMATOLOGIA: 'ANISOCITOSE'",
+    "alternativas": [
+      "Variação de forma",
+      "Variação de cor",
+      "Aglutinação",
+      "Variação no tamanho das hemácias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Poiquilocitose'?",
+    "correta": "Variação na forma das hemácias",
+    "texto": "Inclui esquizócitos, drepanócitos, esferócitos etc.",
+    "ameaca": "HEMATOLOGIA: 'POIQUILOCITOSE'",
+    "alternativas": [
+      "Variação de tamanho",
+      "Variação de cor",
+      "Aumento de número",
+      "Variação na forma das hemácias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Esquizócitos'?",
+    "correta": "Fragmentos de hemácias (hemólise mecânica)",
+    "texto": "Vistos em microangiopatias trombóticas e próteses valvares.",
+    "ameaca": "HEMATOLOGIA: 'ESQUIZÓCITOS'",
+    "alternativas": [
+      "Hemácias em alvo",
+      "Esferócitos",
+      "Drepanócitos",
+      "Fragmentos de hemácias (hemólise mecânica)"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Ferritina'?",
+    "correta": "Proteína de estoque de ferro",
+    "texto": "Reflete as reservas corporais de ferro; também é reagente de fase aguda.",
+    "ameaca": "BIOQUÍMICA: 'FERRITINA'",
+    "alternativas": [
+      "Transferrina",
+      "Hemoglobina",
+      "Mioglobina",
+      "Proteína de estoque de ferro"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Transferrina / TIBC'?",
+    "correta": "Capacidade de transporte de ferro no plasma",
+    "texto": "Eleva-se na deficiência de ferro e reduz-se na inflamação.",
+    "ameaca": "BIOQUÍMICA: 'TRANSFERRINA / TIBC'",
+    "alternativas": [
+      "Ferritina",
+      "Hemossiderina",
+      "Ceruloplasmina",
+      "Capacidade de transporte de ferro no plasma"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Saturação de transferrina'?",
+    "correta": "Porcentagem de transferrina ocupada por ferro",
+    "texto": "Baixa na anemia ferropriva e alta na hemocromatose.",
+    "ameaca": "BIOQUÍMICA: 'SATURAÇÃO DE TRANSFERRINA'",
+    "alternativas": [
+      "Ferritina",
+      "Hemoglobina",
+      "Bilirrubina",
+      "Porcentagem de transferrina ocupada por ferro"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Vitamina B12 e Ácido fólico'?",
+    "correta": "Vitaminas essenciais à eritropoiese",
+    "texto": "Deficiência causa anemia megaloblástica.",
+    "ameaca": "BIOQUÍMICA: 'VITAMINA B12 E ÁCIDO FÓLICO'",
+    "alternativas": [
+      "Vitamina D e Cálcio",
+      "Vitamina A e E",
+      "Vitamina K e Fator VII",
+      "Vitaminas essenciais à eritropoiese"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'TSH elevado + T4 livre baixo'?",
+    "correta": "Padrão de hipotireoidismo primário",
+    "texto": "A hipófise aumenta TSH quando a tireoide produz pouco hormônio.",
+    "ameaca": "HORMÔNIOS: 'TSH ELEVADO + T4 LIVRE BAIXO'",
+    "alternativas": [
+      "Hipertireoidismo",
+      "Hipotireoidismo central",
+      "Eutiroidismo",
+      "Padrão de hipotireoidismo primário"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'TSH baixo + T4 livre alto'?",
+    "correta": "Padrão de hipertireoidismo primário",
+    "texto": "Excesso de hormônio tireoidiano suprime o TSH.",
+    "ameaca": "HORMÔNIOS: 'TSH BAIXO + T4 LIVRE ALTO'",
+    "alternativas": [
+      "Hipotireoidismo",
+      "Resistência tireoidiana",
+      "Bócio simples",
+      "Padrão de hipertireoidismo primário"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Cortisol sérico'?",
+    "correta": "Hormônio glicocorticoide da adrenal",
+    "texto": "Avalia insuficiência ou excesso adrenal (Cushing/Addison).",
+    "ameaca": "HORMÔNIOS: 'CORTISOL SÉRICO'",
+    "alternativas": [
+      "Aldosterona apenas",
+      "Adrenalina",
+      "Insulina",
+      "Hormônio glicocorticoide da adrenal"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'PTH (Paratormônio)'?",
+    "correta": "Hormônio que regula o cálcio",
+    "texto": "Eleva o cálcio sérico; avaliado no hiper e hipoparatireoidismo.",
+    "ameaca": "HORMÔNIOS: 'PTH (PARATORMÔNIO)'",
+    "alternativas": [
+      "Calcitonina",
+      "Vitamina D apenas",
+      "TSH",
+      "Hormônio que regula o cálcio"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Beta-hCG'?",
+    "correta": "Hormônio da gravidez e marcador tumoral",
+    "texto": "Detecta gravidez e monitora algumas neoplasias germinativas.",
+    "ameaca": "HORMÔNIOS: 'BETA-HCG'",
+    "alternativas": [
+      "FSH",
+      "LH",
+      "Prolactina",
+      "Hormônio da gravidez e marcador tumoral"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Troponina cardíaca'?",
+    "correta": "Marcador mais específico de lesão miocárdica",
+    "texto": "Padrão-ouro no diagnóstico de infarto agudo do miocárdio.",
+    "ameaca": "CARDIOLOGIA LAB: 'TROPONINA CARDÍACA'",
+    "alternativas": [
+      "CK total",
+      "LDH",
+      "Mioglobina apenas",
+      "Marcador mais específico de lesão miocárdica"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'BNP / NT-proBNP'?",
+    "correta": "Peptídeos natriuréticos elevados na insuficiência cardíaca",
+    "texto": "Auxiliam no diagnóstico e prognóstico da IC.",
+    "ameaca": "CARDIOLOGIA LAB: 'BNP / NT-PROBNP'",
+    "alternativas": [
+      "Troponina",
+      "CK-MB",
+      "D-dímero",
+      "Peptídeos natriuréticos elevados na insuficiência cardíaca"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CK-MB'?",
+    "correta": "Fração da creatina quinase de origem cardíaca",
+    "texto": "Marcador tradicional de lesão miocárdica, menos específico que troponina.",
+    "ameaca": "CARDIOLOGIA LAB: 'CK-MB'",
+    "alternativas": [
+      "CK total apenas",
+      "LDH",
+      "AST",
+      "Fração da creatina quinase de origem cardíaca"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Ácido úrico'?",
+    "correta": "Produto final do metabolismo das purinas",
+    "texto": "Elevado na gota e em síndromes de lise tumoral.",
+    "ameaca": "BIOQUÍMICA: 'ÁCIDO ÚRICO'",
+    "alternativas": [
+      "Ureia",
+      "Creatinina",
+      "Amônia",
+      "Produto final do metabolismo das purinas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Amônia (NH3)'?",
+    "correta": "Produto tóxico do metabolismo proteico",
+    "texto": "Eleva-se na insuficiência hepática e encefalopatia hepática.",
+    "ameaca": "BIOQUÍMICA: 'AMÔNIA (NH3)'",
+    "alternativas": [
+      "Ureia",
+      "Creatinina",
+      "Ácido úrico",
+      "Produto tóxico do metabolismo proteico"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Albumina sérica'?",
+    "correta": "Principal proteína do plasma",
+    "texto": "Reflete estado nutricional e função hepática sintética; mantém pressão oncótica.",
+    "ameaca": "BIOQUÍMICA: 'ALBUMINA SÉRICA'",
+    "alternativas": [
+      "Globulinas",
+      "Fibrinogênio",
+      "PCR",
+      "Principal proteína do plasma"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Relação albumina/globulina'?",
+    "correta": "Índice que avalia proporção proteica",
+    "texto": "Altera-se em inflamação, hepatopatias e gamopatias.",
+    "ameaca": "BIOQUÍMICA: 'RELAÇÃO ALBUMINA/GLOBULINA'",
+    "alternativas": [
+      "Eletroforese apenas",
+      "PCR",
+      "VHS",
+      "Índice que avalia proporção proteica"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Eletroforese de proteínas'?",
+    "correta": "Separação das frações proteicas do soro",
+    "texto": "Identifica picos monoclonais (mieloma) e padrões inflamatórios.",
+    "ameaca": "BIOQUÍMICA: 'ELETROFORESE DE PROTEÍNAS'",
+    "alternativas": [
+      "Hemograma",
+      "Imunofixação apenas",
+      "Dosagem de IgE",
+      "Separação das frações proteicas do soro"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Imunofixação'?",
+    "correta": "Identifica o tipo de proteína monoclonal",
+    "texto": "Complementa a eletroforese no diagnóstico de gamopatias.",
+    "ameaca": "BIOQUÍMICA: 'IMUNOFIXAÇÃO'",
+    "alternativas": [
+      "Eletroforese apenas",
+      "Dosagem de IgG total",
+      "Western blot",
+      "Identifica o tipo de proteína monoclonal"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Fator reumatoide'?",
+    "correta": "Autoanticorpo comum na artrite reumatoide",
+    "texto": "Não é específico; pode estar presente em outras doenças.",
+    "ameaca": "IMUNOLOGIA: 'FATOR REUMATOIDE'",
+    "alternativas": [
+      "Anti-CCP apenas",
+      "ANA",
+      "Anti-DNA",
+      "Autoanticorpo comum na artrite reumatoide"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anti-CCP'?",
+    "correta": "Anticorpo mais específico para artrite reumatoide",
+    "texto": "Alta especificidade no diagnóstico da AR.",
+    "ameaca": "IMUNOLOGIA: 'ANTI-CCP'",
+    "alternativas": [
+      "Fator reumatoide",
+      "ANA",
+      "ANCA",
+      "Anticorpo mais específico para artrite reumatoide"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'ANA (FAN)'?",
+    "correta": "Anticorpo antinuclear - triagem de doenças autoimunes",
+    "texto": "Positivo em lúpus e outras colagenoses; precisa de título e padrão.",
+    "ameaca": "IMUNOLOGIA: 'ANA (FAN)'",
+    "alternativas": [
+      "Anti-DNA apenas",
+      "ANCA",
+      "Anti-CCP",
+      "Anticorpo antinuclear - triagem de doenças autoimunes"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anti-dsDNA'?",
+    "correta": "Anticorpo específico de lúpus eritematoso sistêmico",
+    "texto": "Associado a atividade de doença e nefrite lúpica.",
+    "ameaca": "IMUNOLOGIA: 'ANTI-DSDNA'",
+    "alternativas": [
+      "ANA",
+      "Anti-Sm apenas",
+      "Fator reumatoide",
+      "Anticorpo específico de lúpus eritematoso sistêmico"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'ANCA'?",
+    "correta": "Anticorpo anticitoplasma de neutrófilos",
+    "texto": "Marca vasculites (Wegener/GPA, poliangiite microscópica).",
+    "ameaca": "IMUNOLOGIA: 'ANCA'",
+    "alternativas": [
+      "ANA",
+      "Anti-CCP",
+      "Fator reumatoide",
+      "Anticorpo anticitoplasma de neutrófilos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anti-TPO e Anti-Tg'?",
+    "correta": "Anticorpos antitireoidianos",
+    "texto": "Presentes na tireoidite de Hashimoto e outras tireoidopatias autoimunes.",
+    "ameaca": "IMUNOLOGIA: 'ANTI-TPO E ANTI-TG'",
+    "alternativas": [
+      "TRAb apenas",
+      "TSH",
+      "T4 livre",
+      "Anticorpos antitireoidianos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'TRAb (anticorpo antirreceptor de TSH)'?",
+    "correta": "Marca doença de Graves",
+    "texto": "Estimula o receptor de TSH causando hipertireoidismo.",
+    "ameaca": "IMUNOLOGIA: 'TRAB (ANTICORPO ANTIRRECEPTOR DE TSH)'",
+    "alternativas": [
+      "Anti-TPO",
+      "Anti-Tg",
+      "TSH",
+      "Marca doença de Graves"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'IgE total e específica'?",
+    "correta": "Imunoglobulina relacionada a alergia",
+    "texto": "IgE específica identifica sensibilização a alérgenos.",
+    "ameaca": "IMUNOLOGIA: 'IGE TOTAL E ESPECÍFICA'",
+    "alternativas": [
+      "IgG",
+      "IgM",
+      "IgA",
+      "Imunoglobulina relacionada a alergia"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'IgM'?",
+    "correta": "Imunoglobulina de resposta primária",
+    "texto": "Indica infecção recente na maioria das sorologias.",
+    "ameaca": "IMUNOLOGIA: 'IGM'",
+    "alternativas": [
+      "IgG",
+      "IgA",
+      "IgE",
+      "Imunoglobulina de resposta primária"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'IgG'?",
+    "correta": "Imunoglobulina de memória / resposta secundária",
+    "texto": "Indica contato prévio ou imunidade (vacinal ou natural).",
+    "ameaca": "IMUNOLOGIA: 'IGG'",
+    "alternativas": [
+      "IgM",
+      "IgA",
+      "IgE",
+      "Imunoglobulina de memória / resposta secundária"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'IgA secretora'?",
+    "correta": "Imunoglobulina das mucosas",
+    "texto": "Importante na imunidade de superfícies mucosas e no diagnóstico de deficiência de IgA.",
+    "ameaca": "IMUNOLOGIA: 'IGA SECRETORA'",
+    "alternativas": [
+      "IgG",
+      "IgM",
+      "IgE",
+      "Imunoglobulina das mucosas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Hemocultura'?",
+    "correta": "Cultura de sangue para detectar bacteremia/fungemia",
+    "texto": "Essencial no diagnóstico de sepse e endocardite.",
+    "ameaca": "MICROBIOLOGIA: 'HEMOCULTURA'",
+    "alternativas": [
+      "Urocultura",
+      "Coprocultura",
+      "Cultura de escarro",
+      "Cultura de sangue para detectar bacteremia/fungemia"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Coprocultura'?",
+    "correta": "Cultura de fezes para enteropatógenos bacterianos",
+    "texto": "Pesquisa Salmonella, Shigella, Campylobacter, E. coli patogênicas etc.",
+    "ameaca": "MICROBIOLOGIA: 'COPROCULTURA'",
+    "alternativas": [
+      "Parasitológico",
+      "Urocultura",
+      "Hemocultura",
+      "Cultura de fezes para enteropatógenos bacterianos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Teste rápido de estreptococo'?",
+    "correta": "Detecta antígeno de Streptococcus pyogenes",
+    "texto": "Auxilia no diagnóstico de faringoamigdalite estreptocócica.",
+    "ameaca": "MICROBIOLOGIA: 'TESTE RÁPIDO DE ESTREPTOCOCO'",
+    "alternativas": [
+      "Cultura de orofaringe apenas",
+      "PCR de vírus",
+      "Hemograma",
+      "Detecta antígeno de Streptococcus pyogenes"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Teste de sensibilidade (antibiograma)'?",
+    "correta": "Determina a suscetibilidade do microrganismo a antimicrobianos",
+    "texto": "Orienta a terapia antimicrobiana dirigida.",
+    "ameaca": "MICROBIOLOGIA: 'TESTE DE SENSIBILIDADE (ANTIBIOGRAMA)'",
+    "alternativas": [
+      "Identificação apenas",
+      "Coloração de Gram",
+      "Cultura simples",
+      "Determina a suscetibilidade do microrganismo a antimicrobianos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Coloração de Gram'?",
+    "correta": "Método de coloração que classifica bactérias",
+    "texto": "Divide bactérias em Gram-positivas e Gram-negativas.",
+    "ameaca": "MICROBIOLOGIA: 'COLORAÇÃO DE GRAM'",
+    "alternativas": [
+      "BAAR",
+      "Giemsa",
+      "Ziehl-Neelsen",
+      "Método de coloração que classifica bactérias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Ziehl-Neelsen / BAAR'?",
+    "correta": "Coloração para micobactérias",
+    "texto": "Detecta bacilos álcool-ácido resistentes (tuberculose e hanseníase).",
+    "ameaca": "MICROBIOLOGIA: 'ZIEHL-NEELSEN / BAAR'",
+    "alternativas": [
+      "Gram",
+      "Giemsa",
+      "Prata",
+      "Coloração para micobactérias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'KOH (exame micológico direto)'?",
+    "correta": "Clarifica material para visualizar fungos",
+    "texto": "Usado em raspados de pele, unhas e secreções.",
+    "ameaca": "MICROBIOLOGIA: 'KOH (EXAME MICOLÓGICO DIRETO)'",
+    "alternativas": [
+      "Gram",
+      "BAAR",
+      "Cultura de fungos apenas",
+      "Clarifica material para visualizar fungos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Hemoglobina glicada alvo no diabetes'?",
+    "correta": "Geralmente < 7% para a maioria dos adultos",
+    "texto": "Meta individualizada conforme idade e comorbidades.",
+    "ameaca": "DIABETES: 'HEMOGLOBINA GLICADA ALVO NO DIABETES'",
+    "alternativas": [
+      "< 5%",
+      "< 9%",
+      "< 10%",
+      "Geralmente < 7% para a maioria dos adultos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Glicemia de jejum diagnóstica de diabetes'?",
+    "correta": "≥ 126 mg/dL em mais de uma ocasião",
+    "texto": "Um dos critérios diagnósticos do diabetes mellitus.",
+    "ameaca": "DIABETES: 'GLICEMIA DE JEJUM DIAGNÓSTICA DE DIABETES'",
+    "alternativas": [
+      "> 100 mg/dL",
+      "≥ 200 mg/dL em jejum",
+      "≥ 140 mg/dL",
+      "≥ 126 mg/dL em mais de uma ocasião"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'TTOG (teste de tolerância oral à glicose)'?",
+    "correta": "Avalia a resposta glicêmica após sobrecarga de glicose",
+    "texto": "Usado no diagnóstico de diabetes e diabetes gestacional.",
+    "ameaca": "DIABETES: 'TTOG (TESTE DE TOLERÂNCIA ORAL À GLICOSE)'",
+    "alternativas": [
+      "Glicemia de jejum apenas",
+      "HbA1c apenas",
+      "Insulina isolada",
+      "Avalia a resposta glicêmica após sobrecarga de glicose"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Microalbuminúria / Albuminúria'?",
+    "correta": "Marcador precoce de nefropatia diabética",
+    "texto": "Detecta perda urinária de albumina antes da proteinúria franca.",
+    "ameaca": "NEFROLOGIA: 'MICROALBUMINÚRIA / ALBUMINÚRIA'",
+    "alternativas": [
+      "Creatinina apenas",
+      "Ureia",
+      "Clearance de creatinina",
+      "Marcador precoce de nefropatia diabética"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'TFG (taxa de filtração glomerular)'?",
+    "correta": "Melhor índice de função renal global",
+    "texto": "Estimada por fórmulas (CKD-EPI, MDRD) a partir da creatinina.",
+    "ameaca": "NEFROLOGIA: 'TFG (TAXA DE FILTRAÇÃO GLOMERULAR)'",
+    "alternativas": [
+      "Ureia isolada",
+      "Volume urinário",
+      "Densidade urinária",
+      "Melhor índice de função renal global"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Clearance de creatinina'?",
+    "correta": "Medida clássica da filtração glomerular",
+    "texto": "Requer urina de 24h e creatinina sérica.",
+    "ameaca": "NEFROLOGIA: 'CLEARANCE DE CREATININA'",
+    "alternativas": [
+      "Ureia 24h",
+      "Proteinúria 24h",
+      "Sódio urinário",
+      "Medida clássica da filtração glomerular"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Proteinúria de 24 horas'?",
+    "correta": "Quantifica a perda proteica urinária diária",
+    "texto": "Ajuda a classificar síndrome nefrótica e acompanhar nefropatias.",
+    "ameaca": "NEFROLOGIA: 'PROTEINÚRIA DE 24 HORAS'",
+    "alternativas": [
+      "EAS apenas",
+      "Urocultura",
+      "Microalbuminúria isolada",
+      "Quantifica a perda proteica urinária diária"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Densidade urinária'?",
+    "correta": "Reflete a concentração de solutos na urina",
+    "texto": "Avalia a capacidade de concentração/diluição renal.",
+    "ameaca": "URINÁLISE: 'DENSIDADE URINÁRIA'",
+    "alternativas": [
+      "pH urinário",
+      "Glicosúria",
+      "Cetonúria",
+      "Reflete a concentração de solutos na urina"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'pH urinário'?",
+    "correta": "Acidez ou alcalinidade da urina",
+    "texto": "Útil na investigação de cálculos e infecções.",
+    "ameaca": "URINÁLISE: 'PH URINÁRIO'",
+    "alternativas": [
+      "Densidade",
+      "Proteinúria",
+      "Nitrito",
+      "Acidez ou alcalinidade da urina"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Nitrito urinário'?",
+    "correta": "Indica presença de bactérias redutoras de nitrato",
+    "texto": "Sugere bacteriúria quando positivo no EAS.",
+    "ameaca": "URINÁLISE: 'NITRITO URINÁRIO'",
+    "alternativas": [
+      "Leucócitos esterase apenas",
+      "Hemácias",
+      "Cilindros",
+      "Indica presença de bactérias redutoras de nitrato"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Leucócitos esterase'?",
+    "correta": "Enzima que indica leucócitos na urina",
+    "texto": "Sugere piúria e possível infecção urinária.",
+    "ameaca": "URINÁLISE: 'LEUCÓCITOS ESTERASE'",
+    "alternativas": [
+      "Nitrito",
+      "Proteína",
+      "Glicose",
+      "Enzima que indica leucócitos na urina"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Cilindros urinários'?",
+    "correta": "Moldes proteicos formados nos túbulos renais",
+    "texto": "Cilindros hialinos, granulosos, leucocitários e hemáticos têm significados distintos.",
+    "ameaca": "URINÁLISE: 'CILINDROS URINÁRIOS'",
+    "alternativas": [
+      "Cristais apenas",
+      "Células epiteliais",
+      "Bactérias",
+      "Moldes proteicos formados nos túbulos renais"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Cristais na urina'?",
+    "correta": "Podem indicar risco de litíase ou metabolismo alterado",
+    "texto": "Oxalato de cálcio, ácido úrico, cistina etc. têm relevância clínica variável.",
+    "ameaca": "URINÁLISE: 'CRISTAIS NA URINA'",
+    "alternativas": [
+      "Sempre patológicos",
+      "Só em infecção",
+      "Só em diabetes",
+      "Podem indicar risco de litíase ou metabolismo alterado"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Líquor (LCR) - exame'?",
+    "correta": "Análise do líquido cefalorraquidiano",
+    "texto": "Fundamental em meningites, hemorragia subaracnóidea e doenças neurológicas.",
+    "ameaca": "FLUIDOS: 'LÍQUOR (LCR) - EXAME'",
+    "alternativas": [
+      "Líquido pleural",
+      "Líquido ascítico",
+      "Sinovial",
+      "Análise do líquido cefalorraquidiano"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Líquido pleural - citologia e bioquímica'?",
+    "correta": "Diferencia transudato de exsudato (critérios de Light)",
+    "texto": "Auxilia no diagnóstico de derrame pleural.",
+    "ameaca": "FLUIDOS: 'LÍQUIDO PLEURAL - CITOLOGIA E BIOQUÍMICA'",
+    "alternativas": [
+      "Apenas cultura",
+      "Apenas BAAR",
+      "Apenas citologia oncótica",
+      "Diferencia transudato de exsudato (critérios de Light)"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Líquido sinovial'?",
+    "correta": "Análise do líquido articular",
+    "texto": "Pesquisa cristais (gota, pseudogota) e infecção em artrites.",
+    "ameaca": "FLUIDOS: 'LÍQUIDO SINOVIAL'",
+    "alternativas": [
+      "Líquor",
+      "Pleural",
+      "Ascítico",
+      "Análise do líquido articular"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Hemocultura - número de amostras'?",
+    "correta": "Idealmente 2 a 3 pares de frascos antes do antibiótico",
+    "texto": "Aumenta a sensibilidade e ajuda a distinguir contaminação.",
+    "ameaca": "MICROBIOLOGIA: 'HEMOCULTURA - NÚMERO DE AMOSTRAS'",
+    "alternativas": [
+      "Apenas 1 frasco",
+      "Após o antibiótico",
+      "Só se febre alta",
+      "Idealmente 2 a 3 pares de frascos antes do antibiótico"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Procalcitonina'?",
+    "correta": "Marcador de infecção bacteriana sistêmica",
+    "texto": "Eleva-se mais em infecções bacterianas do que virais; útil na sepse.",
+    "ameaca": "BIOQUÍMICA: 'PROCALCITONINA'",
+    "alternativas": [
+      "PCR apenas",
+      "VHS",
+      "Leucócitos apenas",
+      "Marcador de infecção bacteriana sistêmica"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Lactato sérico'?",
+    "correta": "Marcador de hipoperfusão e gravidade na sepse",
+    "texto": "Elevação indica má perfusão tecidual e pior prognóstico.",
+    "ameaca": "BIOQUÍMICA: 'LACTATO SÉRICO'",
+    "alternativas": [
+      "Glicose",
+      "Sódio",
+      "Potássio",
+      "Marcador de hipoperfusão e gravidade na sepse"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Potássio sérico'?",
+    "correta": "Eletrólito crítico para função cardíaca e neuromuscular",
+    "texto": "Hiper e hipocalemia podem causar arritmias graves.",
+    "ameaca": "ELETRÓLITOS: 'POTÁSSIO SÉRICO'",
+    "alternativas": [
+      "Sódio",
+      "Cloro",
+      "Bicarbonato",
+      "Eletrólito crítico para função cardíaca e neuromuscular"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Sódio sérico'?",
+    "correta": "Principal cátion extracelular",
+    "texto": "Regula osmolaridade e volume; hipo e hipernatremia têm causas variadas.",
+    "ameaca": "ELETRÓLITOS: 'SÓDIO SÉRICO'",
+    "alternativas": [
+      "Potássio",
+      "Cálcio",
+      "Magnésio",
+      "Principal cátion extracelular"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Cálcio iônico'?",
+    "correta": "Forma biologicamente ativa do cálcio",
+    "texto": "Mais preciso que o cálcio total na avaliação do status de cálcio.",
+    "ameaca": "ELETRÓLITOS: 'CÁLCIO IÔNICO'",
+    "alternativas": [
+      "Cálcio total apenas",
+      "Fósforo",
+      "Magnésio",
+      "Forma biologicamente ativa do cálcio"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Magnésio sérico'?",
+    "correta": "Cofator de inúmeras reações enzimáticas",
+    "texto": "Alterações causam arritmias, tetania e alterações neurológicas.",
+    "ameaca": "ELETRÓLITOS: 'MAGNÉSIO SÉRICO'",
+    "alternativas": [
+      "Cálcio",
+      "Fósforo",
+      "Sódio",
+      "Cofator de inúmeras reações enzimáticas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Fósforo sérico'?",
+    "correta": "Relacionado ao metabolismo ósseo e energético",
+    "texto": "Alterado no hiper/hipoparatireoidismo e na doença renal crônica.",
+    "ameaca": "ELETRÓLITOS: 'FÓSFORO SÉRICO'",
+    "alternativas": [
+      "Cálcio apenas",
+      "Magnésio",
+      "Potássio",
+      "Relacionado ao metabolismo ósseo e energético"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Osmolaridade plasmática'?",
+    "correta": "Concentração de partículas osmoticamente ativas",
+    "texto": "Calculada ou medida; útil em hiponatremia e intoxicações.",
+    "ameaca": "BIOQUÍMICA: 'OSMOLARIDADE PLASMÁTICA'",
+    "alternativas": [
+      "Densidade urinária",
+      "pH sanguíneo",
+      "Anion gap apenas",
+      "Concentração de partículas osmoticamente ativas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anion gap'?",
+    "correta": "Diferença entre cátions e ânions mensurados",
+    "texto": "Ajuda a classificar acidoses metabólicas.",
+    "ameaca": "GASOMETRIA: 'ANION GAP'",
+    "alternativas": [
+      "Bicarbonato apenas",
+      "pCO2",
+      "Lactato isolado",
+      "Diferença entre cátions e ânions mensurados"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'pH sanguíneo normal'?",
+    "correta": "Aproximadamente 7,35 a 7,45",
+    "texto": "Fora dessa faixa configura acidose ou alcalose.",
+    "ameaca": "GASOMETRIA: 'PH SANGUÍNEO NORMAL'",
+    "alternativas": [
+      "7,0 a 7,2",
+      "7,5 a 7,8",
+      "6,8 a 7,0",
+      "Aproximadamente 7,35 a 7,45"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Bicarbonato (HCO3-)'?",
+    "correta": "Principal tampão do equilíbrio ácido-base metabólico",
+    "texto": "Reduzido na acidose metabólica e elevado na alcalose metabólica.",
+    "ameaca": "GASOMETRIA: 'BICARBONATO (HCO3-)'",
+    "alternativas": [
+      "pCO2",
+      "pO2",
+      "Lactato",
+      "Principal tampão do equilíbrio ácido-base metabólico"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'pCO2'?",
+    "correta": "Reflete o componente respiratório do equilíbrio ácido-base",
+    "texto": "Elevado na acidose respiratória e reduzido na alcalose respiratória.",
+    "ameaca": "GASOMETRIA: 'PCO2'",
+    "alternativas": [
+      "HCO3",
+      "pO2",
+      "Saturação de O2",
+      "Reflete o componente respiratório do equilíbrio ácido-base"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Saturação de oxigênio (SatO2)'?",
+    "correta": "Porcentagem de hemoglobina ligada ao oxigênio",
+    "texto": "Avaliada por gasometria ou oximetria de pulso.",
+    "ameaca": "GASOMETRIA: 'SATURAÇÃO DE OXIGÊNIO (SATO2)'",
+    "alternativas": [
+      "pO2 apenas",
+      "pCO2",
+      "HCO3",
+      "Porcentagem de hemoglobina ligada ao oxigênio"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Grupo sanguíneo O'?",
+    "correta": "Não possui antígenos A nem B nas hemácias",
+    "texto": "É doador universal de hemácias (na ausência de outros anticorpos).",
+    "ameaca": "IMUNOHEMATOLOGIA: 'GRUPO SANGUÍNEO O'",
+    "alternativas": [
+      "Possui antígenos A e B",
+      "Possui só antígeno A",
+      "Possui só antígeno B",
+      "Não possui antígenos A nem B nas hemácias"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Grupo sanguíneo AB'?",
+    "correta": "Possui antígenos A e B",
+    "texto": "É receptor universal de hemácias.",
+    "ameaca": "IMUNOHEMATOLOGIA: 'GRUPO SANGUÍNEO AB'",
+    "alternativas": [
+      "Não possui antígenos",
+      "Só A",
+      "Só B",
+      "Possui antígenos A e B"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Fator Rh positivo'?",
+    "correta": "Presença do antígeno D na hemácia",
+    "texto": "Importante na gestação e transfusões para evitar aloimunização.",
+    "ameaca": "IMUNOHEMATOLOGIA: 'FATOR RH POSITIVO'",
+    "alternativas": [
+      "Ausência do antígeno D",
+      "Presença de antígeno A",
+      "Presença de antígeno Kell",
+      "Presença do antígeno D na hemácia"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Prova cruzada (compatibilidade)'?",
+    "correta": "Testa compatibilidade entre sangue do doador e receptor",
+    "texto": "Obrigatoriedade antes da transfusão de concentrado de hemácias.",
+    "ameaca": "IMUNOHEMATOLOGIA: 'PROVA CRUZADA (COMPATIBILIDADE)'",
+    "alternativas": [
+      "Tipagem apenas",
+      "Pesquisa de anticorpos apenas",
+      "Coombs direto",
+      "Testa compatibilidade entre sangue do doador e receptor"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Pesquisa de anticorpos irregulares (PAI)'?",
+    "correta": "Detecta aloanticorpos contra antígenos eritrocitários",
+    "texto": "Importante em gestantes e candidatos a transfusão.",
+    "ameaca": "IMUNOHEMATOLOGIA: 'PESQUISA DE ANTICORPOS IRREGULARES (PAI)'",
+    "alternativas": [
+      "Coombs direto",
+      "Tipagem ABO",
+      "Fator Rh apenas",
+      "Detecta aloanticorpos contra antígenos eritrocitários"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Janela imunológica'?",
+    "correta": "Período entre infecção e detecção de anticorpos",
+    "texto": "Nessa fase a sorologia pode ser negativa apesar da infecção.",
+    "ameaca": "SOROLOGIA: 'JANELA IMUNOLÓGICA'",
+    "alternativas": [
+      "Fase crônica",
+      "Imunidade estabelecida",
+      "Vacinação",
+      "Período entre infecção e detecção de anticorpos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'ELISA'?",
+    "correta": "Método imunoenzimático de triagem sorológica",
+    "texto": "Ampla uso em HIV, hepatites, Chagas e outras sorologias.",
+    "ameaca": "SOROLOGIA: 'ELISA'",
+    "alternativas": [
+      "Western blot",
+      "PCR",
+      "Cultura",
+      "Método imunoenzimático de triagem sorológica"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Western blot'?",
+    "correta": "Método confirmatório baseado em separação proteica",
+    "texto": "Usado classicamente na confirmação de HIV.",
+    "ameaca": "SOROLOGIA: 'WESTERN BLOT'",
+    "alternativas": [
+      "ELISA",
+      "PCR",
+      "Imunofluorescência apenas",
+      "Método confirmatório baseado em separação proteica"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Teste rápido'?",
+    "correta": "Imunocromatografia de leitura rápida",
+    "texto": "Usado em HIV, dengue, Covid-19, gravidez etc. no ponto de atendimento.",
+    "ameaca": "SOROLOGIA: 'TESTE RÁPIDO'",
+    "alternativas": [
+      "ELISA",
+      "PCR",
+      "Cultura",
+      "Imunocromatografia de leitura rápida"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Marcador HBsAg'?",
+    "correta": "Indica infecção atual pelo vírus da hepatite B",
+    "texto": "Presente na hepatite B aguda e crônica.",
+    "ameaca": "SOROLOGIA: 'MARCADOR HBSAG'",
+    "alternativas": [
+      "Anti-HBs",
+      "Anti-HBc IgG apenas",
+      "HBeAg apenas",
+      "Indica infecção atual pelo vírus da hepatite B"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anti-HBs'?",
+    "correta": "Indica imunidade à hepatite B (vacina ou resolução)",
+    "texto": "Aparece após vacinação ou cura da infecção.",
+    "ameaca": "SOROLOGIA: 'ANTI-HBS'",
+    "alternativas": [
+      "HBsAg",
+      "HBeAg",
+      "Anti-HBc IgM",
+      "Indica imunidade à hepatite B (vacina ou resolução)"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anti-HCV'?",
+    "correta": "Anticorpo contra o vírus da hepatite C",
+    "texto": "Indica contato prévio; requer PCR para confirmar infecção ativa.",
+    "ameaca": "SOROLOGIA: 'ANTI-HCV'",
+    "alternativas": [
+      "HCV Ag",
+      "HBsAg",
+      "Anti-HBs",
+      "Anticorpo contra o vírus da hepatite C"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Carga viral de HCV (PCR)'?",
+    "correta": "Confirma infecção ativa e monitora tratamento",
+    "texto": "Detecta RNA do vírus da hepatite C.",
+    "ameaca": "BIOLOGIA MOLECULAR: 'CARGA VIRAL DE HCV (PCR)'",
+    "alternativas": [
+      "Anti-HCV",
+      "Genótipo apenas",
+      "Elastografia",
+      "Confirma infecção ativa e monitora tratamento"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CD4'?",
+    "correta": "Linfócito T auxiliar - marcador de imunidade no HIV",
+    "texto": "Orienta início e acompanhamento da terapia antirretroviral.",
+    "ameaca": "IMUNOLOGIA: 'CD4'",
+    "alternativas": [
+      "CD8 apenas",
+      "Carga viral apenas",
+      "Leucócitos totais",
+      "Linfócito T auxiliar - marcador de imunidade no HIV"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Carga viral de HIV'?",
+    "correta": "Quantifica RNA viral no plasma",
+    "texto": "Principal parâmetro de resposta ao tratamento antirretroviral.",
+    "ameaca": "BIOLOGIA MOLECULAR: 'CARGA VIRAL DE HIV'",
+    "alternativas": [
+      "CD4",
+      "ELISA",
+      "Western blot",
+      "Quantifica RNA viral no plasma"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Beta-2 microglobulina'?",
+    "correta": "Marcador de carga tumoral em mieloma e linfomas",
+    "texto": "Também eleva-se em disfunção renal.",
+    "ameaca": "MARCADORES: 'BETA-2 MICROGLOBULINA'",
+    "alternativas": [
+      "PSA",
+      "CEA",
+      "AFP",
+      "Marcador de carga tumoral em mieloma e linfomas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CEA (antígeno carcinoembrionário)'?",
+    "correta": "Marcador tumoral de tumores epiteliais (cólon, etc.)",
+    "texto": "Usado no acompanhamento, não no rastreamento populacional.",
+    "ameaca": "MARCADORES: 'CEA (ANTÍGENO CARCINOEMBRIONÁRIO)'",
+    "alternativas": [
+      "PSA",
+      "AFP",
+      "CA-125",
+      "Marcador tumoral de tumores epiteliais (cólon, etc.)"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'AFP (alfafetoproteína)'?",
+    "correta": "Marcador de hepatocarcinoma e tumores germinativos",
+    "texto": "Também eleva-se na gravidez e em hepatites.",
+    "ameaca": "MARCADORES: 'AFP (ALFAFETOPROTEÍNA)'",
+    "alternativas": [
+      "CEA",
+      "PSA",
+      "CA-19-9",
+      "Marcador de hepatocarcinoma e tumores germinativos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CA-125'?",
+    "correta": "Marcador associado ao câncer de ovário",
+    "texto": "Usado no monitoramento; pode elevar-se em condições benignas.",
+    "ameaca": "MARCADORES: 'CA-125'",
+    "alternativas": [
+      "CA-15-3",
+      "CEA",
+      "AFP",
+      "Marcador associado ao câncer de ovário"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CA-15-3'?",
+    "correta": "Marcador usado no acompanhamento do câncer de mama",
+    "texto": "Não serve para rastreamento populacional.",
+    "ameaca": "MARCADORES: 'CA-15-3'",
+    "alternativas": [
+      "CA-125",
+      "CEA",
+      "PSA",
+      "Marcador usado no acompanhamento do câncer de mama"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CA-19-9'?",
+    "correta": "Marcador associado a tumores gastrointestinais (pâncreas)",
+    "texto": "Útil no monitoramento de adenocarcinoma pancreático.",
+    "ameaca": "MARCADORES: 'CA-19-9'",
+    "alternativas": [
+      "CEA",
+      "AFP",
+      "CA-125",
+      "Marcador associado a tumores gastrointestinais (pâncreas)"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'BhCG como marcador tumoral'?",
+    "correta": "Elevado em tumores germinativos e trofoblásticos",
+    "texto": "Além da gravidez, monitora mola e alguns cânceres.",
+    "ameaca": "MARCADORES: 'BHCG COMO MARCADOR TUMORAL'",
+    "alternativas": [
+      "AFP apenas",
+      "CEA",
+      "PSA",
+      "Elevado em tumores germinativos e trofoblásticos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Glicose-6-fosfato desidrogenase (G6PD)'?",
+    "correta": "Enzima cujo déficit causa hemólise oxidativa",
+    "texto": "Deficiência ligada ao X; crise hemolítica com certos fármacos e infecções.",
+    "ameaca": "HEMATOLOGIA: 'GLICOSE-6-FOSFATO DESIDROGENASE (G6PD)'",
+    "alternativas": [
+      "Piruvato quinase",
+      "Esferocitose",
+      "Talassemia",
+      "Enzima cujo déficit causa hemólise oxidativa"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Eletroforese de hemoglobina'?",
+    "correta": "Separa variantes de hemoglobina",
+    "texto": "Diagnostica hemoglobinopatias (falciforme, talassemias etc.).",
+    "ameaca": "HEMATOLOGIA: 'ELETROFORESE DE HEMOGLOBINA'",
+    "alternativas": [
+      "Hemograma",
+      "Reticulócitos",
+      "Teste de falcização apenas",
+      "Separa variantes de hemoglobina"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Teste de falcização / Solubilidade'?",
+    "correta": "Triagem para hemoglobina S",
+    "texto": "Positivo na doença e no traço falciforme; confirma-se com eletroforese.",
+    "ameaca": "HEMATOLOGIA: 'TESTE DE FALCIZAÇÃO / SOLUBILIDADE'",
+    "alternativas": [
+      "Eletroforese definitiva",
+      "HPLC apenas",
+      "Teste de Coombs",
+      "Triagem para hemoglobina S"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Coagulograma básico'?",
+    "correta": "Inclui TP, TTPA, contagem de plaquetas e fibrinogênio",
+    "texto": "Avaliação inicial da hemostasia.",
+    "ameaca": "COAGULAÇÃO: 'COAGULOGRAMA BÁSICO'",
+    "alternativas": [
+      "Apenas TP",
+      "Apenas plaquetas",
+      "Apenas D-dímero",
+      "Inclui TP, TTPA, contagem de plaquetas e fibrinogênio"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Fibrinogênio'?",
+    "correta": "Fator I da coagulação - proteína de fase aguda",
+    "texto": "Baixo no consumo (CIVD) e nas hepatopatias graves.",
+    "ameaca": "COAGULAÇÃO: 'FIBRINOGÊNIO'",
+    "alternativas": [
+      "Fator VIII",
+      "Plaquetas",
+      "D-dímero",
+      "Fator I da coagulação - proteína de fase aguda"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'CIVD (coagulação intravascular disseminada)'?",
+    "correta": "Ativação generalizada da coagulação com consumo",
+    "texto": "Laboratorialmente: plaquetas baixas, TP/TTPA alongados, fibrinogênio baixo, D-dímero alto.",
+    "ameaca": "COAGULAÇÃO: 'CIVD (COAGULAÇÃO INTRAVASCULAR DISSEMINADA)'",
+    "alternativas": [
+      "Hemofilia",
+      "Púrpura trombocitopênica apenas",
+      "Trombose isolada",
+      "Ativação generalizada da coagulação com consumo"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Anticoagulante lúpico'?",
+    "correta": "Inibidor que prolonga testes de coagulação e aumenta risco trombótico",
+    "texto": "Faz parte da síndrome antifosfolípide.",
+    "ameaca": "COAGULAÇÃO: 'ANTICOAGULANTE LÚPICO'",
+    "alternativas": [
+      "Fator VIII baixo",
+      "Plaquetopenia isolada",
+      "Deficiência de proteína C",
+      "Inibidor que prolonga testes de coagulação e aumenta risco trombótico"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Proteína C e S / Antitrombina'?",
+    "correta": "Inibidores naturais da coagulação",
+    "texto": "Deficiências aumentam o risco de trombose venosa.",
+    "ameaca": "COAGULAÇÃO: 'PROTEÍNA C E S / ANTITROMBINA'",
+    "alternativas": [
+      "Fatores de coagulação",
+      "Plaquetas",
+      "Fibrinogênio",
+      "Inibidores naturais da coagulação"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Homocisteína'?",
+    "correta": "Aminoácido associado a risco cardiovascular e trombótico quando elevada",
+    "texto": "Também marcada em deficiências de B12 e folato.",
+    "ameaca": "BIOQUÍMICA: 'HOMOCISTEÍNA'",
+    "alternativas": [
+      "Cisteína",
+      "Metionina apenas",
+      "Ácido úrico",
+      "Aminoácido associado a risco cardiovascular e trombótico quando elevada"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'PCR ultrassensível'?",
+    "correta": "Marcador de risco cardiovascular de baixo grau de inflamação",
+    "texto": "Valores discretamente elevados associam-se a risco aterosclerótico.",
+    "ameaca": "BIOQUÍMICA: 'PCR ULTRASSENSÍVEL'",
+    "alternativas": [
+      "PCR convencional apenas",
+      "VHS",
+      "Fibrinogênio",
+      "Marcador de risco cardiovascular de baixo grau de inflamação"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Homocisteína elevada + déficit de B12/folato'?",
+    "correta": "Pode causar anemia megaloblástica e risco vascular",
+    "texto": "A reposição vitamínica reduz a homocisteína nesses casos.",
+    "ameaca": "BIOQUÍMICA: 'HOMOCISTEÍNA ELEVADA + DÉFICIT DE B12/FOLATO'",
+    "alternativas": [
+      "Anemia ferropriva",
+      "Talassemia",
+      "Hemólise mecânica",
+      "Pode causar anemia megaloblástica e risco vascular"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Coleta de sangue - ordem dos tubos'?",
+    "correta": "Seguir ordem para evitar contaminação por aditivos",
+    "texto": "Geralmente: hemocultura → coagulação → bioquímica → EDTA → fluoreto.",
+    "ameaca": "COLETA: 'COLETA DE SANGUE - ORDEM DOS TUBOS'",
+    "alternativas": [
+      "Ordem aleatória",
+      "EDTA primeiro sempre",
+      "Fluoreto primeiro",
+      "Seguir ordem para evitar contaminação por aditivos"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Jejuum para glicemia e lipidograma'?",
+    "correta": "Geralmente 8 a 12 horas",
+    "texto": "Evita interferência da dieta nos resultados.",
+    "ameaca": "COLETA: 'JEJUUM PARA GLICEMIA E LIPIDOGRAMA'",
+    "alternativas": [
+      "2 horas",
+      "24 horas",
+      "Sem necessidade",
+      "Geralmente 8 a 12 horas"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Hemólise na amostra'?",
+    "correta": "Interfere em vários analitos (K, LDH, AST etc.)",
+    "texto": "Pode invalidar resultados e exige nova coleta.",
+    "ameaca": "COLETA: 'HEMÓLISE NA AMOSTRA'",
+    "alternativas": [
+      "Não interfere em nada",
+      "Só altera hemograma",
+      "Só altera coagulação",
+      "Interfere em vários analitos (K, LDH, AST etc.)"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Lipemia na amostra'?",
+    "correta": "Turvação por excesso de lipídios",
+    "texto": "Interfere em dosagens espectrofotométricas.",
+    "ameaca": "COLETA: 'LIPEMIA NA AMOSTRA'",
+    "alternativas": [
+      "Sempre normal",
+      "Só em diabetes",
+      "Indica infecção",
+      "Turvação por excesso de lipídios"
+    ]
+  },
+  {
+    "inimigo": "O que é / representa 'Icterícia na amostra'?",
+    "correta": "Coloração amarela por bilirrubina elevada",
+    "texto": "Pode interferir em alguns métodos analíticos.",
+    "ameaca": "COLETA: 'ICTERÍCIA NA AMOSTRA'",
+    "alternativas": [
+      "Sempre artefato",
+      "Só por dieta",
+      "Indica hemólise apenas",
+      "Coloração amarela por bilirrubina elevada"
+    ]
+  },
+  {
+    "inimigo": "Valor de referência aproximado de glicemia de jejum normal",
+    "correta": "Abaixo de 100 mg/dL",
+    "texto": "100-125 = pré-diabetes; ≥126 em 2 ocasiões = diabetes.",
+    "ameaca": "BIOQUIMICA: GLICEMIA DE JEJUM",
+    "alternativas": [
+      "Acima de 200 sempre normal",
+      "Abaixo de 100 mg/dL",
+      "Exatamente 150",
+      "Acima de 126 obrigatoriamente normal"
+    ]
+  },
+  {
+    "inimigo": "Hemoglobina glicada (HbA1c) - uso principal",
+    "correta": "Controle glicêmico das últimas 8-12 semanas",
+    "texto": "Meta geralmente <7% em muitos diabéticos (individualizar).",
+    "ameaca": "BIOQUIMICA: HBA1C",
+    "alternativas": [
+      "Glicemia do dia",
+      "Controle glicêmico das últimas 8-12 semanas",
+      "Só diagnóstico de anemia",
+      "Função renal"
+    ]
+  },
+  {
+    "inimigo": "Critério de diabetes por HbA1c",
+    "correta": "≥6,5%",
+    "texto": "Confirmar em outra ocasião se assintomático.",
+    "ameaca": "BIOQUIMICA: DIAGNOSTICO DIABETES HBA1C",
+    "alternativas": [
+      "≥5,0%",
+      "≥6,5%",
+      "≥8,0% obrigatório",
+      "≥10%"
+    ]
+  },
+  {
+    "inimigo": "Ureia elevada com creatinina normal sugere principalmente",
+    "correta": "Causa pré-renal ou alta ingestão proteica / sangramento digestivo",
+    "texto": "Relação ureia/creatinina elevada.",
+    "ameaca": "BIOQUIMICA: UREIA VS CREATININA",
+    "alternativas": [
+      "Sempre IRC terminal",
+      "Causa pré-renal ou alta ingestão proteica / sangramento digestivo",
+      "Só obstrução",
+      "Só hepatopatia"
+    ]
+  },
+  {
+    "inimigo": "TFG estimada (CKD-EPI ou similar)",
+    "correta": "Principal parâmetro para estagiar doença renal crônica",
+    "texto": "Usa creatinina, idade, sexo (± raça em fórmulas antigas).",
+    "ameaca": "BIOQUIMICA: TFG",
+    "alternativas": [
+      "Só ureia",
+      "Principal parâmetro para estagiar doença renal crônica",
+      "Só proteinúria",
+      "Só cistatina sem creatinina sempre"
+    ]
+  },
+  {
+    "inimigo": "Proteinúria de 24h ou relação proteína/creatinina",
+    "correta": "Quantifica perda proteica urinária",
+    "texto": "Importante em DRC, pré-eclâmpsia e glomerulopatias.",
+    "ameaca": "URINA: PROTEINURIA",
+    "alternativas": [
+      "Só EAS qualitativo",
+      "Quantifica perda proteica urinária",
+      "Só urocultura",
+      "Só densidade"
+    ]
+  },
+  {
+    "inimigo": "Microalbuminúria / albuminúria",
+    "correta": "Marcador precoce de nefropatia diabética",
+    "texto": "Relação albumina/creatinina urinária.",
+    "ameaca": "URINA: MICROALBUMINURIA",
+    "alternativas": [
+      "Só na IRC avançada",
+      "Marcador precoce de nefropatia diabética",
+      "Só infecção",
+      "Só hematúria"
+    ]
+  },
+  {
+    "inimigo": "Sódio sérico baixo (hiponatremia) - interpretação inicial",
+    "correta": "Avaliar osmolaridade e volume extracelular",
+    "texto": "Hiponatremia hipotônica hipovolêmica, euvolêmica ou hipervolêmica.",
+    "ameaca": "ELETROLITOS: HIPONATREMIA",
+    "alternativas": [
+      "Sempre tratar com sódio a 3% imediato sem avaliar",
+      "Avaliar osmolaridade e volume extracelular",
+      "Sempre artefato",
+      "Só por excesso de água sem causa"
+    ]
+  },
+  {
+    "inimigo": "Potássio alto - causas laboratoriais e clínicas",
+    "correta": "Hemólise da amostra, IRC, fármacos, acidose",
+    "texto": "Repetir se suspeita de artefato; ECG se verdadeiro.",
+    "ameaca": "ELETROLITOS: HIPERCALEMIA",
+    "alternativas": [
+      "Só por dieta",
+      "Hemólise da amostra, IRC, fármacos, acidose",
+      "Só hiperaldosteronismo",
+      "Nunca artefato"
+    ]
+  },
+  {
+    "inimigo": "Cálcio iônico vs cálcio total",
+    "correta": "Iônico é a fração biologicamente ativa",
+    "texto": "Total influenciado por albumina.",
+    "ameaca": "ELETROLITOS: CALCIO",
+    "alternativas": [
+      "Total sempre melhor",
+      "Iônico é a fração biologicamente ativa",
+      "Só o total importa",
+      "Iônico só em ossos"
+    ]
+  },
+  {
+    "inimigo": "Fósforo alto e cálcio baixo",
+    "correta": "Sugere hipoparatireoidismo ou DRC",
+    "texto": "PTH ajuda a diferenciar.",
+    "ameaca": "ELETROLITOS: FOSFORO",
+    "alternativas": [
+      "Só hiperparatireoidismo",
+      "Sugere hipoparatireoidismo ou DRC",
+      "Só vitamina D excesso",
+      "Normal sempre"
+    ]
+  },
+  {
+    "inimigo": "Magnésio baixo - relevância clínica",
+    "correta": "Arritmias, tetania, refratariedade de hipocalemia",
+    "texto": "Reposição quando indicado.",
+    "ameaca": "ELETROLITOS: MAGNESIO",
+    "alternativas": [
+      "Sem importância",
+      "Arritmias, tetania, refratariedade de hipocalemia",
+      "Só estética",
+      "Só ósseo"
+    ]
+  },
+  {
+    "inimigo": "AST e ALT - padrão de elevação",
+    "correta": "ALT mais específica de fígado; AST também em músculo e hemácia",
+    "texto": "Relação AST/ALT pode sugerir álcool se >2.",
+    "ameaca": "HEPATICO: AMINOTRANSFERASES",
+    "alternativas": [
+      "Só AST hepática exclusiva",
+      "ALT mais específica de fígado; AST também em músculo e hemácia",
+      "Só elevam em obstrução",
+      "Nunca em hepatite"
+    ]
+  },
+  {
+    "inimigo": "Fosfatase alcalina e GGT elevadas",
+    "correta": "Padrão colestático / indução enzimática",
+    "texto": "GGT ajuda a confirmar origem hepática da FA.",
+    "ameaca": "HEPATICO: FA E GGT",
+    "alternativas": [
+      "Só ósseo sempre",
+      "Padrão colestático / indução enzimática",
+      "Só hepatite viral",
+      "Só músculo"
+    ]
+  },
+  {
+    "inimigo": "Bilirrubina indireta elevada isolada",
+    "correta": "Hemólise ou Gilbert",
+    "texto": "Direta elevada sugere colestase ou hepatopatia.",
+    "ameaca": "HEPATICO: BILIRRUBINA",
+    "alternativas": [
+      "Sempre obstrução",
+      "Hemólise ou Gilbert",
+      "Só câncer",
+      "Só álcool"
+    ]
+  },
+  {
+    "inimigo": "Albumina baixa",
+    "correta": "Desnutrição, hepatopatia crônica, perdas (renal/intestinal), inflamação",
+    "texto": "Proteína de fase aguda negativa.",
+    "ameaca": "BIOQUIMICA: ALBUMINA",
+    "alternativas": [
+      "Só desidratação",
+      "Desnutrição, hepatopatia crônica, perdas (renal/intestinal), inflamação",
+      "Só excesso de proteína",
+      "Sempre normal em cirrose"
+    ]
+  },
+  {
+    "inimigo": "Tempo de protrombina (TP/INR) no fígado",
+    "correta": "Avalia via extrínseca e fator VII; prognóstico em hepatopatia",
+    "texto": "Alongado em deficiência de vitamina K e CIVD.",
+    "ameaca": "COAGULACAO: TP HEPATICO",
+    "alternativas": [
+      "Só via intrínseca",
+      "Avalia via extrínseca e fator VII; prognóstico em hepatopatia",
+      "Só plaquetas",
+      "Nunca altera em cirrose"
+    ]
+  },
+  {
+    "inimigo": "TTPA alongado isolado",
+    "correta": "Via intrínseca: hemofilia, von Willebrand, anticoagulante lúpico, heparina",
+    "texto": "Mistura com plasma normal diferencia inibidor de deficiência.",
+    "ameaca": "COAGULACAO: TTPA",
+    "alternativas": [
+      "Só TP",
+      "Via intrínseca: hemofilia, von Willebrand, anticoagulante lúpico, heparina",
+      "Só plaquetopenia",
+      "Sempre artefato"
+    ]
+  },
+  {
+    "inimigo": "D-dímero elevado",
+    "correta": "Produtos de degradação da fibrina; alto valor preditivo negativo para TEV se baixo",
+    "texto": "Eleva em inflamação, idade, gravidez, câncer.",
+    "ameaca": "COAGULACAO: D-DIMERO",
+    "alternativas": [
+      "Diagnóstico definitivo de TEP sempre",
+      "Produtos de degradação da fibrina; alto valor preditivo negativo para TEV se baixo",
+      "Só em hemofilia",
+      "Nunca se eleva"
+    ]
+  },
+  {
+    "inimigo": "Troponina elevada",
+    "correta": "Lesão miocárdica (IAM e outras causas)",
+    "texto": "Curva e contexto clínico definem SCA.",
+    "ameaca": "CARDIACO: TROPONINA",
+    "alternativas": [
+      "Só angina estável",
+      "Lesão miocárdica (IAM e outras causas)",
+      "Só PCR",
+      "Marcador exclusivo de miocardite"
+    ]
+  },
+  {
+    "inimigo": "BNP ou NT-proBNP elevado",
+    "correta": "Estresse de parede ventricular; ICC e outras causas de sobrecarga",
+    "texto": "Útil no diagnóstico diferencial de dispneia.",
+    "ameaca": "CARDIACO: BNP",
+    "alternativas": [
+      "Só pneumonia",
+      "Estresse de parede ventricular; ICC e outras causas de sobrecarga",
+      "Só IAM",
+      "Sempre normal em ICC"
+    ]
+  },
+  {
+    "inimigo": "CK total e CK-MB",
+    "correta": "CK-MB mais específica de coração (histórico); troponina superior para IAM",
+    "texto": "CK total eleva em miopatia e exercício.",
+    "ameaca": "CARDIACO: CK",
+    "alternativas": [
+      "Só fígado",
+      "CK-MB mais específica de coração (histórico); troponina superior para IAM",
+      "Só rim",
+      "Nunca eleva em IAM"
+    ]
+  },
+  {
+    "inimigo": "LDH elevado - isoenzimas e interpretação",
+    "correta": "Inespecífico; hemólise, infarto, tumor, fígado, músculo",
+    "texto": "LDH1/LDH2 invertido clássico em hemólise/IAM antigo.",
+    "ameaca": "BIOQUIMICA: LDH",
+    "alternativas": [
+      "Só fígado",
+      "Inespecífico; hemólise, infarto, tumor, fígado, músculo",
+      "Só osso",
+      "Marcador exclusivo de anemia"
+    ]
+  },
+  {
+    "inimigo": "Ácido úrico elevado",
+    "correta": "Gota, síndrome de lise tumoral, IRC, tiazídicos",
+    "texto": "Nem toda hiperuricemia = gota.",
+    "ameaca": "BIOQUIMICA: ACIDO URICO",
+    "alternativas": [
+      "Só por dieta de frutas",
+      "Gota, síndrome de lise tumoral, IRC, tiazídicos",
+      "Sempre assintomático sem risco",
+      "Só em mulheres jovens"
+    ]
+  },
+  {
+    "inimigo": "Amilase e lipase na pancreatite",
+    "correta": "Lipase mais específica e permanece elevada mais tempo",
+    "texto": "Elevação ≥3x o limite superior favorece pancreatite.",
+    "ameaca": "BIOQUIMICA: AMILASE LIPASE",
+    "alternativas": [
+      "Só amilase específica",
+      "Lipase mais específica e permanece elevada mais tempo",
+      "Nunca elevam",
+      "Só em caxumba a lipase"
+    ]
+  },
+  {
+    "inimigo": "Gasometria arterial - pH baixo com HCO3 baixo",
+    "correta": "Acidose metabólica",
+    "texto": "Anion gap diferencia causas.",
+    "ameaca": "GASOMETRIA: ACIDOSE METABOLICA",
+    "alternativas": [
+      "Acidose respiratória",
+      "Acidose metabólica",
+      "Alcalose metabólica",
+      "Normal"
+    ]
+  },
+  {
+    "inimigo": "Gasometria - pH baixo com PaCO2 alto",
+    "correta": "Acidose respiratória",
+    "texto": "Hipoventilação.",
+    "ameaca": "GASOMETRIA: ACIDOSE RESPIRATORIA",
+    "alternativas": [
+      "Metabólica",
+      "Acidose respiratória",
+      "Alcalose respiratória",
+      "Alcalose metabólica"
+    ]
+  },
+  {
+    "inimigo": "Gasometria - pH alto com HCO3 alto",
+    "correta": "Alcalose metabólica",
+    "texto": "Vômitos, diuréticos, hipovolemia.",
+    "ameaca": "GASOMETRIA: ALCALOSE METABOLICA",
+    "alternativas": [
+      "Respiratória",
+      "Alcalose metabólica",
+      "Acidose metabólica",
+      "Acidose respiratória"
+    ]
+  },
+  {
+    "inimigo": "Gasometria - pH alto com PaCO2 baixo",
+    "correta": "Alcalose respiratória",
+    "texto": "Hiperventilação.",
+    "ameaca": "GASOMETRIA: ALCALOSE RESPIRATORIA",
+    "alternativas": [
+      "Metabólica",
+      "Alcalose respiratória",
+      "Acidose",
+      "Normal"
+    ]
+  },
+  {
+    "inimigo": "Anion gap elevado",
+    "correta": "Acidose metabólica com ânions não medidos (cetoácidos, lactato, toxinas)",
+    "texto": "Fórmula: Na - (Cl + HCO3).",
+    "ameaca": "GASOMETRIA: ANION GAP",
+    "alternativas": [
+      "Sempre normal em acidose",
+      "Acidose metabólica com ânions não medidos (cetoácidos, lactato, toxinas)",
+      "Só em alcalose",
+      "Só por erro de lab"
+    ]
+  },
+  {
+    "inimigo": "Lactato elevado",
+    "correta": "Hipoperfusão, sepse, isquemia, fármacos",
+    "texto": "Marcador de gravidade e resposta a volume.",
+    "ameaca": "BIOQUIMICA: LACTATO",
+    "alternativas": [
+      "Só exercício",
+      "Hipoperfusão, sepse, isquemia, fármacos",
+      "Sempre artefato",
+      "Só em diabetes"
+    ]
+  },
+  {
+    "inimigo": "Hemácias no EAS - significado",
+    "correta": "Hematúria; dismórficas sugerem origem glomerular",
+    "texto": "Confirmar com sedimento e clínica.",
+    "ameaca": "URINA: HEMATURIA",
+    "alternativas": [
+      "Sempre contaminação",
+      "Hematúria; dismórficas sugerem origem glomerular",
+      "Só infecção",
+      "Normal em qualquer quantidade"
+    ]
+  },
+  {
+    "inimigo": "Leucócitos e nitrito no EAS",
+    "correta": "Sugere ITU (principalmente por enterobactérias)",
+    "texto": "Urocultura confirma.",
+    "ameaca": "URINA: LEUCOCITURIA NITRITO",
+    "alternativas": [
+      "Sempre normal",
+      "Sugere ITU (principalmente por enterobactérias)",
+      "Só contaminação",
+      "Só em homens"
+    ]
+  },
+  {
+    "inimigo": "Cilindros hemáticos",
+    "correta": "Fortemente sugestivos de glomerulonefrite",
+    "texto": "Achado importante no sedimento.",
+    "ameaca": "URINA: CILINDROS HEMATICOS",
+    "alternativas": [
+      "Só pielonefrite",
+      "Fortemente sugestivos de glomerulonefrite",
+      "Normais",
+      "Só artefato"
+    ]
+  },
+  {
+    "inimigo": "Cilindros leucocitários",
+    "correta": "Pielonefrite ou inflamação tubular",
+    "texto": "Diferencia de cistite simples.",
+    "ameaca": "URINA: CILINDROS LEUCOCITARIOS",
+    "alternativas": [
+      "Só glomerulonefrite",
+      "Pielonefrite ou inflamação tubular",
+      "Normais",
+      "Só contaminação"
+    ]
+  },
+  {
+    "inimigo": "Densidade urinária baixa fixa",
+    "correta": "Sugere diabetes insipidus ou dano tubular crônico",
+    "texto": "Isostenúria em DRC avançada.",
+    "ameaca": "URINA: DENSIDADE",
+    "alternativas": [
+      "Sempre concentrada",
+      "Sugere diabetes insipidus ou dano tubular crônico",
+      "Só por excesso de água aguda",
+      "Sem valor clínico"
+    ]
+  },
+  {
+    "inimigo": "Glicosúria com glicemia normal",
+    "correta": "Disfunção tubular (Fanconi) ou limiar renal baixo",
+    "texto": "Não é diabetes mellitus por si só.",
+    "ameaca": "URINA: GLICOSURIA",
+    "alternativas": [
+      "Sempre diabetes",
+      "Disfunção tubular (Fanconi) ou limiar renal baixo",
+      "Artefato apenas",
+      "Normal em jejum"
+    ]
+  },
+  {
+    "inimigo": "Corpo cetônico na urina",
+    "correta": "Cetose (jejum, CAD, dieta low-carb)",
+    "texto": "Em diabético com hiperglicemia sugere CAD.",
+    "ameaca": "URINA: CETONAS",
+    "alternativas": [
+      "Só infecção",
+      "Cetose (jejum, CAD, dieta low-carb)",
+      "Normal sempre",
+      "Só em grávidas sem significado"
+    ]
+  },
+  {
+    "inimigo": "VHS elevado",
+    "correta": "Inflamação, anemia, idade, gravidez, gamopatia",
+    "texto": "Inespecífico; PCR responde mais rápido.",
+    "ameaca": "HEMATOLOGIA: VHS",
+    "alternativas": [
+      "Só infecção bacteriana",
+      "Inflamação, anemia, idade, gravidez, gamopatia",
+      "Marcador cardíaco",
+      "Só em idosos sem valor"
+    ]
+  },
+  {
+    "inimigo": "Reticulócitos elevados",
+    "correta": "Resposta medular a anemia (hemólise ou sangramento)",
+    "texto": "Baixos em hipoproliferação.",
+    "ameaca": "HEMATOLOGIA: RETICULOCITOS",
+    "alternativas": [
+      "Só em aplasia",
+      "Resposta medular a anemia (hemólise ou sangramento)",
+      "Normais sempre em anemia",
+      "Só em ferropriva sem resposta"
+    ]
+  },
+  {
+    "inimigo": "RDW elevado",
+    "correta": "Anisocitose; precoce na deficiência de ferro e mistas",
+    "texto": "Útil no diagnóstico diferencial de anemias.",
+    "ameaca": "HEMATOLOGIA: RDW",
+    "alternativas": [
+      "Sempre normal",
+      "Anisocitose; precoce na deficiência de ferro e mistas",
+      "Só em talassemia minor",
+      "Marcador de plaquetas"
+    ]
+  },
+  {
+    "inimigo": "VCM baixo",
+    "correta": "Microcitose: ferropriva, talassemia, anemia de doença crônica",
+    "texto": "Ferritina e eletroforese ajudam.",
+    "ameaca": "HEMATOLOGIA: VCM BAIXO",
+    "alternativas": [
+      "Macrocitose",
+      "Microcitose: ferropriva, talassemia, anemia de doença crônica",
+      "Só por B12",
+      "Normal em ferropriva"
+    ]
+  },
+  {
+    "inimigo": "VCM alto",
+    "correta": "Macrocitose: B12, folato, álcool, mielodisplasia, hipotireoidismo",
+    "texto": "Esfregaço e dosagens vitamínicas.",
+    "ameaca": "HEMATOLOGIA: VCM ALTO",
+    "alternativas": [
+      "Microcitose",
+      "Macrocitose: B12, folato, álcool, mielodisplasia, hipotireoidismo",
+      "Só ferropriva",
+      "Sempre artefato"
+    ]
+  },
+  {
+    "inimigo": "Ferritina baixa",
+    "correta": "Deficiência de ferro (mais específico que ferro sérico)",
+    "texto": "Eleva-se como fase aguda (pode mascarar).",
+    "ameaca": "HEMATOLOGIA: FERRITINA",
+    "alternativas": [
+      "Excesso de ferro sempre",
+      "Deficiência de ferro (mais específico que ferro sérico)",
+      "Só inflamação baixa",
+      "Normal em ferropriva"
+    ]
+  },
+  {
+    "inimigo": "Saturação de transferrina baixa",
+    "correta": "Sugere deficiência de ferro",
+    "texto": "Alta na hemocromatose.",
+    "ameaca": "HEMATOLOGIA: SATURACAO TRANSFERRINA",
+    "alternativas": [
+      "Só excesso",
+      "Sugere deficiência de ferro",
+      "Irrelevante",
+      "Só em talassemia"
+    ]
+  },
+  {
+    "inimigo": "Coombs direto positivo",
+    "correta": "Anticorpos ou complemento ligados à hemácia",
+    "texto": "Anemia hemolítica autoimune, incompatibilidade.",
+    "ameaca": "HEMATOLOGIA: COOMBS DIRETO",
+    "alternativas": [
+      "Só indireto serve",
+      "Anticorpos ou complemento ligados à hemácia",
+      "Normal em AHAI",
+      "Só para tipagem ABO"
+    ]
+  },
+  {
+    "inimigo": "Esfregaço com esquizócitos",
+    "correta": "Hemólise mecânica (PTT, SHU, válvula, CIVD)",
+    "texto": "Urgência se PTT/SHU.",
+    "ameaca": "HEMATOLOGIA: ESQUIZOCITOS",
+    "alternativas": [
+      "Esferócitos apenas",
+      "Hemólise mecânica (PTT, SHU, válvula, CIVD)",
+      "Normais",
+      "Só em ferropriva"
+    ]
+  },
+  {
+    "inimigo": "Blastos no sangue periférico",
+    "correta": "Suspeita de leucemia aguda até prova em contrário",
+    "texto": "Mielograma e imunofenotipagem urgentes.",
+    "ameaca": "HEMATOLOGIA: BLASTOS",
+    "alternativas": [
+      "Sempre reativo",
+      "Suspeita de leucemia aguda até prova em contrário",
+      "Normal em infecção viral",
+      "Só em crianças normais"
+    ]
+  },
+  {
+    "inimigo": "Desvio à esquerda (bastões elevados)",
+    "correta": "Sugere infecção bacteriana aguda",
+    "texto": "Associar à clínica e PCR/procalcitonina.",
+    "ameaca": "HEMATOLOGIA: DESVIO ESQUERDA",
+    "alternativas": [
+      "Só viral",
+      "Sugere infecção bacteriana aguda",
+      "Sempre leucemia",
+      "Normal absoluto"
+    ]
+  },
+  {
+    "inimigo": "Eosinofilia",
+    "correta": "Alergia, parasitoses, fármacos, algumas neoplasias",
+    "texto": "Investigar conforme contexto.",
+    "ameaca": "HEMATOLOGIA: EOSINOFILIA",
+    "alternativas": [
+      "Só bactéria",
+      "Alergia, parasitoses, fármacos, algumas neoplasias",
+      "Sempre normal",
+      "Só em asma sem outra causa"
+    ]
+  },
+  {
+    "inimigo": "Linfocitose atípica",
+    "correta": "Mononucleose e outras virais",
+    "texto": "Epstein-Barr, CMV.",
+    "ameaca": "HEMATOLOGIA: LINFOCITOS ATIPICOS",
+    "alternativas": [
+      "Só bacteriana",
+      "Mononucleose e outras virais",
+      "Sempre maligna",
+      "Artefato"
+    ]
+  },
+  {
+    "inimigo": "Plaquetas baixas - abordagem inicial",
+    "correta": "Pseudotrombocitopenia (EDTA), consumo, produção, sequestro",
+    "texto": "Repetir em citrato se suspeita de pseudo.",
+    "ameaca": "HEMATOLOGIA: PLAQUETOPENIA",
+    "alternativas": [
+      "Sempre PTI",
+      "Pseudotrombocitopenia (EDTA), consumo, produção, sequestro",
+      "Ignorar se >50 mil",
+      "Só transfusão imediata sem causa"
+    ]
+  },
+  {
+    "inimigo": "INR alvo em anticoagulação com varfarina (maioria das indicações)",
+    "correta": "2,0 a 3,0",
+    "texto": "Mecânica mitral pode ser mais alto.",
+    "ameaca": "COAGULACAO: INR ALVO",
+    "alternativas": [
+      "1,0 a 1,5",
+      "2,0 a 3,0",
+      "4,0 a 5,0",
+      "Sem necessidade de alvo"
+    ]
+  },
+  {
+    "inimigo": "TTPA no uso de heparina não fracionada",
+    "correta": "Monitora anticoagulação com HNF",
+    "texto": "Heparina de baixo peso geralmente não exige TTPA de rotina.",
+    "ameaca": "COAGULACAO: TTPA HEPARINA",
+    "alternativas": [
+      "Só INR",
+      "Monitora anticoagulação com HNF",
+      "Só plaquetas",
+      "Irrelevante"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🔬 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA LABORATÓRIO] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[CENÁRIO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🧪`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A questão sobre '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE ANÁLISE CLÍNICA CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE ANÁLISE CLÍNICA INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Anatomia - Um quiz de Anatomia para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Anatomia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a;
+      color: #00ff00;
+      font-family: "Courier New", monospace;
+      padding: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00;
+    }
+
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00;
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      border: 2px solid #00ff00;
+      padding: 15px;
+      background-color: #0d0d0d;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+      scroll-behavior: smooth;
+      position: relative;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 2px 0;
+      display: block;
+    }
+
+    .log-entry.alerta {
+        color: #FF0000;
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7);
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF;
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7);
+        font-weight: bold;
+    }
+
+    .log-entry.input_req {
+        color: gold;
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    #choices {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+      height: 30vh;
+      overflow-y: auto;
+      align-items: flex-start;
+    }
+
+    .choice {
+      background: #333;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+      flex: 1 1 calc(50% - 10px);
+      max-width: calc(50% - 10px);
+    }
+
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%;
+            max-width: 100%;
+        }
+    }
+
+    .choice:hover {
+      background-color: #444;
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    .choice.selected {
+        background-color: #FFD700;
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct {
+        background-color: #39ff14;
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect {
+        background-color: #ff3333;
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99;
+      text-shadow: none;
+    }
+
+    #control-buttons-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    #reiniciar {
+      display: none;
+      margin-top: 20px;
+      width: fit-content;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.8);
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto;
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ ';
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Anatomia</h1>
+  <p>Explore a estrutura do corpo humano! 🦴</p>
+
+  <div id="terminal">[SISTEMA DE TESTE ANATÔMICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 💀 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE ANATÔMICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE ANATOMIA</h2>
+      <p>Bem-vindo, Futuro Anatomista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre a estrutura e organização do corpo humano.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente ossos, músculos, órgãos, vasos e nervos apresentados no terminal.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre a localização e relações anatômicas.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Anatômica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A compreensão da anatomia é fundamental para todas as áreas da saúde. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Anatomia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica e biológica:</p>
+      <ul>
+        <li>**LIVRO:** Sobotta - Atlas de Anatomia Humana, Editora Guanabara Koogan.</li>
+        <li>**LIVRO:** Netter - Atlas de Anatomia Humana, Editora Elsevier.</li>
+        <li>**LIVRO:** Dângelo & Fattini - Anatomia Humana Sistêmica e Segmentar, Editora Atheneu.</li>
+        <li>**LIVRO:** Moore - Anatomia Orientada para a Clínica, Editora Guanabara Koogan.</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Anatomia.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico e biológico reconhecidas, como sites de universidades com atlas digitais e cursos de Anatomia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+  <script>
+    // Referências aos elementos do DOM
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    // Banco de dados com 200 perguntas ÚNICAS de Anatomia (sem repetição)
+    const desafiosOriginais = [
+      // ===== 3 NOVAS PERGUNTAS ADICIONADAS =====
+      { "inimigo": "Osso pequeno em forma de grão de gergelim localizado no tendão do músculo flexor longo do hálux", "correta": "Sesamoide do hálux", "texto": "Os ossos sesamoides do hálux estão localizados na face plantar da primeira articulação metatarsofalângica e protegem o tendão.", "ameaca": "PÉ: QUAL OSSO SESAMOIDE ESTÁ ASSOCIADO AO HÁLUX?", "alternativas": ["Patela", "Pisiforme", "Fabela", "Sesamoide do hálux"] },
+      { "inimigo": "Músculo profundo do pescoço que eleva a primeira costela e inclina o pescoço", "correta": "Escaleno anterior", "texto": "O escaleno anterior eleva a primeira costela durante a inspiração forçada e realiza flexão lateral do pescoço.", "ameaca": "PESCOÇO: QUAL MÚSCULO ESCALENO ELEVA A 1ª COSTELA?", "alternativas": ["Escaleno médio", "Escaleno posterior", "Esternocleidomastóideo", "Escaleno anterior"] },
+      { "inimigo": "Estrutura do ouvido interno responsável pelo equilíbrio estático e detecção da gravidade", "correta": "Utrículo e sáculo (máculas)", "texto": "O utrículo e o sáculo possuem máculas com otólitos que detectam a posição da cabeça em relação à gravidade (equilíbrio estático).", "ameaca": "OUVIDO: QUAL ESTRUTURA DETECTA A GRAVIDADE E EQUILÍBRIO ESTÁTICO?", "alternativas": ["Canais semicirculares", "Cóclea", "Janela oval", "Utrículo e sáculo (máculas)"] },
+      // ===== SISTEMA ESQUELÉTICO (1-40) =====
+      { "inimigo": "O maior osso do corpo humano, localizado na coxa", "correta": "Fêmur", "texto": "O fêmur é o osso mais longo, pesado e forte do corpo humano, localizado na coxa, conectando o quadril ao joelho.", "ameaca": "IDENTIFIQUE O OSSO: QUAL É O MAIOR OSSO DO CORPO HUMANO?", "alternativas": ["Tíbia", "Fíbula", "Úmero", "Fêmur"] },
+      { "inimigo": "Osso que forma a testa e a parte anterior do crânio", "correta": "Osso frontal", "texto": "O osso frontal forma a parte anterior e superior do crânio, contribuindo para a testa e o teto das órbitas oculares.", "ameaca": "CRÂNIO: QUAL OSSO FORMA A TESTA?", "alternativas": ["Osso parietal", "Osso temporal", "Osso occipital", "Osso frontal"] },
+      { "inimigo": "Osso da perna que forma a proeminência medial do tornozelo", "correta": "Tíbia", "texto": "A tíbia é o osso medial da perna e forma o maléolo medial do tornozelo.", "ameaca": "PERNA: QUAL OSSO FORMA O MALÉOLO MEDIAL?", "alternativas": ["Fíbula", "Fêmur", "Calcâneo", "Tíbia"] },
+      { "inimigo": "Osso lateral da perna, mais fino e não transmite peso", "correta": "Fíbula", "texto": "A fíbula é o osso lateral da perna, mais fino, e forma o maléolo lateral.", "ameaca": "PERNA: QUAL É O OSSO LATERAL MAIS FINO?", "alternativas": ["Tíbia", "Fêmur", "Patela", "Fíbula"] },
+      { "inimigo": "Osso do braço que se articula com a escápula e o rádio/ulna", "correta": "Úmero", "texto": "O úmero é o osso longo do braço que se articula proximalmente com a escápula e distalmente com o rádio e a ulna.", "ameaca": "BRAÇO: QUAL É O ÚNICO OSSO DO BRAÇO?", "alternativas": ["Rádio", "Ulna", "Clavícula", "Úmero"] },
+      { "inimigo": "Osso do antebraço localizado no lado do polegar", "correta": "Rádio", "texto": "O rádio é o osso lateral do antebraço, localizado no lado do polegar.", "ameaca": "ANTEBRAÇO: QUAL OSSO FICA NO LADO DO POLEGAR?", "alternativas": ["Ulna", "Úmero", "Escafoides", "Rádio"] },
+      { "inimigo": "Osso do antebraço que forma a proeminência do cotovelo (olécrano)", "correta": "Ulna", "texto": "A ulna é o osso medial do antebraço e seu processo olecraniano forma a ponta do cotovelo.", "ameaca": "ANTEBRAÇO: QUAL OSSO FORMA O OLÉCRANO?", "alternativas": ["Rádio", "Úmero", "Escápula", "Ulna"] },
+      { "inimigo": "Osso em forma de S que conecta o membro superior ao tronco", "correta": "Clavícula", "texto": "A clavícula é um osso longo em forma de S que articula o esterno com a escápula.", "ameaca": "CINTURA ESCAPULAR: QUAL OSSO CONECTA O BRAÇO AO TRONCO?", "alternativas": ["Escápula", "Esterno", "Úmero", "Clavícula"] },
+      { "inimigo": "Osso triangular da cintura escapular conhecido como omoplata", "correta": "Escápula", "texto": "A escápula é um osso plano triangular localizado na parte posterior do tórax.", "ameaca": "CINTURA ESCAPULAR: QUAL É O OSSO DA OMO PLATA?", "alternativas": ["Clavícula", "Esterno", "Costela", "Escápula"] },
+      { "inimigo": "Osso do joelho, o maior osso sesamoide do corpo", "correta": "Patela", "texto": "A patela é o maior osso sesamoide e protege a articulação do joelho.", "ameaca": "JOELHO: QUAL É O OSSO SESAMOIDE MAIOR?", "alternativas": ["Fêmur", "Tíbia", "Fíbula", "Patela"] },
+      { "inimigo": "Osso do calcanhar, o maior do tarso", "correta": "Calcâneo", "texto": "O calcâneo é o maior osso do tarso e forma o calcanhar.", "ameaca": "PÉ: QUAL É O OSSO DO CALCANHAR?", "alternativas": ["Tálus", "Navicular", "Cuboide", "Calcâneo"] },
+      { "inimigo": "Osso do tarso que se articula com a tíbia e a fíbula", "correta": "Tálus", "texto": "O tálus é o osso do tarso que se articula com a tíbia e a fíbula formando a articulação do tornozelo.", "ameaca": "TORNOZELO: QUAL OSSO SE ARTICULA COM A TÍBIA?", "alternativas": ["Calcâneo", "Navicular", "Cuboide", "Tálus"] },
+      { "inimigo": "Osso do crânio que contém o meato acústico externo", "correta": "Osso temporal", "texto": "O osso temporal contém o meato acústico externo e as estruturas do ouvido médio e interno.", "ameaca": "CRÂNIO: QUAL OSSO CONTÉM O MEATO ACÚSTICO?", "alternativas": ["Osso parietal", "Osso occipital", "Osso esfenoide", "Osso temporal"] },
+      { "inimigo": "Osso que forma a parte posterior e inferior do crânio", "correta": "Osso occipital", "texto": "O osso occipital forma a parte posterior do crânio e contém o forame magno.", "ameaca": "CRÂNIO: QUAL OSSO CONTÉM O FORAME MAGNO?", "alternativas": ["Osso frontal", "Osso temporal", "Osso parietal", "Osso occipital"] },
+      { "inimigo": "Osso ímpar localizado na base do crânio, em forma de borboleta", "correta": "Osso esfenoide", "texto": "O esfenoide é um osso ímpar em forma de borboleta localizado na base do crânio.", "ameaca": "BASE DO CRÂNIO: QUAL OSSO TEM FORMA DE BORBOLETA?", "alternativas": ["Osso etmoide", "Osso occipital", "Osso temporal", "Osso esfenoide"] },
+      { "inimigo": "Osso que forma a parte superior da cavidade nasal e contém a crista galí", "correta": "Osso etmoide", "texto": "O etmoide contribui para a cavidade nasal e contém a crista galí e a lâmina cribiforme.", "ameaca": "CAVIDADE NASAL: QUAL OSSO CONTÉM A LÂMINA CRIBIFORME?", "alternativas": ["Osso esfenoide", "Osso nasal", "Vômer", "Osso etmoide"] },
+      { "inimigo": "Osso da face que forma a mandíbula inferior", "correta": "Mandíbula", "texto": "A mandíbula é o único osso móvel do crânio e forma a maxila inferior.", "ameaca": "FACE: QUAL É O ÚNICO OSSO MÓVEL DO CRÂNIO?", "alternativas": ["Maxila", "Zigomático", "Nasal", "Mandíbula"] },
+      { "inimigo": "Osso da face que forma a maior parte do teto da boca (palato duro)", "correta": "Maxila", "texto": "A maxila forma a maior parte do palato duro e sustenta os dentes superiores.", "ameaca": "FACE: QUAL OSSO FORMA O PALATO DURO?", "alternativas": ["Palatino", "Mandíbula", "Zigomático", "Maxila"] },
+      { "inimigo": "Osso da face conhecido como maçã do rosto", "correta": "Zigomático", "texto": "O osso zigomático forma a proeminência da maçã do rosto e parte da órbita.", "ameaca": "FACE: QUAL OSSO FORMA A MAÇÃ DO ROSTO?", "alternativas": ["Maxila", "Nasal", "Lacrimal", "Zigomático"] },
+      { "inimigo": "Osso pequeno em forma de U localizado no pescoço", "correta": "Hioide", "texto": "O hioide é um osso em forma de U localizado no pescoço, que não se articula com nenhum outro osso.", "ameaca": "PESCOÇO: QUAL OSSO NÃO SE ARTICULA COM NENHUM OUTRO?", "alternativas": ["Clavícula", "Esterno", "Vértebra C1", "Hioide"] },
+      { "inimigo": "Vértebra cervical que permite o movimento de rotação da cabeça (áxis)", "correta": "Áxis (C2)", "texto": "O áxis (C2) possui o processo odontóide (dente) que permite a rotação da cabeça.", "ameaca": "COLUNA: QUAL VÉRTEBRA PERMITE A ROTAÇÃO DA CABEÇA?", "alternativas": ["Atlas (C1)", "C7", "C3", "Áxis (C2)"] },
+      { "inimigo": "Primeira vértebra cervical que sustenta o crânio", "correta": "Atlas (C1)", "texto": "O atlas (C1) é a primeira vértebra cervical e se articula com o osso occipital.", "ameaca": "COLUNA: QUAL É A PRIMEIRA VÉRTEBRA CERVICAL?", "alternativas": ["Áxis (C2)", "C7", "T1", "Atlas (C1)"] },
+      { "inimigo": "Vértebra que possui a proeminência mais palpável na base do pescoço", "correta": "C7 (vértebra proeminente)", "texto": "A sétima vértebra cervical (C7) possui o processo espinhoso mais proeminente.", "ameaca": "COLUNA: QUAL VÉRTEBRA TEM O PROCESSO ESPINHOSO MAIS PROEMINENTE?", "alternativas": ["C1", "C2", "T1", "C7"] },
+      { "inimigo": "Número de vértebras cervicais no ser humano adulto", "correta": "7", "texto": "Existem 7 vértebras cervicais (C1 a C7) na coluna vertebral humana.", "ameaca": "COLUNA: QUANTAS VÉRTEBRAS CERVICAIS EXISTEM?", "alternativas": ["5", "12", "8", "7"] },
+      { "inimigo": "Número de vértebras torácicas", "correta": "12", "texto": "Existem 12 vértebras torácicas (T1 a T12) que se articulam com as costelas.", "ameaca": "COLUNA: QUANTAS VÉRTEBRAS TORÁCICAS EXISTEM?", "alternativas": ["7", "5", "10", "12"] },
+      { "inimigo": "Número de vértebras lombares", "correta": "5", "texto": "Existem 5 vértebras lombares (L1 a L5) na região lombar.", "ameaca": "COLUNA: QUANTAS VÉRTEBRAS LOMBARES EXISTEM?", "alternativas": ["7", "12", "4", "5"] },
+      { "inimigo": "Osso formado pela fusão de 5 vértebras sacrais", "correta": "Sacro", "texto": "O sacro é formado pela fusão de 5 vértebras sacrais e articula com os ossos do quadril.", "ameaca": "PELVE: QUAL OSSO É FORMADO POR 5 VÉRTEBRAS FUNDIDAS?", "alternativas": ["Cóccix", "Ílio", "Ísquio", "Sacro"] },
+      { "inimigo": "Osso residual da cauda formado por 3 a 5 vértebras coccígeas", "correta": "Cóccix", "texto": "O cóccix é o residual da cauda e é formado por 3 a 5 vértebras coccígeas fundidas.", "ameaca": "PELVE: QUAL É O OSSO RESIDUAL DA CAUDA?", "alternativas": ["Sacro", "Ílio", "Púbis", "Cóccix"] },
+      { "inimigo": "Osso do quadril que forma a parte superior da pelve", "correta": "Ílio", "texto": "O ílio é o maior osso do quadril e forma a parte superior da pelve.", "ameaca": "PELVE: QUAL É O MAIOR OSSO DO QUADRIL?", "alternativas": ["Ísquio", "Púbis", "Sacro", "Ílio"] },
+      { "inimigo": "Osso do quadril sobre o qual nos sentamos", "correta": "Ísquio", "texto": "O ísquio forma a parte inferior e posterior da pelve e é o osso sobre o qual nos sentamos.", "ameaca": "PELVE: QUAL OSSO FORMA A TUBEROSIDADE ISQUIÁTICA?", "alternativas": ["Ílio", "Púbis", "Sacro", "Ísquio"] },
+      { "inimigo": "Osso anterior da pelve que se articula na sínfise púbica", "correta": "Púbis", "texto": "O púbis é o osso anterior da pelve e se articula com o do lado oposto na sínfise púbica.", "ameaca": "PELVE: QUAL OSSO FORMA A SÍNFISE PÚBICA?", "alternativas": ["Ílio", "Ísquio", "Sacro", "Púbis"] },
+      { "inimigo": "Cavidade articular do quadril formada pelo ílio, ísquio e púbis", "correta": "Acetábulo", "texto": "O acetábulo é a cavidade em forma de xícara que recebe a cabeça do fêmur.", "ameaca": "QUADRIL: QUAL É A CAVIDADE QUE RECEBE A CABEÇA DO FÊMUR?", "alternativas": ["Fossa olécrano", "Cavidade glenóide", "Fossa cotilóide", "Acetábulo"] },
+      { "inimigo": "Número total de costelas no ser humano", "correta": "24 (12 pares)", "texto": "O ser humano possui 12 pares de costelas, totalizando 24 costelas.", "ameaca": "TÓRAX: QUANTAS COSTELAS O SER HUMANO POSSUI?", "alternativas": ["20", "22", "26", "24 (12 pares)"] },
+      { "inimigo": "Costelas que se articulam diretamente com o esterno", "correta": "Costelas verdadeiras (1 a 7)", "texto": "As costelas verdadeiras (1 a 7) se articulam diretamente com o esterno por meio de suas cartilagens.", "ameaca": "TÓRAX: QUAIS COSTELAS SE ARTICULAM DIRETAMENTE COM O ESTERNO?", "alternativas": ["Falsas (8-10)", "Flutuantes (11-12)", "Todas", "Costelas verdadeiras (1 a 7)"] },
+      { "inimigo": "Costelas que não se articulam com o esterno", "correta": "Costelas flutuantes (11 e 12)", "texto": "As costelas flutuantes (11 e 12) não se articulam com o esterno nem com outras costelas.", "ameaca": "TÓRAX: QUAIS COSTELAS NÃO SE ARTICULAM COM O ESTERNO?", "alternativas": ["Verdadeiras", "Falsas", "Todas", "Costelas flutuantes (11 e 12)"] },
+      { "inimigo": "Osso plano localizado na linha mediana anterior do tórax", "correta": "Esterno", "texto": "O esterno é o osso plano localizado na linha mediana anterior do tórax, dividido em manúbrio, corpo e processo xifoide.", "ameaca": "TÓRAX: QUAL OSSO ESTÁ NA LINHA MEDIANA ANTERIOR?", "alternativas": ["Clavícula", "Costela", "Escápula", "Esterno"] },
+      { "inimigo": "Parte inferior do esterno, em forma de ponta", "correta": "Processo xifoide", "texto": "O processo xifoide é a parte inferior e cartilaginosa do esterno que ossifica com a idade.", "ameaca": "ESTERNO: QUAL É A PARTE INFERIOR EM FORMA DE PONTA?", "alternativas": ["Manúbrio", "Corpo", "Ângulo de Louis", "Processo xifoide"] },
+      { "inimigo": "Osso do carpo mais frequentemente fraturado", "correta": "Escafoides", "texto": "O escafoides é o osso do carpo mais frequentemente fraturado, especialmente em quedas sobre a mão estendida.", "ameaca": "PUNHO: QUAL OSSO DO CARPO É MAIS FRATURADO?", "alternativas": ["Semilunar", "Piramidal", "Pisiforme", "Escafoides"] },
+      { "inimigo": "Número de ossos metacarpais em uma mão", "correta": "5", "texto": "Cada mão possui 5 ossos metacarpais, numerados de I a V a partir do polegar.", "ameaca": "MÃO: QUANTOS OSSOS METACARPAIS EXISTEM EM UMA MÃO?", "alternativas": ["4", "6", "8", "5"] },
+      { "inimigo": "Número de falanges em uma mão (incluindo o polegar)", "correta": "14", "texto": "Cada mão possui 14 falanges: 3 em cada dedo (exceto o polegar, que tem 2).", "ameaca": "MÃO: QUANTAS FALANGES EXISTEM EM UMA MÃO?", "alternativas": ["12", "15", "10", "14"] },
+
+      // ===== SISTEMA MUSCULAR (41-70) =====
+      { "inimigo": "Principal músculo envolvido na inspiração", "correta": "Diafragma", "texto": "O diafragma é um músculo em forma de cúpula localizado abaixo dos pulmões e sua contração é o principal mecanismo da inspiração.", "ameaca": "RESPIRAÇÃO: QUAL MÚSCULO É O PRINCIPAL RESPONSÁVEL PELA INSPIRAÇÃO?", "alternativas": ["Intercostais externos", "Esternocleidomastóideo", "Reto abdominal", "Diafragma"] },
+      { "inimigo": "Músculo que forma a maior parte da massa das nádegas", "correta": "Glúteo máximo", "texto": "O glúteo máximo é o maior músculo do corpo e o principal extensor do quadril.", "ameaca": "QUADRIL: QUAL É O MAIOR MÚSCULO DAS NÁDEGAS?", "alternativas": ["Glúteo médio", "Glúteo mínimo", "Piriforme", "Glúteo máximo"] },
+      { "inimigo": "Músculo principal da mastigação que eleva a mandíbula", "correta": "Masseter", "texto": "O masseter é o principal músculo elevador da mandíbula e um dos mais fortes do corpo.", "ameaca": "MASTIGAÇÃO: QUAL MÚSCULO ELEVA A MANDÍBULA?", "alternativas": ["Temporal", "Pterigóideo medial", "Pterigóideo lateral", "Masseter"] },
+      { "inimigo": "Músculo do pescoço que gira a cabeça para o lado oposto", "correta": "Esternocleidomastóideo", "texto": "O esternocleidomastóideo gira a cabeça para o lado oposto e flexiona o pescoço.", "ameaca": "PESCOÇO: QUAL MÚSCULO GIRA A CABEÇA PARA O LADO OPOSTO?", "alternativas": ["Trapézio", "Escaleno", "Esplênio", "Esternocleidomastóideo"] },
+      { "inimigo": "Músculo superficial do dorso que eleva, retrai e rotaciona a escápula", "correta": "Trapézio", "texto": "O trapézio é um músculo grande e superficial do dorso que move a escápula e o pescoço.", "ameaca": "DORSO: QUAL MÚSCULO ELEVA E RETRAI A ESCÁPULA?", "alternativas": ["Latíssimo do dorso", "Romboide", "Levantador da escápula", "Trapézio"] },
+      { "inimigo": "Músculo mais largo do dorso, importante na adução do braço", "correta": "Latíssimo do dorso", "texto": "O latíssimo do dorso é o músculo mais largo do dorso e realiza adução, extensão e rotação medial do braço.", "ameaca": "DORSO: QUAL É O MÚSCULO MAIS LARGO?", "alternativas": ["Trapézio", "Romboide", "Eretor da espinha", "Latíssimo do dorso"] },
+      { "inimigo": "Músculo do peito que aduz e rotaciona medialmente o braço", "correta": "Peitoral maior", "texto": "O peitoral maior é o principal músculo do peito e realiza adução e rotação medial do braço.", "ameaca": "TÓRAX: QUAL MÚSCULO ADUZ O BRAÇO?", "alternativas": ["Peitoral menor", "Serrátil anterior", "Deltoide", "Peitoral maior"] },
+      { "inimigo": "Músculo que forma o ombro e realiza abdução do braço", "correta": "Deltoide", "texto": "O deltoide é o principal músculo do ombro e realiza a abdução do braço.", "ameaca": "OMBRO: QUAL MÚSCULO REALIZA A ABDUÇÃO DO BRAÇO?", "alternativas": ["Supraespinal", "Infraespinal", "Redondo maior", "Deltoide"] },
+      { "inimigo": "Músculo do manguito rotador que inicia a abdução do braço", "correta": "Supraespinal", "texto": "O supraespinal inicia a abdução do braço e estabiliza a cabeça do úmero.", "ameaca": "MANGUITO ROTADOR: QUAL MÚSCULO INICIA A ABDUÇÃO?", "alternativas": ["Infraespinal", "Subescapular", "Redondo menor", "Supraespinal"] },
+      { "inimigo": "Músculo do braço responsável pela flexão do cotovelo e supinação", "correta": "Bíceps braquial", "texto": "O bíceps braquial flexiona o cotovelo e é o principal supinador do antebraço.", "ameaca": "BRAÇO: QUAL MÚSCULO FLEXIONA O COTOVELO E SUPINA?", "alternativas": ["Braquial", "Braquiorradial", "Tríceps", "Bíceps braquial"] },
+      { "inimigo": "Músculo do braço responsável pela extensão do cotovelo", "correta": "Tríceps braquial", "texto": "O tríceps braquial é o principal extensor do cotovelo.", "ameaca": "BRAÇO: QUAL MÚSCULO EXTENDE O COTOVELO?", "alternativas": ["Bíceps", "Braquial", "Ancôneo", "Tríceps braquial"] },
+      { "inimigo": "Músculo da coxa que estende o joelho", "correta": "Quadríceps femoral", "texto": "O quadríceps femoral é o principal extensor do joelho e é formado por quatro cabeças.", "ameaca": "COXA: QUAL MÚSCULO EXTENDE O JOELHO?", "alternativas": ["Isquiotibiais", "Sartório", "Adutor magno", "Quadríceps femoral"] },
+      { "inimigo": "Grupo muscular da coxa responsável pela flexão do joelho", "correta": "Isquiotibiais", "texto": "Os isquiotibiais (bíceps femoral, semitendíneo e semimembranáceo) flexionam o joelho e estendem o quadril.", "ameaca": "COXA: QUAL GRUPO MUSCULAR FLEXIONA O JOELHO?", "alternativas": ["Quadríceps", "Adutores", "Sartório", "Isquiotibiais"] },
+      { "inimigo": "Músculo mais longo do corpo humano", "correta": "Sartório", "texto": "O sartório é o músculo mais longo do corpo e realiza flexão, abdução e rotação lateral do quadril.", "ameaca": "COXA: QUAL É O MÚSCULO MAIS LONGO DO CORPO?", "alternativas": ["Reto femoral", "Grácil", "Tensor da fáscia lata", "Sartório"] },
+      { "inimigo": "Músculo da panturrilha que forma o tendão de Aquiles", "correta": "Gastrocnêmio", "texto": "O gastrocnêmio (junto com o sóleo) forma o tendão de Aquiles e realiza a flexão plantar.", "ameaca": "PERNA: QUAL MÚSCULO FORMA O TENDÃO DE AQUILES?", "alternativas": ["Tibial anterior", "Fibular longo", "Sóleo", "Gastrocnêmio"] },
+      { "inimigo": "Músculo profundo da panturrilha que também contribui para o tendão de Aquiles", "correta": "Sóleo", "texto": "O sóleo é um músculo profundo da panturrilha que, junto com o gastrocnêmio, forma o tendão de Aquiles.", "ameaca": "PERNA: QUAL MÚSCULO PROFUNDO FORMA O TENDÃO DE AQUILES?", "alternativas": ["Gastrocnêmio", "Tibial posterior", "Fibular", "Sóleo"] },
+      { "inimigo": "Músculo responsável pela dorsiflexão do pé", "correta": "Tibial anterior", "texto": "O tibial anterior é o principal músculo responsável pela dorsiflexão e inversão do pé.", "ameaca": "PÉ: QUAL MÚSCULO REALIZA A DORSIFLEXÃO?", "alternativas": ["Gastrocnêmio", "Fibular longo", "Tibial posterior", "Tibial anterior"] },
+      { "inimigo": "Músculo abdominal que forma a 'tábua de chocolate'", "correta": "Reto abdominal", "texto": "O reto abdominal é o músculo vertical do abdome responsável pela flexão do tronco.", "ameaca": "ABDOME: QUAL MÚSCULO FORMA A 'TÁBUA DE CHOCOLATE'?", "alternativas": ["Oblíquo externo", "Oblíquo interno", "Transverso", "Reto abdominal"] },
+      { "inimigo": "Músculo abdominal mais profundo, importante para a estabilização", "correta": "Transverso do abdome", "texto": "O transverso do abdome é o músculo abdominal mais profundo e importante para a estabilização do core.", "ameaca": "ABDOME: QUAL É O MÚSCULO MAIS PROFUNDO?", "alternativas": ["Reto abdominal", "Oblíquo externo", "Oblíquo interno", "Transverso do abdome"] },
+      { "inimigo": "Músculo que eleva a escápula e gira a cabeça para o mesmo lado", "correta": "Levantador da escápula", "texto": "O levantador da escápula eleva a escápula e auxilia na rotação da cabeça para o mesmo lado.", "ameaca": "PESCOÇO/DORSO: QUAL MÚSCULO ELEVA A ESCÁPULA?", "alternativas": ["Trapézio", "Romboide", "Esplênio", "Levantador da escápula"] },
+      { "inimigo": "Músculos que retraem a escápula (aproximam as escápulas)", "correta": "Romboides (maior e menor)", "texto": "Os romboides maior e menor retraem e elevam a escápula.", "ameaca": "DORSO: QUAIS MÚSCULOS RETRAEM A ESCÁPULA?", "alternativas": ["Trapézio", "Latíssimo", "Serrátil anterior", "Romboides (maior e menor)"] },
+      { "inimigo": "Músculo que estabiliza a escápula contra a parede torácica (boxeador)", "correta": "Serrátil anterior", "texto": "O serrátil anterior estabiliza a escápula e permite a protração (movimento de boxeador).", "ameaca": "TÓRAX: QUAL MÚSCULO ESTABILIZA A ESCÁPULA (BOXEADOR)?", "alternativas": ["Peitoral menor", "Subclávio", "Romboide", "Serrátil anterior"] },
+      { "inimigo": "Músculo do manguito rotador que realiza rotação medial do braço", "correta": "Subescapular", "texto": "O subescapular é o único músculo do manguito rotador que realiza rotação medial do braço.", "ameaca": "MANGUITO ROTADOR: QUAL MÚSCULO REALIZA ROTAÇÃO MEDIAL?", "alternativas": ["Supraespinal", "Infraespinal", "Redondo menor", "Subescapular"] },
+      { "inimigo": "Músculo do manguito rotador que realiza rotação lateral do braço", "correta": "Infraespinal", "texto": "O infraespinal é o principal rotador lateral do braço, junto com o redondo menor.", "ameaca": "MANGUITO ROTADOR: QUAL MÚSCULO REALIZA ROTAÇÃO LATERAL?", "alternativas": ["Supraespinal", "Subescapular", "Redondo maior", "Infraespinal"] },
+      { "inimigo": "Músculo da face responsável pelo fechamento dos olhos", "correta": "Orbicular do olho", "texto": "O orbicular do olho é o músculo responsável pelo fechamento das pálpebras.", "ameaca": "FACE: QUAL MÚSCULO FECHA OS OLHOS?", "alternativas": ["Orbicular da boca", "Frontal", "Corrugador", "Orbicular do olho"] },
+      { "inimigo": "Músculo da face responsável pelo fechamento da boca e beijo", "correta": "Orbicular da boca", "texto": "O orbicular da boca é o músculo que fecha a boca e permite o beijo e a sucção.", "ameaca": "FACE: QUAL MÚSCULO FECHA A BOCA?", "alternativas": ["Buccinador", "Zigomático maior", "Mentual", "Orbicular da boca"] },
+      { "inimigo": "Músculo da face que permite sorrir (eleva o ângulo da boca)", "correta": "Zigomático maior", "texto": "O zigomático maior eleva o ângulo da boca, sendo o principal músculo do sorriso.", "ameaca": "FACE: QUAL MÚSCULO PERMITE O SORRISO?", "alternativas": ["Risorius", "Zigomático menor", "Levantador do lábio", "Zigomático maior"] },
+      { "inimigo": "Músculo da mastigação localizado na região temporal", "correta": "Temporal", "texto": "O músculo temporal eleva e retrai a mandíbula e está localizado na fossa temporal.", "ameaca": "MASTIGAÇÃO: QUAL MÚSCULO ESTÁ NA FOSSA TEMPORAL?", "alternativas": ["Masseter", "Pterigóideo medial", "Pterigóideo lateral", "Temporal"] },
+      { "inimigo": "Músculo que forma o assoalho da cavidade oral", "correta": "Miloi-hióideo", "texto": "O miloi-hióideo forma o assoalho da boca e eleva o hioide durante a deglutição.", "ameaca": "BOCA: QUAL MÚSCULO FORMA O ASSOALHO DA CAVIDADE ORAL?", "alternativas": ["Genio-hióideo", "Digástrico", "Estilo-hióideo", "Miloi-hióideo"] },
+      { "inimigo": "Músculo responsável pela ejeção do leite na amamentação", "correta": "Mioepiteliais da mama", "texto": "As células mioepiteliais ao redor dos alvéolos mamários se contraem para ejetar o leite.", "ameaca": "MAMA: QUAIS CÉLULAS EJETAM O LEITE?", "alternativas": ["Adipócitos", "Fibroblastos", "Células alveolares", "Mioepiteliais da mama"] },
+
+      // ===== SISTEMA CARDIOVASCULAR (71-95) =====
+      { "inimigo": "Estrutura do coração que recebe sangue rico em oxigênio dos pulmões", "correta": "Átrio esquerdo", "texto": "O átrio esquerdo recebe sangue oxigenado das veias pulmonares e o bombeia para o ventrículo esquerdo.", "ameaca": "CORAÇÃO: QUAL CÂMARA RECEBE SANGUE OXIGENADO DOS PULMÕES?", "alternativas": ["Átrio direito", "Ventrículo direito", "Ventrículo esquerdo", "Átrio esquerdo"] },
+      { "inimigo": "Câmara do coração que bombeia sangue para a aorta", "correta": "Ventrículo esquerdo", "texto": "O ventrículo esquerdo é a câmara mais muscular e bombeia sangue oxigenado para a aorta.", "ameaca": "CORAÇÃO: QUAL CÂMARA BOMBEIA SANGUE PARA A AORTA?", "alternativas": ["Átrio esquerdo", "Átrio direito", "Ventrículo direito", "Ventrículo esquerdo"] },
+      { "inimigo": "Câmara do coração que recebe sangue venoso do corpo", "correta": "Átrio direito", "texto": "O átrio direito recebe sangue desoxigenado das veias cavas superior e inferior.", "ameaca": "CORAÇÃO: QUAL CÂMARA RECEBE SANGUE VENOSO DO CORPO?", "alternativas": ["Átrio esquerdo", "Ventrículo direito", "Ventrículo esquerdo", "Átrio direito"] },
+      { "inimigo": "Câmara do coração que bombeia sangue para os pulmões", "correta": "Ventrículo direito", "texto": "O ventrículo direito bombeia sangue desoxigenado para a artéria pulmonar.", "ameaca": "CORAÇÃO: QUAL CÂMARA BOMBEIA SANGUE PARA OS PULMÕES?", "alternativas": ["Átrio direito", "Átrio esquerdo", "Ventrículo esquerdo", "Ventrículo direito"] },
+      { "inimigo": "Maior artéria do corpo humano", "correta": "Aorta", "texto": "A aorta é a maior artéria do corpo, originando-se do ventrículo esquerdo.", "ameaca": "CIRCULAÇÃO: QUAL É A MAIOR ARTÉRIA DO CORPO?", "alternativas": ["Artéria pulmonar", "Artéria carótida", "Artéria femoral", "Aorta"] },
+      { "inimigo": "Válvula localizada entre o átrio esquerdo e o ventrículo esquerdo", "correta": "Válvula mitral (bicúspide)", "texto": "A válvula mitral ou bicúspide impede o refluxo de sangue do ventrículo esquerdo para o átrio esquerdo.", "ameaca": "CORAÇÃO: QUAL VÁLVULA ESTÁ ENTRE ÁTRIO E VENTRÍCULO ESQUERDOS?", "alternativas": ["Tricúspide", "Aórtica", "Pulmonar", "Válvula mitral (bicúspide)"] },
+      { "inimigo": "Válvula localizada entre o átrio direito e o ventrículo direito", "correta": "Válvula tricúspide", "texto": "A válvula tricúspide impede o refluxo de sangue do ventrículo direito para o átrio direito.", "ameaca": "CORAÇÃO: QUAL VÁLVULA ESTÁ ENTRE ÁTRIO E VENTRÍCULO DIREITOS?", "alternativas": ["Mitral", "Aórtica", "Pulmonar", "Válvula tricúspide"] },
+      { "inimigo": "Válvula que impede o refluxo da aorta para o ventrículo esquerdo", "correta": "Válvula aórtica", "texto": "A válvula aórtica é uma válvula semilunar que impede o refluxo de sangue da aorta.", "ameaca": "CORAÇÃO: QUAL VÁLVULA IMPEDE O REFLUXO DA AORTA?", "alternativas": ["Mitral", "Tricúspide", "Pulmonar", "Válvula aórtica"] },
+      { "inimigo": "Válvula que impede o refluxo da artéria pulmonar para o ventrículo direito", "correta": "Válvula pulmonar", "texto": "A válvula pulmonar é uma válvula semilunar que impede o refluxo da artéria pulmonar.", "ameaca": "CORAÇÃO: QUAL VÁLVULA IMPEDE O REFLUXO DA ARTÉRIA PULMONAR?", "alternativas": ["Aórtica", "Mitral", "Tricúspide", "Válvula pulmonar"] },
+      { "inimigo": "Veia que traz sangue da parte superior do corpo para o átrio direito", "correta": "Veia cava superior", "texto": "A veia cava superior drena o sangue da cabeça, pescoço e membros superiores para o átrio direito.", "ameaca": "CIRCULAÇÃO: QUAL VEIA DRENA A PARTE SUPERIOR DO CORPO?", "alternativas": ["Veia cava inferior", "Veia ázigo", "Veia porta", "Veia cava superior"] },
+      { "inimigo": "Veia que traz sangue da parte inferior do corpo para o átrio direito", "correta": "Veia cava inferior", "texto": "A veia cava inferior drena o sangue do abdome, pelve e membros inferiores para o átrio direito.", "ameaca": "CIRCULAÇÃO: QUAL VEIA DRENA A PARTE INFERIOR DO CORPO?", "alternativas": ["Veia cava superior", "Veia porta", "Veia ázigo", "Veia cava inferior"] },
+      { "inimigo": "Artéria que leva sangue do ventrículo direito para os pulmões", "correta": "Artéria pulmonar", "texto": "A artéria pulmonar é a única artéria que transporta sangue desoxigenado.", "ameaca": "CIRCULAÇÃO: QUAL ARTÉRIA LEVA SANGUE PARA OS PULMÕES?", "alternativas": ["Aorta", "Artéria carótida", "Artéria bronquial", "Artéria pulmonar"] },
+      { "inimigo": "Veias que levam sangue oxigenado dos pulmões para o átrio esquerdo", "correta": "Veias pulmonares", "texto": "As veias pulmonares (geralmente 4) transportam sangue oxigenado dos pulmões para o átrio esquerdo.", "ameaca": "CIRCULAÇÃO: QUAIS VEIAS TRAZEM SANGUE OXIGENADO DOS PULMÕES?", "alternativas": ["Veias cavas", "Veias bronquiais", "Veias ázigo", "Veias pulmonares"] },
+      { "inimigo": "Artéria que irriga o coração (primeira ramificação da aorta)", "correta": "Artérias coronárias", "texto": "As artérias coronárias direita e esquerda são as primeiras ramificações da aorta e irrigam o miocárdio.", "ameaca": "CORAÇÃO: QUAIS ARTÉRIAS IRRIGAM O MIOCÁRDIO?", "alternativas": ["Artérias carótidas", "Artérias subclávias", "Artérias bronquiais", "Artérias coronárias"] },
+      { "inimigo": "Marca-passo natural do coração", "correta": "Nó sinoatrial (NSA)", "texto": "O nó sinoatrial, localizado no átrio direito, é o marca-passo natural do coração.", "ameaca": "CORAÇÃO: QUAL É O MARCA-PASSO NATURAL?", "alternativas": ["Nó atrioventricular", "Feixe de His", "Fibras de Purkinje", "Nó sinoatrial (NSA)"] },
+      { "inimigo": "Estrutura que atrasa o impulso elétrico entre átrios e ventrículos", "correta": "Nó atrioventricular (NAV)", "texto": "O nó atrioventricular atrasa o impulso elétrico, permitindo a contração atrial completa antes da ventricular.", "ameaca": "CORAÇÃO: QUAL ESTRUTURA ATRASA O IMPULSO ENTRE ÁTRIOS E VENTRÍCULOS?", "alternativas": ["Nó sinoatrial", "Feixe de His", "Fibras de Purkinje", "Nó atrioventricular (NAV)"] },
+      { "inimigo": "Maior veia do corpo humano", "correta": "Veia cava inferior", "texto": "A veia cava inferior é a maior veia do corpo humano em diâmetro.", "ameaca": "CIRCULAÇÃO: QUAL É A MAIOR VEIA DO CORPO?", "alternativas": ["Veia cava superior", "Veia porta", "Veia femoral", "Veia cava inferior"] },
+      { "inimigo": "Artéria que irriga o cérebro e se origina da aorta (lado esquerdo)", "correta": "Artéria carótida comum esquerda", "texto": "A artéria carótida comum esquerda origina-se diretamente do arco aórtico e irriga a cabeça e o pescoço.", "ameaca": "CIRCULAÇÃO: QUAL ARTÉRIA IRIGA O CÉREBRO (LADO ESQUERDO)?", "alternativas": ["Artéria subclávia", "Artéria vertebral", "Artéria basilar", "Artéria carótida comum esquerda"] },
+      { "inimigo": "Artéria principal do membro inferior, continuação da ilíaca externa", "correta": "Artéria femoral", "texto": "A artéria femoral é a principal artéria do membro inferior e é continuação da artéria ilíaca externa.", "ameaca": "MEMBRO INFERIOR: QUAL É A PRINCIPAL ARTÉRIA?", "alternativas": ["Artéria poplítea", "Artéria tibial", "Artéria fibular", "Artéria femoral"] },
+      { "inimigo": "Rede de vasos que irriga o cérebro (polígono de Willis)", "correta": "Círculo arterial cerebral (polígono de Willis)", "texto": "O polígono de Willis é uma anastomose arterial na base do cérebro que garante irrigação colateral.", "ameaca": "CÉREBRO: QUAL É A REDE ARTERIAL DA BASE DO CÉREBRO?", "alternativas": ["Seio cavernoso", "Seio sagital", "Artérias meníngeas", "Círculo arterial cerebral (polígono de Willis)"] },
+      { "inimigo": "Camada mais interna do coração (reveste as câmaras)", "correta": "Endocárdio", "texto": "O endocárdio é a camada mais interna do coração e reveste as câmaras e válvulas.", "ameaca": "CORAÇÃO: QUAL É A CAMADA MAIS INTERNA?", "alternativas": ["Miocárdio", "Epicárdio", "Pericárdio", "Endocárdio"] },
+      { "inimigo": "Camada muscular do coração responsável pela contração", "correta": "Miocárdio", "texto": "O miocárdio é a camada muscular do coração responsável pela contração e bombeamento do sangue.", "ameaca": "CORAÇÃO: QUAL É A CAMADA MUSCULAR?", "alternativas": ["Endocárdio", "Epicárdio", "Pericárdio", "Miocárdio"] },
+      { "inimigo": "Camada mais externa do coração (folha visceral do pericárdio)", "correta": "Epicárdio", "texto": "O epicárdio é a folha visceral do pericárdio seroso e a camada mais externa do coração.", "ameaca": "CORAÇÃO: QUAL É A CAMADA MAIS EXTERNA?", "alternativas": ["Endocárdio", "Miocárdio", "Pericárdio fibroso", "Epicárdio"] },
+      { "inimigo": "Saco fibroseroso que envolve o coração", "correta": "Pericárdio", "texto": "O pericárdio é o saco que envolve o coração, composto por uma camada fibrosa e uma serosa.", "ameaca": "CORAÇÃO: QUAL SACO ENVOLVE O CORAÇÃO?", "alternativas": ["Pleura", "Peritônio", "Mediastino", "Pericárdio"] },
+      { "inimigo": "Veia que drena o sangue do trato gastrointestinal para o fígado", "correta": "Veia porta hepática", "texto": "A veia porta hepática transporta sangue rico em nutrientes do trato gastrointestinal para o fígado.", "ameaca": "CIRCULAÇÃO: QUAL VEIA LEVA SANGUE DO INTESTINO PARA O FÍGADO?", "alternativas": ["Veia cava inferior", "Veia hepática", "Veia esplênica", "Veia porta hepática"] },
+
+      // ===== SISTEMA RESPIRATÓRIO (96-110) =====
+      { "inimigo": "Órgão responsável pelas trocas gasosas", "correta": "Pulmões", "texto": "Os pulmões são os órgãos responsáveis pelas trocas gasosas entre o ar e o sangue.", "ameaca": "RESPIRAÇÃO: QUAL ÓRGÃO REALIZA AS TROCAS GASOSAS?", "alternativas": ["Brônquios", "Traqueia", "Laringe", "Pulmões"] },
+      { "inimigo": "Estrutura que conecta a laringe aos brônquios principais", "correta": "Traqueia", "texto": "A traqueia é um tubo cartilaginoso que conduz o ar da laringe até os brônquios principais.", "ameaca": "RESPIRAÇÃO: QUAL ESTRUTURA CONECTA A LARINGE AOS BRÔNQUIOS?", "alternativas": ["Faringe", "Laringe", "Bronquíolo", "Traqueia"] },
+      { "inimigo": "Estrutura que contém as pregas vocais", "correta": "Laringe", "texto": "A laringe contém as pregas vocais verdadeiras e é responsável pela fonação.", "ameaca": "RESPIRAÇÃO: QUAL ESTRUTURA CONTÉM AS PREGAS VOCAIS?", "alternativas": ["Faringe", "Traqueia", "Epiglote", "Laringe"] },
+      { "inimigo": "Estrutura que impede a entrada de alimento na traqueia durante a deglutição", "correta": "Epiglote", "texto": "A epiglote é uma cartilagem que fecha a entrada da laringe durante a deglutição.", "ameaca": "DEGLUTIÇÃO: QUAL ESTRUTURA PROTEGE A TRAQUEIA?", "alternativas": ["Úvula", "Palato mole", "Cartilagem cricoide", "Epiglote"] },
+      { "inimigo": "Unidade funcional do pulmão onde ocorrem as trocas gasosas", "correta": "Alvéolos pulmonares", "texto": "Os alvéolos são as unidades funcionais do pulmão onde ocorre a hematose (trocas gasosas).", "ameaca": "PULMÃO: ONDE OCORREM AS TROCAS GASOSAS?", "alternativas": ["Brônquios", "Bronquíolos", "Pleura", "Alvéolos pulmonares"] },
+      { "inimigo": "Membrana serosa que reveste os pulmões", "correta": "Pleura", "texto": "A pleura é a membrana serosa que reveste os pulmões (pleura visceral) e a cavidade torácica (pleura parietal).", "ameaca": "PULMÃO: QUAL MEMBRANA REVESTE OS PULMÕES?", "alternativas": ["Pericárdio", "Peritônio", "Menínge", "Pleura"] },
+      { "inimigo": "Número de lobos do pulmão direito", "correta": "3", "texto": "O pulmão direito possui 3 lobos (superior, médio e inferior).", "ameaca": "PULMÃO: QUANTOS LOBOS TEM O PULMÃO DIREITO?", "alternativas": ["2", "4", "5", "3"] },
+      { "inimigo": "Número de lobos do pulmão esquerdo", "correta": "2", "texto": "O pulmão esquerdo possui 2 lobos (superior e inferior) devido ao espaço ocupado pelo coração.", "ameaca": "PULMÃO: QUANTOS LOBOS TEM O PULMÃO ESQUERDO?", "alternativas": ["3", "4", "1", "2"] },
+      { "inimigo": "Cartilagem que forma o 'pomo de Adão'", "correta": "Cartilagem tireoide", "texto": "A cartilagem tireoide é a maior cartilagem da laringe e forma a proeminência laríngea (pomo de Adão).", "ameaca": "LARINGE: QUAL CARTILAGEM FORMA O POMO DE ADÃO?", "alternativas": ["Cricoide", "Epliglote", "Aritenoide", "Cartilagem tireoide"] },
+      { "inimigo": "Única cartilagem completa em forma de anel da via aérea", "correta": "Cartilagem cricoide", "texto": "A cartilagem cricoide é a única cartilagem completa em forma de anel da via aérea.", "ameaca": "LARINGE: QUAL É A ÚNICA CARTILAGEM COMPLETA EM ANEL?", "alternativas": ["Tireoide", "Epiglote", "Aritenoide", "Cartilagem cricoide"] },
+      { "inimigo": "Estrutura que separa a cavidade nasal em duas fossas", "correta": "Septo nasal", "texto": "O septo nasal é formado pelo osso etmoide, vômer e cartilagem septal.", "ameaca": "NARIZ: QUAL ESTRUTURA DIVIDE AS FOSSAS NASAIS?", "alternativas": ["Conchas nasais", "Meatos", "Cornetos", "Septo nasal"] },
+      { "inimigo": "Ossos que aumentam a superfície da cavidade nasal", "correta": "Conchas nasais (cornetos)", "texto": "As conchas nasais (superior, média e inferior) aumentam a superfície e aquecem o ar inspirado.", "ameaca": "NARIZ: QUAIS ESTRUTURAS AUMENTAM A SUPERFÍCIE NASAL?", "alternativas": ["Meatos", "Seios paranasais", "Septo", "Conchas nasais (cornetos)"] },
+      { "inimigo": "Seio paranasal localizado no osso frontal", "correta": "Seio frontal", "texto": "O seio frontal está localizado no osso frontal, acima das órbitas.", "ameaca": "SEIOS PARANASAIS: QUAL ESTÁ NO OSSO FRONTAL?", "alternativas": ["Seio maxilar", "Seio etmoidal", "Seio esfenoidal", "Seio frontal"] },
+      { "inimigo": "Maior seio paranasal, localizado na maxila", "correta": "Seio maxilar", "texto": "O seio maxilar é o maior seio paranasal e está localizado no corpo da maxila.", "ameaca": "SEIOS PARANASAIS: QUAL É O MAIOR?", "alternativas": ["Seio frontal", "Seio etmoidal", "Seio esfenoidal", "Seio maxilar"] },
+      { "inimigo": "Músculos que elevam as costelas durante a inspiração forçada", "correta": "Intercostais externos", "texto": "Os intercostais externos elevam as costelas, aumentando o volume torácico durante a inspiração.", "ameaca": "RESPIRAÇÃO: QUAIS MÚSCULOS ELEVA M AS COSTELAS?", "alternativas": ["Intercostais internos", "Reto abdominal", "Transverso", "Intercostais externos"] },
+
+      // ===== SISTEMA DIGESTÓRIO (111-135) =====
+      { "inimigo": "A maior glândula do corpo humano, com múltiplas funções metabólicas", "correta": "Fígado", "texto": "O fígado é o maior órgão interno e glândula do corpo humano, realizando metabolismo, desintoxicação e produção de bile.", "ameaca": "GLÂNDULA: QUAL É A MAIOR GLÂNDULA DO CORPO HUMANO?", "alternativas": ["Pâncreas", "Tireoide", "Adrenal", "Fígado"] },
+      { "inimigo": "Porção do intestino delgado onde ocorre a maior parte da digestão e absorção", "correta": "Jejuno", "texto": "O jejuno é a parte intermediária do intestino delgado, principal local de digestão enzimática e absorção de nutrientes.", "ameaca": "INTESTINO: QUAL SEGMENTO REALIZA A MAIOR PARTE DA ABSORÇÃO?", "alternativas": ["Duodeno", "Íleo", "Ceco", "Jejuno"] },
+      { "inimigo": "Primeira porção do intestino delgado, recebe bile e suco pancreático", "correta": "Duodeno", "texto": "O duodeno é a primeira porção do intestino delgado e recebe a bile e o suco pancreático.", "ameaca": "INTESTINO: QUAL É A PRIMEIRA PORÇÃO DO INTESTINO DELGADO?", "alternativas": ["Jejuno", "Íleo", "Ceco", "Duodeno"] },
+      { "inimigo": "Última porção do intestino delgado, conecta-se ao ceco", "correta": "Íleo", "texto": "O íleo é a última porção do intestino delgado e se conecta ao ceco através da válvula ileocecal.", "ameaca": "INTESTINO: QUAL É A ÚLTIMA PORÇÃO DO INTESTINO DELGADO?", "alternativas": ["Duodeno", "Jejuno", "Cólon", "Íleo"] },
+      { "inimigo": "Órgão que produz a bile", "correta": "Fígado", "texto": "O fígado produz a bile, que é armazenada e concentrada na vesícula biliar.", "ameaca": "DIGESTÃO: QUAL ÓRGÃO PRODUZ A BILE?", "alternativas": ["Pâncreas", "Vesícula biliar", "Estômago", "Fígado"] },
+      { "inimigo": "Órgão que armazena e concentra a bile", "correta": "Vesícula biliar", "texto": "A vesícula biliar armazena e concentra a bile produzida pelo fígado.", "ameaca": "DIGESTÃO: QUAL ÓRGÃO ARMAZENA A BILE?", "alternativas": ["Fígado", "Pâncreas", "Duodeno", "Vesícula biliar"] },
+      { "inimigo": "Glândula que produz enzimas digestivas e hormônios (insulina e glucagon)", "correta": "Pâncreas", "texto": "O pâncreas é uma glândula mista que produz enzimas digestivas (exócrina) e hormônios (endócrina).", "ameaca": "DIGESTÃO: QUAL GLÂNDULA PRODUZ ENZIMAS E HORMÔNIOS?", "alternativas": ["Fígado", "Vesícula", "Baço", "Pâncreas"] },
+      { "inimigo": "Órgão que inicia a digestão mecânica e química dos alimentos", "correta": "Boca (cavidade oral)", "texto": "A boca inicia a digestão mecânica (mastigação) e química (amilase salivar).", "ameaca": "DIGESTÃO: ONDE INICIA A DIGESTÃO?", "alternativas": ["Estômago", "Esôfago", "Duodeno", "Boca (cavidade oral)"] },
+      { "inimigo": "Tubo muscular que transporta o alimento da faringe ao estômago", "correta": "Esôfago", "texto": "O esôfago é um tubo muscular de aproximadamente 25 cm que transporta o bolo alimentar ao estômago.", "ameaca": "DIGESTÃO: QUAL TUBO LEVA O ALIMENTO AO ESTÔMAGO?", "alternativas": ["Traqueia", "Faringe", "Duodeno", "Esôfago"] },
+      { "inimigo": "Órgão que realiza digestão química com ácido clorídrico e pepsina", "correta": "Estômago", "texto": "O estômago secreta ácido clorídrico e pepsina para a digestão de proteínas.", "ameaca": "DIGESTÃO: QUAL ÓRGÃO SECRETA ÁCIDO CLORÍDRICO?", "alternativas": ["Duodeno", "Pâncreas", "Fígado", "Estômago"] },
+      { "inimigo": "Parte do intestino grosso que se conecta ao íleo", "correta": "Ceco", "texto": "O ceco é a primeira porção do intestino grosso e se conecta ao íleo pela válvula ileocecal.", "ameaca": "INTESTINO GROSSO: QUAL É A PRIMEIRA PORÇÃO?", "alternativas": ["Cólon ascendente", "Apêndice", "Reto", "Ceco"] },
+      { "inimigo": "Estrutura vestigial ligada ao ceco", "correta": "Apêndice vermiforme", "texto": "O apêndice vermiforme é uma estrutura vestigial ligada ao ceco.", "ameaca": "INTESTINO: QUAL ESTRUTURA VESTIGIAL ESTÁ LIGADA AO CECO?", "alternativas": ["Reto", "Sigmoide", "Cólon", "Apêndice vermiforme"] },
+      { "inimigo": "Parte final do tubo digestivo, armazena fezes", "correta": "Reto", "texto": "O reto é a parte final do intestino grosso e armazena as fezes antes da defecação.", "ameaca": "INTESTINO: QUAL PARTE ARMAZENA AS FEZES?", "alternativas": ["Cólon sigmoide", "Ceco", "Ânus", "Reto"] },
+      { "inimigo": "Glândulas salivares maiores localizadas na região parotídea", "correta": "Parótidas", "texto": "As glândulas parótidas são as maiores glândulas salivares e estão localizadas na região anterior à orelha.", "ameaca": "SALIVA: QUAL É A MAIOR GLÂNDULA SALIVAR?", "alternativas": ["Submandibular", "Sublingual", "Labiais", "Parótidas"] },
+      { "inimigo": "Glândulas salivares localizadas abaixo da mandíbula", "correta": "Submandibulares", "texto": "As glândulas submandibulares estão localizadas abaixo da mandíbula e produzem a maior parte da saliva.", "ameaca": "SALIVA: QUAIS GLÂNDULAS ESTÃO ABAIXO DA MANDÍBULA?", "alternativas": ["Parótidas", "Sublinguais", "Labiais", "Submandibulares"] },
+      { "inimigo": "Dente responsável pela trituração dos alimentos", "correta": "Molares", "texto": "Os molares possuem superfície ampla e são responsáveis pela trituração dos alimentos.", "ameaca": "DENTE: QUAL TIPO DE DENTE TRITURA OS ALIMENTOS?", "alternativas": ["Incisivos", "Caninos", "Pré-molares", "Molares"] },
+      { "inimigo": "Dente responsável pelo corte dos alimentos", "correta": "Incisivos", "texto": "Os incisivos possuem borda cortante e são responsáveis pelo corte dos alimentos.", "ameaca": "DENTE: QUAL TIPO DE DENTE CORTA OS ALIMENTOS?", "alternativas": ["Caninos", "Pré-molares", "Molares", "Incisivos"] },
+      { "inimigo": "Dente responsável pela dilaceração dos alimentos", "correta": "Caninos", "texto": "Os caninos possuem forma cônica e são responsáveis pela dilaceração dos alimentos.", "ameaca": "DENTE: QUAL TIPO DE DENTE DILACERA OS ALIMENTOS?", "alternativas": ["Incisivos", "Pré-molares", "Molares", "Caninos"] },
+      { "inimigo": "Número de dentes permanentes no adulto", "correta": "32", "texto": "O adulto possui 32 dentes permanentes (incluindo os 4 sisos).", "ameaca": "DENTE: QUANTOS DENTES PERMANENTES O ADULTO POSSUI?", "alternativas": ["28", "30", "20", "32"] },
+      { "inimigo": "Número de dentes decíduos (de leite)", "correta": "20", "texto": "A dentição decídua é composta por 20 dentes.", "ameaca": "DENTE: QUANTOS DENTES DE LEITE EXISTEM?", "alternativas": ["16", "24", "18", "20"] },
+      { "inimigo": "Esfíncter que controla a saída do alimento do estômago", "correta": "Piloro", "texto": "O piloro é o esfíncter que controla a passagem do quimo do estômago para o duodeno.", "ameaca": "ESTÔMAGO: QUAL ESFÍNCTER CONTROLA A SAÍDA DO ALIMENTO?", "alternativas": ["Cárdia", "Válvula ileocecal", "Esfíncter anal", "Piloro"] },
+      { "inimigo": "Região do estômago que se conecta ao esôfago", "correta": "Cárdia", "texto": "A cárdia é a região do estômago que se conecta ao esôfago.", "ameaca": "ESTÔMAGO: QUAL REGIÃO SE CONECTA AO ESÔFAGO?", "alternativas": ["Fundo", "Corpo", "Piloro", "Cárdia"] },
+      { "inimigo": "Pregas da mucosa intestinal que aumentam a superfície de absorção", "correta": "Vilosidades intestinais", "texto": "As vilosidades intestinais aumentam enormemente a superfície de absorção do intestino delgado.", "ameaca": "INTESTINO: QUAIS ESTRUTURAS AUMENTAM A SUPERFÍCIE DE ABSORÇÃO?", "alternativas": ["Plicae circulares", "Criptas", "Glândulas de Brunner", "Vilosidades intestinais"] },
+      { "inimigo": "Enzima produzida pelo estômago que digere proteínas", "correta": "Pepsina", "texto": "A pepsina é a enzima proteolítica produzida pelas células principais do estômago.", "ameaca": "ESTÔMAGO: QUAL ENZIMA DIGERE PROTEÍNAS?", "alternativas": ["Amilase", "Lipase", "Tripsina", "Pepsina"] },
+      { "inimigo": "Enzima pancreática que digere gorduras", "correta": "Lipase pancreática", "texto": "A lipase pancreática é a principal enzima responsável pela digestão de triglicerídeos.", "ameaca": "PÂNCREAS: QUAL ENZIMA DIGERE GORDURAS?", "alternativas": ["Amilase", "Tripsina", "Quimotripsina", "Lipase pancreática"] },
+
+      // ===== SISTEMA NERVOSO (136-160) =====
+      { "inimigo": "Parte do cérebro responsável pela visão", "correta": "Lobo occipital", "texto": "O lobo occipital está localizado na parte posterior do cérebro e é o centro primário de processamento visual.", "ameaca": "CÉREBRO: QUAL LOBO É RESPONSÁVEL PELA VISÃO?", "alternativas": ["Lobo frontal", "Lobo parietal", "Lobo temporal", "Lobo occipital"] },
+      { "inimigo": "Lobo cerebral responsável pelo raciocínio, planejamento e personalidade", "correta": "Lobo frontal", "texto": "O lobo frontal é responsável por funções executivas, raciocínio, planejamento e personalidade.", "ameaca": "CÉREBRO: QUAL LOBO É RESPONSÁVEL PELO RACIOCÍNIO?", "alternativas": ["Lobo parietal", "Lobo temporal", "Lobo occipital", "Lobo frontal"] },
+      { "inimigo": "Lobo cerebral responsável pela audição e memória", "correta": "Lobo temporal", "texto": "O lobo temporal processa a audição e está envolvido na memória e linguagem.", "ameaca": "CÉREBRO: QUAL LOBO É RESPONSÁVEL PELA AUDIÇÃO?", "alternativas": ["Lobo frontal", "Lobo parietal", "Lobo occipital", "Lobo temporal"] },
+      { "inimigo": "Lobo cerebral responsável pela sensibilidade e percepção espacial", "correta": "Lobo parietal", "texto": "O lobo parietal processa informações sensoriais e é importante para a percepção espacial.", "ameaca": "CÉREBRO: QUAL LOBO É RESPONSÁVEL PELA SENSIBILIDADE?", "alternativas": ["Lobo frontal", "Lobo temporal", "Lobo occipital", "Lobo parietal"] },
+      { "inimigo": "Estrutura do cérebro responsável pelo equilíbrio e coordenação motora", "correta": "Cerebelo", "texto": "O cerebelo está localizado na fossa posterior e é responsável pelo equilíbrio e coordenação dos movimentos.", "ameaca": "CÉREBRO: QUAL ESTRUTURA CONTROL A O EQUILÍBRIO?", "alternativas": ["Tronco encefálico", "Tálamo", "Hipotálamo", "Cerebelo"] },
+      { "inimigo": "Parte do tronco encefálico que controla funções vitais (respiração e frequência cardíaca)", "correta": "Bulbo (medula oblonga)", "texto": "O bulbo contém os centros de controle da respiração, frequência cardíaca e pressão arterial.", "ameaca": "TRONCO ENCEFÁLICO: QUAL PARTE CONTROL A FUNÇÕES VITAIS?", "alternativas": ["Ponte", "Mesencéfalo", "Tálamo", "Bulbo (medula oblonga)"] },
+      { "inimigo": "Estrutura que conecta os dois hemisférios cerebrais", "correta": "Corpo caloso", "texto": "O corpo caloso é a principal comissura que conecta os dois hemisférios cerebrais.", "ameaca": "CÉREBRO: QUAL ESTRUTURA CONECTA OS HEMISFÉRIOS?", "alternativas": ["Fórnix", "Cápsula interna", "Septo pelúcido", "Corpo caloso"] },
+      { "inimigo": "Estrutura do diencéfalo que regula a temperatura, fome e sede", "correta": "Hipotálamo", "texto": "O hipotálamo regula funções autonômicas, temperatura corporal, fome, sede e controla a hipófise.", "ameaca": "DIENCÉFALO: QUAL ESTRUTURA REGULA TEMPERATURA E FOME?", "alternativas": ["Tálamo", "Epífise", "Hipófise", "Hipotálamo"] },
+      { "inimigo": "Estrutura do diencéfalo que funciona como estação de retransmissão sensorial", "correta": "Tálamo", "texto": "O tálamo é a principal estação de retransmissão de informações sensoriais para o córtex cerebral.", "ameaca": "DIENCÉFALO: QUAL ESTRUTURA É A ESTAÇÃO SENSORIAL?", "alternativas": ["Hipotálamo", "Epífise", "Hipófise", "Tálamo"] },
+      { "inimigo": "Componentes do sistema nervoso periférico que conduzem impulsos para o SNC", "correta": "Neurônios sensoriais (aferentes)", "texto": "Neurônios sensoriais (aferentes) transmitem informações dos receptores para o sistema nervoso central.", "ameaca": "SISTEMA NERVOSO: QUAIS NEURÔNIOS CONDUZEM IMPULSOS PARA O SNC?", "alternativas": ["Neurônios motores (eferentes)", "Interneurônios", "Células da glia", "Neurônios sensoriais (aferentes)"] },
+      { "inimigo": "Neurônios que conduzem impulsos do SNC para os efetores", "correta": "Neurônios motores (eferentes)", "texto": "Neurônios motores (eferentes) transmitem impulsos do sistema nervoso central para músculos e glândulas.", "ameaca": "SISTEMA NERVOSO: QUAIS NEURÔNIOS CONDUZEM IMPULSOS DO SNC?", "alternativas": ["Sensoriais", "Interneurônios", "Células da glia", "Neurônios motores (eferentes)"] },
+      { "inimigo": "Células de suporte do sistema nervoso", "correta": "Células da glia (neuroglia)", "texto": "As células da glia fornecem suporte, nutrição e proteção aos neurônios.", "ameaca": "SISTEMA NERVOSO: QUAIS SÃO AS CÉLULAS DE SUPORTE?", "alternativas": ["Neurônios", "Axônios", "Dendritos", "Células da glia (neuroglia)"] },
+      { "inimigo": "Membranas que protegem o sistema nervoso central", "correta": "Meninges", "texto": "As meninges (dura-máter, aracnoide e pia-máter) protegem o cérebro e a medula espinhal.", "ameaca": "SNC: QUAIS MEMBRANAS PROTEGEM O CÉREBRO E A MEDULA?", "alternativas": ["Pleura", "Pericárdio", "Peritônio", "Meninges"] },
+      { "inimigo": "Meninge mais externa e resistente", "correta": "Dura-máter", "texto": "A dura-máter é a meninge mais externa, espessa e resistente.", "ameaca": "MENINGES: QUAL É A MAIS EXTERNA?", "alternativas": ["Aracnoide", "Pia-máter", "Espaço subaracnóideo", "Dura-máter"] },
+      { "inimigo": "Meninge mais interna, aderida ao tecido nervoso", "correta": "Pia-máter", "texto": "A pia-máter é a meninge mais interna e está firmemente aderida à superfície do cérebro e medula.", "ameaca": "MENINGES: QUAL É A MAIS INTERNA?", "alternativas": ["Dura-máter", "Aracnoide", "Espaço epidural", "Pia-máter"] },
+      { "inimigo": "Líquido que banha o sistema nervoso central", "correta": "Líquido cefalorraquidiano (LCR)", "texto": "O líquido cefalorraquidiano protege, nutre e remove resíduos do sistema nervoso central.", "ameaca": "SNC: QUAL LÍQUIDO BANHA O CÉREBRO E A MEDULA?", "alternativas": ["Sangue", "Linfa", "Humor aquoso", "Líquido cefalorraquidiano (LCR)"] },
+      { "inimigo": "Estruturas que produzem o líquido cefalorraquidiano", "correta": "Plexos coroides", "texto": "Os plexos coroides, localizados nos ventrículos, produzem o líquido cefalorraquidiano.", "ameaca": "SNC: ONDE É PRODUZIDO O LÍQUIDO CEFALORRAQUIDIANO?", "alternativas": ["Aracnoide", "Pia-máter", "Dura-máter", "Plexos coroides"] },
+      { "inimigo": "Nervos que emergem do cérebro (12 pares)", "correta": "Nervos cranianos", "texto": "Existem 12 pares de nervos cranianos que emergem do encéfalo.", "ameaca": "SISTEMA NERVOSO: QUANTOS PARES DE NERVOS CRANIANOS EXISTEM?", "alternativas": ["10", "31", "12", "8"] },
+      { "inimigo": "Nervo craniano responsável pela visão", "correta": "Nervo óptico (II)", "texto": "O nervo óptico (II) é responsável pela condução dos impulsos visuais.", "ameaca": "NERVOS CRANIANOS: QUAL É RESPONSÁVEL PELA VISÃO?", "alternativas": ["Nervo olfatório", "Nervo oculomotor", "Nervo trigêmeo", "Nervo óptico (II)"] },
+      { "inimigo": "Nervo craniano responsável pela audição e equilíbrio", "correta": "Nervo vestibulococlear (VIII)", "texto": "O nervo vestibulococlear (VIII) é responsável pela audição e pelo equilíbrio.", "ameaca": "NERVOS CRANIANOS: QUAL É RESPONSÁVEL PELA AUDIÇÃO?", "alternativas": ["Nervo facial", "Nervo glossofaríngeo", "Nervo vago", "Nervo vestibulococlear (VIII)"] },
+      { "inimigo": "Nervo craniano mais longo, responsável por funções autônomas", "correta": "Nervo vago (X)", "texto": "O nervo vago (X) é o mais longo e inerva vísceras torácicas e abdominais.", "ameaca": "NERVOS CRANIANOS: QUAL É O MAIS LONGO?", "alternativas": ["Nervo acessório", "Nervo hipoglosso", "Nervo trigêmeo", "Nervo vago (X)"] },
+      { "inimigo": "Nervo craniano responsável pela mastigação e sensibilidade da face", "correta": "Nervo trigêmeo (V)", "texto": "O nervo trigêmeo (V) é responsável pela sensibilidade da face e pela mastigação.", "ameaca": "NERVOS CRANIANOS: QUAL É RESPONSÁVEL PELA MASTIGAÇÃO?", "alternativas": ["Nervo facial", "Nervo hipoglosso", "Nervo acessório", "Nervo trigêmeo (V)"] },
+      { "inimigo": "Nervo craniano responsável pelos movimentos da face (expressões)", "correta": "Nervo facial (VII)", "texto": "O nervo facial (VII) inerva os músculos da expressão facial e o gosto dos 2/3 anteriores da língua.", "ameaca": "NERVOS CRANIANOS: QUAL CONTROLA AS EXPRESSÕES FACIAIS?", "alternativas": ["Nervo trigêmeo", "Nervo hipoglosso", "Nervo acessório", "Nervo facial (VII)"] },
+      { "inimigo": "Número de pares de nervos espinhais", "correta": "31", "texto": "Existem 31 pares de nervos espinhais: 8 cervicais, 12 torácicos, 5 lombares, 5 sacrais e 1 coccígeo.", "ameaca": "SISTEMA NERVOSO: QUANTOS PARES DE NERVOS ESPINHAIS EXISTEM?", "alternativas": ["12", "21", "25", "31"] },
+      { "inimigo": "Plexo nervoso que inerva o membro superior", "correta": "Plexo braquial", "texto": "O plexo braquial (C5-T1) inerva o membro superior.", "ameaca": "PLEXOS: QUAL INERVA O MEMBRO SUPERIOR?", "alternativas": ["Plexo cervical", "Plexo lombar", "Plexo sacral", "Plexo braquial"] },
+
+      // ===== SISTEMA ENDÓCRINO (161-175) =====
+      { "inimigo": "Glândula endócrina localizada no pescoço que regula o metabolismo", "correta": "Tireoide", "texto": "A tireoide produz hormônios T3 e T4 que regulam o metabolismo basal.", "ameaca": "ENDÓCRINO: QUAL GLÂNDULA NO PESCOÇO REGULA O METABOLISMO?", "alternativas": ["Paratireoide", "Suprarrenal", "Pâncreas", "Tireoide"] },
+      { "inimigo": "Glândula que produz paratormônio e regula o cálcio sanguíneo", "correta": "Paratireoides", "texto": "As glândulas paratireoides produzem o PTH, que aumenta o cálcio no sangue.", "ameaca": "ENDÓCRINO: QUAL GLÂNDULA REGULA O CÁLCIO SANGUÍNEO?", "alternativas": ["Tireoide", "Adrenal", "Hipófise", "Paratireoides"] },
+      { "inimigo": "Glândula mestra do sistema endócrino, localizada na sela túrcica", "correta": "Hipófise (pituitária)", "texto": "A hipófise é considerada a glândula mestra e controla várias outras glândulas endócrinas.", "ameaca": "ENDÓCRINO: QUAL É A GLÂNDULA MESTRA?", "alternativas": ["Tireoide", "Adrenal", "Hipotálamo", "Hipófise (pituitária)"] },
+      { "inimigo": "Glândula localizada sobre os rins que produz cortisol e adrenalina", "correta": "Glândulas suprarrenais (adrenais)", "texto": "As glândulas suprarrenais produzem corticosteroides (córtex) e catecolaminas (medula).", "ameaca": "ENDÓCRINO: QUAL GLÂNDULA ESTÁ SOBRE OS RINS?", "alternativas": ["Tireoide", "Paratireoide", "Pâncreas", "Glândulas suprarrenais (adrenais)"] },
+      { "inimigo": "Glândula que produz melatonina e regula o ciclo sono-vigília", "correta": "Pineal (epífise)", "texto": "A glândula pineal produz melatonina, regulando o ritmo circadiano.", "ameaca": "ENDÓCRINO: QUAL GLÂNDULA PRODUZ MELATONINA?", "alternativas": ["Hipófise", "Tireoide", "Adrenal", "Pineal (epífise)"] },
+      { "inimigo": "Hormônio produzido pelas células beta do pâncreas", "correta": "Insulina", "texto": "A insulina é produzida pelas células beta das ilhotas de Langerhans e reduz a glicemia.", "ameaca": "PÂNCREAS: QUAL HORMÔNIO REDUZ A GLICEMIA?", "alternativas": ["Glucagon", "Somatostatina", "Amilase", "Insulina"] },
+      { "inimigo": "Hormônio produzido pelas células alfa do pâncreas", "correta": "Glucagon", "texto": "O glucagon é produzido pelas células alfa e aumenta a glicemia.", "ameaca": "PÂNCREAS: QUAL HORMÔNIO AUMENTA A GLICEMIA?", "alternativas": ["Insulina", "Somatostatina", "Cortisol", "Glucagon"] },
+      { "inimigo": "Hormônio da hipófise que estimula a tireoide", "correta": "TSH (tireotrofina)", "texto": "O TSH estimula a tireoide a produzir e liberar T3 e T4.", "ameaca": "HIPÓFISE: QUAL HORMÔNIO ESTIMULA A TIREOIDE?", "alternativas": ["ACTH", "FSH", "GH", "TSH (tireotrofina)"] },
+      { "inimigo": "Hormônio do crescimento produzido pela hipófise", "correta": "GH (somatotrofina)", "texto": "O hormônio do crescimento (GH) estimula o crescimento ósseo e muscular.", "ameaca": "HIPÓFISE: QUAL É O HORMÔNIO DO CRESCIMENTO?", "alternativas": ["TSH", "ACTH", "Prolactina", "GH (somatotrofina)"] },
+      { "inimigo": "Hormônio que estimula a produção de leite", "correta": "Prolactina", "texto": "A prolactina, produzida pela hipófise anterior, estimula a produção de leite nas glândulas mamárias.", "ameaca": "HIPÓFISE: QUAL HORMÔNIO ESTIMULA A PRODUÇÃO DE LEITE?", "alternativas": ["Ocitocina", "GH", "FSH", "Prolactina"] },
+      { "inimigo": "Hormônio que estimula a contração uterina e a ejeção do leite", "correta": "Ocitocina", "texto": "A ocitocina, produzida pelo hipotálamo e liberada pela hipófise posterior, estimula contrações uterinas e ejeção do leite.", "ameaca": "HIPÓFISE: QUAL HORMÔNIO ESTIMULA CONTRAÇÕES UTERINAS?", "alternativas": ["Prolactina", "Estrogênio", "Progesterona", "Ocitocina"] },
+      { "inimigo": "Hormônio da medula adrenal liberado em situações de estresse", "correta": "Adrenalina (epinefrina)", "texto": "A adrenalina é liberada pela medula adrenal em resposta ao estresse (luta ou fuga).", "ameaca": "ADRENAL: QUAL HORMÔNIO É LIBERADO NO ESTRESSE?", "alternativas": ["Cortisol", "Aldosterona", "Noradrenalina", "Adrenalina (epinefrina)"] },
+      { "inimigo": "Hormônio do córtex adrenal que regula o sódio e potássio", "correta": "Aldosterona", "texto": "A aldosterona é um mineralocorticoide que aumenta a reabsorção de sódio e a excreção de potássio.", "ameaca": "ADRENAL: QUAL HORMÔNIO REGULA SÓDIO E POTÁSSIO?", "alternativas": ["Cortisol", "Adrenalina", "Andrógenos", "Aldosterona"] },
+      { "inimigo": "Hormônio do córtex adrenal com efeito anti-inflamatório", "correta": "Cortisol", "texto": "O cortisol é um glicocorticoide com importantes efeitos metabólicos e anti-inflamatórios.", "ameaca": "ADRENAL: QUAL HORMÔNIO TEM EFEITO ANTI-INFLAMATÓRIO?", "alternativas": ["Aldosterona", "Adrenalina", "Andrógenos", "Cortisol"] },
+      { "inimigo": "Glândula que regride após a infância e é importante para a imunidade", "correta": "Timo", "texto": "O timo é importante para a maturação dos linfócitos T e regride após a puberdade.", "ameaca": "ENDÓCRINO/IMUNE: QUAL GLÂNDULA REGRIDE APÓS A INFÂNCIA?", "alternativas": ["Tireoide", "Pineal", "Hipófise", "Timo"] },
+
+      // ===== SISTEMA URINÁRIO E REPRODUTOR (176-190) =====
+      { "inimigo": "Órgão responsável pela filtração do sangue e produção de urina", "correta": "Rins", "texto": "Os rins filtram o sangue, regulam o equilíbrio hídrico e eletrolítico e produzem urina.", "ameaca": "URINÁRIO: QUAL ÓRGÃO PRODUZ A URINA?", "alternativas": ["Bexiga", "Ureteres", "Uretra", "Rins"] },
+      { "inimigo": "Unidade funcional do rim", "correta": "Néfron", "texto": "O néfron é a unidade funcional do rim, responsável pela filtração e formação da urina.", "ameaca": "RIM: QUAL É A UNIDADE FUNCIONAL?", "alternativas": ["Glomérulo", "Túbulo", "Pelve renal", "Néfron"] },
+      { "inimigo": "Estrutura do néfron onde ocorre a filtração do sangue", "correta": "Glomérulo (corpúsculo renal)", "texto": "O glomérulo é um novelo de capilares onde ocorre a filtração do sangue.", "ameaca": "NÉFRON: ONDE OCORRE A FILTRAÇÃO?", "alternativas": ["Túbulo proximal", "Alça de Henle", "Túbulo distal", "Glomérulo (corpúsculo renal)"] },
+      { "inimigo": "Tubos que transportam a urina dos rins para a bexiga", "correta": "Ureteres", "texto": "Os ureteres são tubos musculares que transportam a urina dos rins até a bexiga.", "ameaca": "URINÁRIO: QUAIS TUBOS LEVAM URINA DOS RINS À BEXIGA?", "alternativas": ["Uretra", "Túbulos", "Ductos", "Ureteres"] },
+      { "inimigo": "Órgão que armazena a urina", "correta": "Bexiga urinária", "texto": "A bexiga urinária é um órgão muscular que armazena a urina até a micção.", "ameaca": "URINÁRIO: QUAL ÓRGÃO ARMAZENA A URINA?", "alternativas": ["Rins", "Ureteres", "Uretra", "Bexiga urinária"] },
+      { "inimigo": "Tubo que conduz a urina da bexiga para o exterior", "correta": "Uretra", "texto": "A uretra conduz a urina da bexiga para o exterior do corpo.", "ameaca": "URINÁRIO: QUAL TUBO CONDUZ A URINA PARA O EXTERIOR?", "alternativas": ["Ureter", "Ducto deferente", "Canal inguinal", "Uretra"] },
+      { "inimigo": "Órgão masculino responsável pela produção de espermatozoides e testosterona", "correta": "Testículos", "texto": "Os testículos produzem espermatozoides (espermatogênese) e testosterona.", "ameaca": "REPRODUTOR: QUAL ÓRGÃO PRODUZ ESPERMATOZOIDES?", "alternativas": ["Próstata", "Vesículas seminais", "Epidídimo", "Testículos"] },
+      { "inimigo": "Estrutura onde os espermatozoides amadurecem e são armazenados", "correta": "Epidídimo", "texto": "O epidídimo é o local de maturação e armazenamento dos espermatozoides.", "ameaca": "REPRODUTOR: ONDE OS ESPERMATOZOIDES AMADURECEM?", "alternativas": ["Testículo", "Ducto deferente", "Próstata", "Epidídimo"] },
+      { "inimigo": "Glândula masculina que produz parte do líquido seminal", "correta": "Próstata", "texto": "A próstata produz um líquido que compõe parte do sêmen e nutre os espermatozoides.", "ameaca": "REPRODUTOR: QUAL GLÂNDULA PRODUZ PARTE DO SÊMEN?", "alternativas": ["Vesículas seminais", "Bulbouretrais", "Epidídimo", "Próstata"] },
+      { "inimigo": "Órgão feminino responsável pela produção de óvulos e hormônios", "correta": "Ovários", "texto": "Os ovários produzem óvulos (ovogênese) e os hormônios estrogênio e progesterona.", "ameaca": "REPRODUTOR: QUAL ÓRGÃO PRODUZ ÓVULOS?", "alternativas": ["Útero", "Trompas", "Vagina", "Ovários"] },
+      { "inimigo": "Estrutura que transporta o óvulo do ovário para o útero", "correta": "Trompas de Falópio (tubas uterinas)", "texto": "As trompas de Falópio captam o óvulo e o transportam em direção ao útero; local da fertilização.", "ameaca": "REPRODUTOR: ONDE OCORRE A FERTILIZAÇÃO?", "alternativas": ["Útero", "Ovário", "Vagina", "Trompas de Falópio (tubas uterinas)"] },
+      { "inimigo": "Órgão feminino onde ocorre o desenvolvimento do embrião/feto", "correta": "Útero", "texto": "O útero é o órgão onde o embrião se implanta e se desenvolve durante a gestação.", "ameaca": "REPRODUTOR: ONDE SE DESENVOLVE O FETO?", "alternativas": ["Ovário", "Trompa", "Vagina", "Útero"] },
+      { "inimigo": "Camada mais interna do útero que se descamada na menstruação", "correta": "Endométrio", "texto": "O endométrio é a camada mucosa interna do útero que se espessa e se descamada ciclicamente.", "ameaca": "ÚTERO: QUAL CAMADA SE DESCAMADA NA MENSTRUAÇÃO?", "alternativas": ["Miométrio", "Perimétrio", "Serosa", "Endométrio"] },
+      { "inimigo": "Camada muscular do útero responsável pelas contrações", "correta": "Miométrio", "texto": "O miométrio é a camada muscular espessa do útero responsável pelas contrações no parto.", "ameaca": "ÚTERO: QUAL É A CAMADA MUSCULAR?", "alternativas": ["Endométrio", "Perimétrio", "Serosa", "Miométrio"] },
+      { "inimigo": "Hormônio responsável pelo desenvolvimento das características sexuais femininas", "correta": "Estrogênio", "texto": "O estrogênio é o principal hormônio responsável pelas características sexuais secundárias femininas.", "ameaca": "REPRODUTOR: QUAL HORMÔNIO DESENVOLVE CARACTERÍSTICAS FEMININAS?", "alternativas": ["Progesterona", "Testosterona", "FSH", "Estrogênio"] },
+
+      // ===== SISTEMA LINFÁTICO, IMUNE E OUTROS (191-200) =====
+      { "inimigo": "Órgão linfático que filtra o sangue e remove hemácias velhas", "correta": "Baço", "texto": "O baço filtra o sangue, remove hemácias senescentes e participa da resposta imune.", "ameaca": "LINFÁTICO: QUAL ÓRGÃO FILTRA O SANGUE E REMOVE HEMÁCIAS?", "alternativas": ["Timo", "Linfonodos", "Tonsilas", "Baço"] },
+      { "inimigo": "Estruturas que filtram a linfa e abrigam linfócitos", "correta": "Linfonodos", "texto": "Os linfonodos filtram a linfa e são locais importantes de ativação de linfócitos.", "ameaca": "LINFÁTICO: QUAIS ESTRUTURAS FILTRAM A LINFA?", "alternativas": ["Baço", "Timo", "Tonsilas", "Linfonodos"] },
+      { "inimigo": "Tecido linfático localizado na faringe (amígdalas)", "correta": "Tonsilas (amígdalas)", "texto": "As tonsilas são agregados de tecido linfático localizados na faringe e protegem contra patógenos.", "ameaca": "LINFÁTICO: QUAL TECIDO ESTÁ LOCALIZADO NA FARINGE?", "alternativas": ["Baço", "Timo", "Linfonodos", "Tonsilas (amígdalas)"] },
+      { "inimigo": "Células sanguíneas responsáveis pelo transporte de oxigênio", "correta": "Hemácias (eritrócitos)", "texto": "As hemácias contêm hemoglobina e são responsáveis pelo transporte de oxigênio.", "ameaca": "SANGUE: QUAIS CÉLULAS TRANSPORTAM OXIGÊNIO?", "alternativas": ["Leucócitos", "Plaquetas", "Linfócitos", "Hemácias (eritrócitos)"] },
+      { "inimigo": "Células sanguíneas responsáveis pela coagulação", "correta": "Plaquetas (trombócitos)", "texto": "As plaquetas são fragmentos celulares essenciais para a hemostasia e coagulação.", "ameaca": "SANGUE: QUAIS CÉLULAS PARTICIPAM DA COAGULAÇÃO?", "alternativas": ["Hemácias", "Leucócitos", "Monócitos", "Plaquetas (trombócitos)"] },
+      { "inimigo": "Células sanguíneas responsáveis pela defesa imunológica", "correta": "Leucócitos (glóbulos brancos)", "texto": "Os leucócitos são as células de defesa do organismo e incluem vários tipos.", "ameaca": "SANGUE: QUAIS CÉLULAS SÃO RESPONSÁVEIS PELA DEFESA?", "alternativas": ["Hemácias", "Plaquetas", "Eritrócitos", "Leucócitos (glóbulos brancos)"] },
+      { "inimigo": "Proteína dos eritrócitos que se liga ao oxigênio", "correta": "Hemoglobina", "texto": "A hemoglobina é a proteína contendo ferro que se liga ao oxigênio nos eritrócitos.", "ameaca": "SANGUE: QUAL PROTEÍNA SE LIGA AO OXIGÊNIO?", "alternativas": ["Albumina", "Fibrinogênio", "Imunoglobulina", "Hemoglobina"] },
+      { "inimigo": "Articulação que permite maior amplitude de movimento (ombro e quadril)", "correta": "Esferoide (bola e soquete)", "texto": "As articulações esferoides (ombro e quadril) permitem movimentos em todos os planos.", "ameaca": "ARTICULAÇÕES: QUAL TIPO PERMITE MAIOR AMPLITUDE?", "alternativas": ["Gínglimo", "Pivô", "Plana", "Esferoide (bola e soquete)"] },
+      { "inimigo": "Tipo de articulação do joelho e cotovelo (dobradiça)", "correta": "Gínglimo (dobradiça)", "texto": "As articulações do tipo gínglimo permitem movimentos de flexão e extensão.", "ameaca": "ARTICULAÇÕES: QUAL TIPO É O JOELHO E O COTOVELO?", "alternativas": ["Esferoide", "Pivô", "Sela", "Gínglimo (dobradiça)"] },
+      { "inimigo": "Tipo de articulação que permite rotação (atlas-áxis)", "correta": "Pivô (trocoide)", "texto": "A articulação entre atlas e áxis é do tipo pivô e permite a rotação da cabeça.", "ameaca": "ARTICULAÇÕES: QUAL TIPO PERMITE ROTAÇÃO (ATLAS-ÁXIS)?", "alternativas": ["Gínglimo", "Esferoide", "Plana", "Pivô (trocoide)"] }
+    ];
+
+    // Variáveis de estado do jogo
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 💀 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+
+        if (type === 'alerta') {
+            entry.classList.add('alerta');
+            prefix = '[ALERTA ANATÔMICO] QUESTÃO: ';
+        } else if (type === 'diagnostico') {
+            entry.classList.add('diagnostico');
+            prefix = '[FEEDBACK]: ';
+        } else if (type === 'sucesso') {
+            color = '#39ff14';
+            bold = true;
+            prefix = '✅ [STATUS: CORRETO]: ';
+        } else if (type === 'falha') {
+            color = '#ff3333';
+            bold = true;
+            prefix = '❌ [STATUS: INCORRETO]: ';
+        } else if (type === 'input_req') {
+            entry.classList.add('input_req');
+            prefix = '[INPUT_REQ]: ';
+        } else if (type === 'cmd_input') {
+            color = '#00ffff';
+            prefix = '[PROCESSANDO]: ';
+        } else if (type === 'log_data') {
+            color = '#a0a0a0';
+            prefix = '[INFO]: ';
+        } else if (type === 'final_message') {
+            color = '#00ff00';
+            bold = true;
+            prefix = '';
+        } else if (type === 'criterio') {
+            color = '#ffd700';
+            prefix = '[DESCRIÇÃO]: ';
+        }
+
+        entry.style.color = color;
+        if (bold) {
+            entry.style.fontWeight = 'bold';
+        }
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) {
+        finalizarQuiz();
+        return;
+      }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🦴`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) {
+        btn.disabled = true;
+        btn.style.cursor = 'not-allowed';
+      }
+      clickedButton.classList.add('selected');
+
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A questão sobre '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) {
+                btn.classList.add('correct');
+            }
+        }
+      }
+
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) {
+          await novoDesafio();
+        } else {
+          await finalizarQuiz();
+        }
+      }, 2000);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE ANATÔMICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0;
+      acertos = 0;
+      erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE ANATÔMICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => {
+        await novoDesafio();
+      }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() {
+      manualModal.style.display = "block";
+    }
+
+    function showReferences() {
+      referencesModal.style.display = "block";
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+    }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) {
+        manualModal.style.display = "none";
+      }
+      if (event.target == referencesModal) {
+        referencesModal.style.display = "none";
+      }
+    }
+
+    window.onload = () => {
+      reiniciarQuiz();
+    };
+  </script>
+</body>
+</html>

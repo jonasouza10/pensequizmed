@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz ECG Médica - Um quiz de Eletrocardiograma para estudantes e profissionais da saúde.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz ECG</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Eletrocardiograma ECG) </h1>
+  <p>Diagnóstico de Ritmos Cardíacos para Especialistas Virtuais ⚡</p>
+
+  <div id="terminal">[SISTEMA DE ANÁLISE CARDÍACA INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 👾 Anomalias restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DE DIAGNÓSTICO</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR SISTEMA DE DIAGNÓSTICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DE DIAGNÓSTICO ECG</h2>
+      <p>Bem-vindo, Futuro Especialista em Eletrocardiograma! Este simulador foi desenvolvido para aprimorar suas habilidades de diagnóstico de anomalias cardíacas através de traçados de ECG.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente as anomalias cardíacas apresentadas no terminal.</li>
+        <li>Selecionar o diagnóstico mais preciso entre as opções disponíveis.</li>
+        <li>Aumentar seu conhecimento em eletrocardiografia.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Anomalia Detectada" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a descrição da anomalia e os critérios ("SCAN") cuidadosamente.</li>
+        <li><strong>Diagnóstico:</strong> Abaixo do terminal, você encontrará quatro opções de diagnóstico. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se seu diagnóstico foi "BEM-SUCEDIDO" (correto) ou "FALHA" (incorreto). A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de anomalias restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as anomalias tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada diagnóstico correto aumenta seu contador de "Acertos".</li>
+        <li>Cada diagnóstico incorreto aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A precisão é vital neste campo. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz ECG Médica foram elaboradas com base em conhecimentos gerais de eletrocardiografia, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica:</p>
+      <ul>
+        <li>**LIVRO:** Ferri's Clinical Advisor [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Goldberger's Clinical Electrocardiography: A Simplified Approach [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**DIRETRIZES:** Diretrizes de Cardiologia da Sociedade Brasileira de Cardiologia (SBC) ou American Heart Association (AHA) / American College of Cardiology (ACC).</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de cardiologia e eletrofisiologia.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico reconhecidas, como UpToDate, Medscape, e eMedicine, com foco em Eletrocardiografia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o julgamento clínico profissional ou a consulta a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Onda P ausente com ritmo irregularmente irregular",
+    "correta": "Fibrilacao atrial",
+    "texto": "Ausencia de P organizada + RR irregular = FA.",
+    "ameaca": "ONDA P AUSENTE E RITMO IRREGULAR",
+    "alternativas": [
+      "Taquicardia sinusal",
+      "Flutter atrial",
+      "Fibrilacao atrial",
+      "Bradicardia sinusal"
+    ]
+  },
+  {
+    "inimigo": "Elevacao do segmento ST em 2+ derivacoes contiguas",
+    "correta": "STEMI (IAM com supra de ST)",
+    "texto": "Supra persistente indica oclusao coronariana e reperfusao urgente.",
+    "ameaca": "SUPRA DE ST",
+    "alternativas": [
+      "Pericardite",
+      "STEMI (IAM com supra de ST)",
+      "Angina instavel",
+      "Repolarizacao precoce"
+    ]
+  },
+  {
+    "inimigo": "Complexo QRS > 120 ms",
+    "correta": "Bloqueio de ramo ou conducao ventricular aberrante",
+    "texto": "QRS largo = atraso de conducao ventricular (BRD, BRE ou VT).",
+    "ameaca": "QRS LARGO",
+    "alternativas": [
+      "TSV com conducao normal",
+      "Flutter atrial tipico",
+      "Bloqueio de ramo ou conducao ventricular aberrante",
+      "Bradicardia sinusal"
+    ]
+  },
+  {
+    "inimigo": "Intervalo PR > 200 ms com conducao 1:1",
+    "correta": "Bloqueio AV de 1o grau",
+    "texto": "PR longo com todas as P conduzindo = BAV 1o grau.",
+    "ameaca": "PR PROLONGADO",
+    "alternativas": [
+      "Bloqueio AV de 1o grau",
+      "BAV 2o grau",
+      "Fibrilacao atrial",
+      "Taquicardia juncional"
+    ]
+  },
+  {
+    "inimigo": "Onda T invertida simetrica em multiplas derivacoes",
+    "correta": "Isquemia miocardica",
+    "texto": "T invertida simetrica sugere isquemia subepicardica.",
+    "ameaca": "ONDA T INVERTIDA SIMETRICA",
+    "alternativas": [
+      "Pericardite",
+      "Hipercalemia",
+      "Isquemia miocardica",
+      "Repolarizacao precoce"
+    ]
+  },
+  {
+    "inimigo": "Ondas em serrilhado (sawtooth) em DII DIII aVF",
+    "correta": "Flutter atrial",
+    "texto": "Ondas F em dente de serra nas inferiores = flutter tipico (circuito cavotricuspideo).",
+    "ameaca": "ONDAS EM SERRILHADO",
+    "alternativas": [
+      "Fibrilacao atrial",
+      "Flutter atrial",
+      "Taquicardia atrial multifocal",
+      "Taquicardia sinusal"
+    ]
+  },
+  {
+    "inimigo": "Onda U proeminente",
+    "correta": "Hipocalemia",
+    "texto": "U proeminente e achado classico de hipoK (tambem digoxina, bradircardia).",
+    "ameaca": "ONDA U PROEMINENTE",
+    "alternativas": [
+      "Hipercalemia",
+      "Hipocalemia",
+      "Isquemia",
+      "Efeito digoxina isolado"
+    ]
+  },
+  {
+    "inimigo": "Onda T alta, estreita e apiculada (tented)",
+    "correta": "Hipercalemia",
+    "texto": "T tented e o sinal mais precoce de hiperK no ECG.",
+    "ameaca": "ONDA T APICULADA",
+    "alternativas": [
+      "Hipocalemia",
+      "Hipercalemia",
+      "Isquemia",
+      "Miocardite"
+    ]
+  },
+  {
+    "inimigo": "Ritmo sinusal com FC > 100 bpm",
+    "correta": "Taquicardia sinusal",
+    "texto": "P antes de cada QRS, morfologia sinusal, FC >100.",
+    "ameaca": "FC >100 COM P SINUSAL",
+    "alternativas": [
+      "TSV",
+      "TV",
+      "Taquicardia sinusal",
+      "Flutter atrial"
+    ]
+  },
+  {
+    "inimigo": "Ausencia total de atividade eletrica ventricular",
+    "correta": "Assistolia",
+    "texto": "Linha reta sem QRS = assistolia (confirmar em 2 derivacoes).",
+    "ameaca": "LINHA RETA SEM QRS",
+    "alternativas": [
+      "FV",
+      "AESP",
+      "Assistolia",
+      "Bradicardia extrema"
+    ]
+  },
+  {
+    "inimigo": "Depressao do segmento ST",
+    "correta": "Isquemia subendocardica / NSTEMI / sobrecarga",
+    "texto": "Infra de ST horizontal/descendente sugere isquemia.",
+    "ameaca": "INFRA DE ST",
+    "alternativas": [
+      "Infarto transmural",
+      "Pericardite",
+      "Isquemia subendocardica / NSTEMI / sobrecarga",
+      "HVE isolada"
+    ]
+  },
+  {
+    "inimigo": "Onda Q patologica (larga/profunda)",
+    "correta": "Infarto pregresso (necrose)",
+    "texto": "Q >=40 ms e/ou >=25% da R em derivacoes esperadas = necrose antiga.",
+    "ameaca": "ONDA Q PATOLOGICA",
+    "alternativas": [
+      "Isquemia aguda apenas",
+      "Miocardite",
+      "Infarto pregresso (necrose)",
+      "Variante normal sempre"
+    ]
+  },
+  {
+    "inimigo": "QRS estreito, FC elevada, P nao visivel",
+    "correta": "Taquicardia supraventricular (TSV)",
+    "texto": "QRS estreito + regular + P ausente/retrograda = TSV (TRN, ortodromica etc.).",
+    "ameaca": "QRS ESTREITO E RAPIDO SEM P",
+    "alternativas": [
+      "TV",
+      "FA com resposta rapida",
+      "Taquicardia supraventricular (TSV)",
+      "Flutter 1:1"
+    ]
+  },
+  {
+    "inimigo": "Padrao S1Q3T3",
+    "correta": "Embolia pulmonar (sinal classico inespecifico)",
+    "texto": "S em DI, Q e T invertida em DIII; baixa sensibilidade/especificidade.",
+    "ameaca": "S1Q3T3",
+    "alternativas": [
+      "IAM inferior",
+      "Pericardite",
+      "Embolia pulmonar (sinal classico inespecifico)",
+      "BRE"
+    ]
+  },
+  {
+    "inimigo": "Depressao do segmento PR",
+    "correta": "Pericardite aguda",
+    "texto": "PR deprimido + supra difuso concavo = pericardite.",
+    "ameaca": "PR DEPRIMIDO",
+    "alternativas": [
+      "IAM",
+      "Pericardite aguda",
+      "Miocardite isolada",
+      "Endocardite"
+    ]
+  },
+  {
+    "inimigo": "T bifasica ou invertida profunda em V2-V3 com QRS normal e sem supra",
+    "correta": "Sindrome de Wellens",
+    "texto": "Indica estenose critica de DA proximal; risco de IAM anterior.",
+    "ameaca": "T BIFASICA EM V2-V3",
+    "alternativas": [
+      "IAM anterior evolutivo",
+      "Sindrome de Wellens",
+      "Pericardite",
+      "HVE"
+    ]
+  },
+  {
+    "inimigo": "Alternancia eletrica do QRS",
+    "correta": "Tamponamento cardiaco",
+    "texto": "Variacao batimento a batimento da amplitude por balanco do coracao no liquido.",
+    "ameaca": "ALTERNANCIA ELETRICA",
+    "alternativas": [
+      "FV",
+      "Flutter",
+      "Tamponamento cardiaco",
+      "ICC"
+    ]
+  },
+  {
+    "inimigo": "Onda delta + PR curto",
+    "correta": "Sindrome de Wolff-Parkinson-White (WPW)",
+    "texto": "Pre-excitacao por via acessoria; risco de FA pre-excitada.",
+    "ameaca": "ONDA DELTA",
+    "alternativas": [
+      "Bloqueio de ramo",
+      "Sindrome de Wolff-Parkinson-White (WPW)",
+      "Flutter",
+      "Taquicardia juncional"
+    ]
+  },
+  {
+    "inimigo": "Ritmo lento, QRS largo, sem P relacionada",
+    "correta": "Ritmo idioventricular",
+    "texto": "Escape ventricular 20-40 bpm quando falham pacemaker superiores.",
+    "ameaca": "RITMO LENTO QRS LARGO",
+    "alternativas": [
+      "Bradicardia sinusal",
+      "Ritmo juncional",
+      "Ritmo idioventricular",
+      "BAV total com escape estreito"
+    ]
+  },
+  {
+    "inimigo": "FC < 60 bpm com P sinusal antes de cada QRS",
+    "correta": "Bradicardia sinusal",
+    "texto": "P normal, PR normal, FC <60; treino, sono, betabloqueador, hipotireoidismo.",
+    "ameaca": "FC <60 SINUSAL",
+    "alternativas": [
+      "BAV 2o",
+      "Ritmo juncional",
+      "Bradicardia sinusal",
+      "Assistolia"
+    ]
+  },
+  {
+    "inimigo": "Pausas com P bloqueadas e PR que se alonga progressivamente",
+    "correta": "BAV 2o grau Mobitz I (Wenckebach)",
+    "texto": "PR alonga ate uma P nao conduzir; geralmente nodal.",
+    "ameaca": "WENCKEBACH",
+    "alternativas": [
+      "Mobitz II",
+      "BAV 3o",
+      "BAV 2o grau Mobitz I (Wenckebach)",
+      "BAV 1o"
+    ]
+  },
+  {
+    "inimigo": "P bloqueadas sem alongamento progressivo do PR",
+    "correta": "BAV 2o grau Mobitz II",
+    "texto": "Bloqueio infra-His; risco de evoluir para BAV total; indicar marcapasso.",
+    "ameaca": "MOBITZ II",
+    "alternativas": [
+      "Mobitz I",
+      "BAV 1o",
+      "BAV 2o grau Mobitz II",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "P e QRS independentes (dissociacao AV completa)",
+    "correta": "Bloqueio AV de 3o grau (total)",
+    "texto": "Escape juncional ou ventricular; marcapasso indicado na maioria.",
+    "ameaca": "DISSOCIACAO AV COMPLETA",
+    "alternativas": [
+      "Mobitz I",
+      "BAV 1o",
+      "Bloqueio AV de 3o grau (total)",
+      "TSV"
+    ]
+  },
+  {
+    "inimigo": "RSR' em V1 com QRS >120 ms",
+    "correta": "Bloqueio de ramo direito (BRD)",
+    "texto": "rsR' em V1 e qRS em DI/V6.",
+    "ameaca": "RSR' EM V1",
+    "alternativas": [
+      "BRE",
+      "HVE",
+      "Bloqueio de ramo direito (BRD)",
+      "WPW"
+    ]
+  },
+  {
+    "inimigo": "QRS largo com monofasico em I e V6 e QS/rS em V1",
+    "correta": "Bloqueio de ramo esquerdo (BRE)",
+    "texto": "Em BRE novo + sintoma = equivalente de STEMI em contexto clinico.",
+    "ameaca": "BRE",
+    "alternativas": [
+      "BRD",
+      "HVD",
+      "Bloqueio de ramo esquerdo (BRE)",
+      "TV"
+    ]
+  },
+  {
+    "inimigo": "Eixo entre -30 e -90 graus",
+    "correta": "Desvio de eixo para a esquerda",
+    "texto": "Causas: HVE, hemibloqueio anterior esquerdo, IAM inferior antigo.",
+    "ameaca": "EIXO ESQUERDO",
+    "alternativas": [
+      "Eixo direito",
+      "Eixo normal",
+      "Desvio de eixo para a esquerda",
+      "Eixo indeterminado"
+    ]
+  },
+  {
+    "inimigo": "Eixo entre +90 e +180 graus",
+    "correta": "Desvio de eixo para a direita",
+    "texto": "HVD, hemibloqueio posterior, IAM lateral, TEP agudo.",
+    "ameaca": "EIXO DIREITO",
+    "alternativas": [
+      "Eixo esquerdo",
+      "Normal",
+      "Desvio de eixo para a direita",
+      "Noroeste"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Sokolow-Lyon positivo",
+    "correta": "Hipertrofia ventricular esquerda (HVE)",
+    "texto": "S V1 + R V5/V6 >35 mm (adulto); correlacionar clinicamente.",
+    "ameaca": "SOKOLOW-LYON",
+    "alternativas": [
+      "HVD",
+      "BRE",
+      "Hipertrofia ventricular esquerda (HVE)",
+      "BRD"
+    ]
+  },
+  {
+    "inimigo": "R alta em V1 + desvio de eixo direito",
+    "correta": "Hipertrofia ventricular direita (HVD)",
+    "texto": "Tambem S profunda em V6; ver strain direito.",
+    "ameaca": "R ALTA EM V1",
+    "alternativas": [
+      "HVE",
+      "BRE",
+      "Hipertrofia ventricular direita (HVD)",
+      "IAM posterior"
+    ]
+  },
+  {
+    "inimigo": "P mitrale (P larga e bifida em DII)",
+    "correta": "Sobrecarga / crescimento atrial esquerdo",
+    "texto": "P >120 ms bifida; estenose mitral, HVE, HAS.",
+    "ameaca": "P MITRALE",
+    "alternativas": [
+      "P pulmonale",
+      "BAV 1o",
+      "Sobrecarga / crescimento atrial esquerdo",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "P pulmonale (P apiculada em DII >2,5 mm)",
+    "correta": "Sobrecarga / crescimento atrial direito",
+    "texto": "DPOC, hipertensao pulmonar, estenose tricuspide.",
+    "ameaca": "P PULMONALE",
+    "alternativas": [
+      "P mitrale",
+      "HVE",
+      "Sobrecarga / crescimento atrial direito",
+      "BAV"
+    ]
+  },
+  {
+    "inimigo": "QT corrigido > 500 ms",
+    "correta": "QT longo (risco de torsades)",
+    "texto": "Causas: farmacos, eletrolitos, congenital; evitar farmacos que prolongam QT.",
+    "ameaca": "QTc LONGO",
+    "alternativas": [
+      "QT curto",
+      "Brugada",
+      "QT longo (risco de torsades)",
+      "WPW"
+    ]
+  },
+  {
+    "inimigo": "QT muito curto",
+    "correta": "Sindrome do QT curto / hipercalcemia",
+    "texto": "Risco de arritmia; investigar Ca e genetica.",
+    "ameaca": "QT CURTO",
+    "alternativas": [
+      "QT longo",
+      "HipoCa",
+      "Sindrome do QT curto / hipercalcemia",
+      "Brugada"
+    ]
+  },
+  {
+    "inimigo": "Padrao de Brugada tipo 1 em V1-V2",
+    "correta": "Sindrome de Brugada",
+    "texto": "Supra de ST em cobrinha + T invertida em V1-V2; risco de FV.",
+    "ameaca": "BRUGADA TIPO 1",
+    "alternativas": [
+      "BRE",
+      "Pericardite",
+      "Sindrome de Brugada",
+      "STEMI anterior"
+    ]
+  },
+  {
+    "inimigo": "Ritmo irregular com 3+ morfologias de P e FC >100",
+    "correta": "Taquicardia atrial multifocal",
+    "texto": "Comum em DPOC; tratar causa de base.",
+    "ameaca": "P MULTIFORMES E RAPIDO",
+    "alternativas": [
+      "FA",
+      "Flutter",
+      "Taquicardia atrial multifocal",
+      "TSV reentrante"
+    ]
+  },
+  {
+    "inimigo": "Extra-sistole com QRS largo e compensacao completa",
+    "correta": "Extra-sistole ventricular (ESV)",
+    "texto": "QRS largo prematuro sem P precedente; pausa compensatoria tipica.",
+    "ameaca": "QRS LARGO PREMATURO",
+    "alternativas": [
+      "ESA",
+      "ESV juncional",
+      "Extra-sistole ventricular (ESV)",
+      "Entrada de marcapasso"
+    ]
+  },
+  {
+    "inimigo": "Extra-sistole com QRS estreito e P prematura",
+    "correta": "Extra-sistole atrial (ESA)",
+    "texto": "P' diferente; pausa nao compensatoria frequentemente.",
+    "ameaca": "P PREMATURA",
+    "alternativas": [
+      "ESV",
+      "Extra-sistole atrial (ESA)",
+      "Escape ventricular",
+      "Artefato"
+    ]
+  },
+  {
+    "inimigo": "Taquicardia regular de QRS largo",
+    "correta": "TV ate prova em contrario",
+    "texto": "No instavel: cardioversao; criterios de Brugada/Vereckei ajudam a distinguir de aberrancia.",
+    "ameaca": "QRS LARGO REGULAR E RAPIDO",
+    "alternativas": [
+      "TSV com aberrancia sempre",
+      "Flutter com conducao 1:1 sempre",
+      "TV ate prova em contrario",
+      "Sinusal com BRE"
+    ]
+  },
+  {
+    "inimigo": "Taquicardia irregular de QRS largo",
+    "correta": "FA com aberrancia ou FA pre-excitada (WPW) ou TV polimorfica",
+    "texto": "FA + WPW: nao usar adenosina/verapamil/digoxina; cardioversao ou procainamida.",
+    "ameaca": "QRS LARGO IRREGULAR E RAPIDO",
+    "alternativas": [
+      "TSV",
+      "Flutter tipico puro",
+      "FA com aberrancia ou FA pre-excitada (WPW) ou TV polimorfica",
+      "Sinusal"
+    ]
+  },
+  {
+    "inimigo": "Ondas de oscilacao caotica sem QRS organizados",
+    "correta": "Fibrilacao ventricular",
+    "texto": "Desfibrilacao imediata + RCP.",
+    "ameaca": "OSCILACAO CAOTICA SEM QRS",
+    "alternativas": [
+      "Assistolia",
+      "AESP",
+      "Fibrilacao ventricular",
+      "Flutter ventricular"
+    ]
+  },
+  {
+    "inimigo": "Ondas sinusoidais / flutter ventricular",
+    "correta": "Flutter ventricular / TV monomorfica muito rapida",
+    "texto": "Tratar como FV se sem pulso: desfibrilar.",
+    "ameaca": "ONDA SINUSOIDAL",
+    "alternativas": [
+      "FA",
+      "Flutter atrial",
+      "Flutter ventricular / TV monomorfica muito rapida",
+      "Artefato de tremor"
+    ]
+  },
+  {
+    "inimigo": "Torsades de pointes",
+    "correta": "TV polimorfica com QT longo",
+    "texto": "Eixo que 'gira'; MgSO4, corrigir K/Mg, pacing ou isoproterenol se bradircardia.",
+    "ameaca": "TORSADES",
+    "alternativas": [
+      "TV monomorfica estavel",
+      "TSV",
+      "TV polimorfica com QT longo",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "Ritmo de escape juncional",
+    "correta": "QRS estreito 40-60 bpm sem P ou com P retrograda",
+    "texto": "Quando o sinus falha; investigar causa da bradircardia.",
+    "ameaca": "ESCAPE JUNCTIONAL",
+    "alternativas": [
+      "Idioventricular",
+      "BAV 3o com escape largo",
+      "QRS estreito 40-60 bpm sem P ou com P retrograda",
+      "Sinusal"
+    ]
+  },
+  {
+    "inimigo": "Marcapasso ventricular: spike antes do QRS largo",
+    "correta": "Ritmo estimulado ventricular (V pacing)",
+    "texto": "Spike + QRS largo com discordance apropriada.",
+    "ameaca": "SPIKE ANTES DE QRS LARGO",
+    "alternativas": [
+      "Artefato",
+      "ESV",
+      "Ritmo estimulado ventricular (V pacing)",
+      "BRE espontaneo"
+    ]
+  },
+  {
+    "inimigo": "Marcapasso atrial: spike antes da P",
+    "correta": "Ritmo estimulado atrial (A pacing)",
+    "texto": "Spike + P + QRS se conducao intacta.",
+    "ameaca": "SPIKE ANTES DA P",
+    "alternativas": [
+      "ESA",
+      "Ritmo estimulado atrial (A pacing)",
+      "Artefato",
+      "BAV"
+    ]
+  },
+  {
+    "inimigo": "Falha de captura do marcapasso",
+    "correta": "Spike sem P ou QRS seguinte",
+    "texto": "Causas: limiar alto, cabo, eletrolitos, farmacos; avaliar urgencia.",
+    "ameaca": "SPIKE SEM CAPTURA",
+    "alternativas": [
+      "Falha de sensibilidade apenas",
+      "Bateria ok sempre",
+      "Spike sem P ou QRS seguinte",
+      "Ritmo proprio"
+    ]
+  },
+  {
+    "inimigo": "Falha de sensibilidade (undersensing)",
+    "correta": "Spike em momento inadequado sobre o ritmo proprio",
+    "texto": "Risco de stimulo em periodo vulneravel (R sobre T).",
+    "ameaca": "UNDERSENSING",
+    "alternativas": [
+      "Oversensing apenas",
+      "Captura falha apenas",
+      "Spike em momento inadequado sobre o ritmo proprio",
+      "Bateria esgotada sempre"
+    ]
+  },
+  {
+    "inimigo": "Supra de ST concavo difuso + PR deprimido",
+    "correta": "Pericardite aguda",
+    "texto": "Dor posicional; AINE + colchicina; diferenciar de STEMI.",
+    "ameaca": "SUPRA DIFUSO CONCAVO",
+    "alternativas": [
+      "STEMI anterior",
+      "Pericardite aguda",
+      "Brugada",
+      "Repolarizacao precoce isolada"
+    ]
+  },
+  {
+    "inimigo": "Supra de ST em V2-V4 em jovem assintomatico com notch em J",
+    "correta": "Repolarizacao precoce",
+    "texto": "Benigna na maioria; estratificar se sincope/historia familiar de MS.",
+    "ameaca": "NOTCH EM J E SUPRA",
+    "alternativas": [
+      "STEMI",
+      "Brugada",
+      "Repolarizacao precoce",
+      "Pericardite"
+    ]
+  },
+  {
+    "inimigo": "Infra de ST em 'colher' / sagging com U e QT curto relativo",
+    "correta": "Efeito digoxina (dig effect)",
+    "texto": "Nao indica toxicidade por si; toxicidade: FA lenta, bigeminismo, TV bidirectional.",
+    "ameaca": "ST EM COLHER",
+    "alternativas": [
+      "Isquemia",
+      "HipoK isolada",
+      "Efeito digoxina (dig effect)",
+      "Pericardite"
+    ]
+  },
+  {
+    "inimigo": "TV bidirectional",
+    "correta": "Toxicidade por digoxina (classico)",
+    "texto": "QRS alternando eixo; tratar digibind se grave.",
+    "ameaca": "TV BIDIRECTIONAL",
+    "alternativas": [
+      "TV monomorfica comum",
+      "TSV",
+      "Toxicidade por digoxina (classico)",
+      "Flutter"
+    ]
+  },
+  {
+    "inimigo": "Onda J de Osborn",
+    "correta": "Hipotermia",
+    "texto": "Deflexao positiva na juncao QRS-ST; tambem hiperCa rara.",
+    "ameaca": "ONDA DE OSBORN",
+    "alternativas": [
+      "Brugada",
+      "Onda delta",
+      "Hipotermia",
+      "HiperK"
+    ]
+  },
+  {
+    "inimigo": "Baixa voltagem difusa do QRS",
+    "correta": "Derrame pericardico / obesidade / enfisema / infiltrativo",
+    "texto": "Associar a clinico; alternancia se tamponamento.",
+    "ameaca": "BAIXA VOLTAGEM",
+    "alternativas": [
+      "HVE",
+      "HVD",
+      "Derrame pericardico / obesidade / enfisema / infiltrativo",
+      "WPW"
+    ]
+  },
+  {
+    "inimigo": "Progressao pobre de R de V1 a V6",
+    "correta": "IAM anterior antigo / BRE / HVD / lead mal posicionado",
+    "texto": "Comparar com ECG previo.",
+    "ameaca": "POOR R WAVE PROGRESSION",
+    "alternativas": [
+      "IAM inferior",
+      "Normal sempre",
+      "IAM anterior antigo / BRE / HVD / lead mal posicionado",
+      "Flutter"
+    ]
+  },
+  {
+    "inimigo": "R alta isolada em V1-V2 com ST deprimido e T positiva (espelho)",
+    "correta": "IAM posterior",
+    "texto": "Associar a inferior; derivacoes posteriores V7-V9 confirmam supra.",
+    "ameaca": "R ALTA V1-V2 COM INFRA",
+    "alternativas": [
+      "BRD isolado",
+      "HVD isolada",
+      "IAM posterior",
+      "Wellens"
+    ]
+  },
+  {
+    "inimigo": "Supra em DII DIII aVF",
+    "correta": "STEMI de parede inferior",
+    "texto": "Oclusao tipica de CD (ou CX dominante); ver V3R/V4R para VD.",
+    "ameaca": "SUPRA INFERIOR",
+    "alternativas": [
+      "Anterior",
+      "Lateral",
+      "STEMI de parede inferior",
+      "Posterior isolado"
+    ]
+  },
+  {
+    "inimigo": "Supra em V3R/V4R no IAM inferior",
+    "correta": "Envolvimento de ventriculo direito",
+    "texto": "Cuidado com nitratos e volume; oclusao proximal de CD.",
+    "ameaca": "SUPRA EM V4R",
+    "alternativas": [
+      "So inferior sem VD",
+      "Anterior",
+      "Envolvimento de ventriculo direito",
+      "Pericardite"
+    ]
+  },
+  {
+    "inimigo": "Supra em V1-V4",
+    "correta": "STEMI anterior (DA)",
+    "texto": "Risco de Killip alto; reperfusao urgente.",
+    "ameaca": "SUPRA ANTERIOR",
+    "alternativas": [
+      "Inferior",
+      "Lateral isolado",
+      "STEMI anterior (DA)",
+      "Posterior"
+    ]
+  },
+  {
+    "inimigo": "Supra em DI aVL V5-V6",
+    "correta": "STEMI lateral",
+    "texto": "CX ou diagonal; pode associar a posterior.",
+    "ameaca": "SUPRA LATERAL",
+    "alternativas": [
+      "Inferior",
+      "Anterior septal",
+      "STEMI lateral",
+      "Brugada"
+    ]
+  },
+  {
+    "inimigo": "Novo BRE + angor / equivalente",
+    "correta": "Equivalente de STEMI ate prova em contrario",
+    "texto": "Reperfusao conforme protocolo (Sgarbossa/Smith ajudam).",
+    "ameaca": "BRE NOVO + DOR",
+    "alternativas": [
+      "Repolarizacao precoce",
+      "Pericardite",
+      "Equivalente de STEMI ate prova em contrario",
+      "HVE com strain apenas"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Sgarbossa (concordante)",
+    "correta": "IAM em presenca de BRE",
+    "texto": "Supra concordante >=1 mm ou infra concordante V1-V3 >=1 mm = altamente especifico.",
+    "ameaca": "SGARBOSSA",
+    "alternativas": [
+      "Pericardite",
+      "Repolarizacao",
+      "IAM em presenca de BRE",
+      "HVE"
+    ]
+  },
+  {
+    "inimigo": "Onda T hiperaguda (larga e simetrica, base larga)",
+    "correta": "Isquemia hiperaguda / fase precoce de STEMI",
+    "texto": "Precede o supra; nao ignorar em contexto clinico.",
+    "ameaca": "T HIPERAGUDA",
+    "alternativas": [
+      "HiperK (tented estreita)",
+      "Normal",
+      "Isquemia hiperaguda / fase precoce de STEMI",
+      "Pericardite"
+    ]
+  },
+  {
+    "inimigo": "Depressao de ST difusa com supra em aVR",
+    "correta": "Isquemia grave / tronco / 3 vasos / taquiarritmia",
+    "texto": "Contexto clinico e emergencia coronariana.",
+    "ameaca": "INFRA DIFUSA + SUPRA aVR",
+    "alternativas": [
+      "Pericardite",
+      "Repolarizacao",
+      "Isquemia grave / tronco / 3 vasos / taquiarritmia",
+      "HVE benigna"
+    ]
+  },
+  {
+    "inimigo": "FC atrial ~300 e ventricular ~150 com serrilhado",
+    "correta": "Flutter atrial com conducao 2:1",
+    "texto": "Adenosina pode 'revelar' as ondas F; cardioversao ou ablacao.",
+    "ameaca": "FLUTTER 2:1",
+    "alternativas": [
+      "FA",
+      "TSV nodal",
+      "Flutter atrial com conducao 2:1",
+      "Sinusal 150"
+    ]
+  },
+  {
+    "inimigo": "Ritmo irregularmente irregular com QRS estreito e ondas f",
+    "correta": "Fibrilacao atrial com resposta ventricular variavel",
+    "texto": "Controlar FC ou ritmo conforme estabilidade e tempo.",
+    "ameaca": "FA COM RESPOSTA VARIAVEL",
+    "alternativas": [
+      "Flutter fixo",
+      "Sinusal com ESA",
+      "Fibrilacao atrial com resposta ventricular variavel",
+      "MAT"
+    ]
+  },
+  {
+    "inimigo": "Pausa > 3 segundos no Holter com sintomas",
+    "correta": "Disfuncao do no sinusal / sindrome bradi-taqui",
+    "texto": "Indicar marcapasso se sintomatico documentado.",
+    "ameaca": "PAUSA LONGA SINTOMATICA",
+    "alternativas": [
+      "Artefato",
+      "ESA bloqueada isolada",
+      "Disfuncao do no sinusal / sindrome bradi-taqui",
+      "BAV 1o"
+    ]
+  },
+  {
+    "inimigo": "Cronotropismo negativo extremo com FA",
+    "correta": "FA com resposta ventricular lenta (farmaco, BAV, doenca do sistema)",
+    "texto": "Avaliar digoxina/BB/BCC e necessidade de MP.",
+    "ameaca": "FA LENTA",
+    "alternativas": [
+      "Flutter 4:1 apenas",
+      "Sinusal",
+      "FA com resposta ventricular lenta (farmaco, BAV, doenca do sistema)",
+      "Assistolia"
+    ]
+  },
+  {
+    "inimigo": "Intervalo RP curto na TSV",
+    "correta": "TSV com P retrograda (TRN tipica ou ortodromica)",
+    "texto": "Adenosina diagnostica e terapeutica se estavel.",
+    "ameaca": "RP CURTO",
+    "alternativas": [
+      "Flutter",
+      "TA focal com RP longo",
+      "TSV com P retrograda (TRN tipica ou ortodromica)",
+      "Sinusal"
+    ]
+  },
+  {
+    "inimigo": "RP longo na taquicardia de QRS estreito",
+    "correta": "Taquicardia atrial ou TRN atipica",
+    "texto": "Mapear P e resposta a adenosina.",
+    "ameaca": "RP LONGO",
+    "alternativas": [
+      "TRN tipica apenas",
+      "TV",
+      "Taquicardia atrial ou TRN atipica",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "Captura e fusao na taquicardia de QRS largo",
+    "correta": "Favorece TV (criterios de Brugada)",
+    "texto": "Dissociacao AV e captura/fusao sao altamente especificos de TV.",
+    "ameaca": "CAPTURA E FUSAO",
+    "alternativas": [
+      "TSV com aberrancia",
+      "Artefato",
+      "Favorece TV (criterios de Brugada)",
+      "WPW ortodromica"
+    ]
+  },
+  {
+    "inimigo": "Concordancia positiva ou negativa de V1 a V6 na taquicardia larga",
+    "correta": "Favorece TV",
+    "texto": "Concordancia negativa muito especifica de TV.",
+    "ameaca": "CONCORDANCIA PRECORDIAL",
+    "alternativas": [
+      "TSV",
+      "Sinusal com BRE",
+      "Favorece TV",
+      "Flutter"
+    ]
+  },
+  {
+    "inimigo": "R/S <1 em V6 na taquicardia larga",
+    "correta": "Favorece TV (criterio morfologico)",
+    "texto": "Junto com outros criterios de Brugada.",
+    "ameaca": "R/S V6",
+    "alternativas": [
+      "TSV tipica",
+      "Sinusal",
+      "Favorece TV (criterio morfologico)",
+      "FA estreita"
+    ]
+  },
+  {
+    "inimigo": "Adenosina na taquicardia de QRS estreito regular estavel",
+    "correta": "Diagnostica e pode terminar TRN/ortodromica",
+    "texto": "Nao usar se pre-excitacao irregular (FA+WPW).",
+    "ameaca": "ADENOSINA",
+    "alternativas": [
+      "Na FA pre-excitada",
+      "Na TV com pulso como 1a sempre",
+      "Diagnostica e pode terminar TRN/ortodromica",
+      "Na assistolia"
+    ]
+  },
+  {
+    "inimigo": "Cardioversao sincronizada indicada quando?",
+    "correta": "Taquiarritmia com instabilidade (hipotensao, isquemia, edema, choque)",
+    "texto": "Energia conforme ritmo (FA, flutter, TSV, TV).",
+    "ameaca": "CARDIOVERSAO SINCRONIZADA",
+    "alternativas": [
+      "Assistolia",
+      "FV sem pulso (ai e desfibrilacao)",
+      "Taquiarritmia com instabilidade (hipotensao, isquemia, edema, choque)",
+      "Bradicardia estavel"
+    ]
+  },
+  {
+    "inimigo": "Desfibrilacao (nao sincronizada) quando?",
+    "correta": "FV ou TV sem pulso",
+    "texto": "RCP + choque o mais precoce possivel.",
+    "ameaca": "DESFIBRILACAO",
+    "alternativas": [
+      "FA estavel",
+      "Flutter estavel",
+      "FV ou TV sem pulso",
+      "BAV 1o"
+    ]
+  },
+  {
+    "inimigo": "Atropina na bradircardia instavel",
+    "correta": "1 mg EV (repetir ate 3 mg) enquanto prepara pacing",
+    "texto": "Se ineficaz: dopamina/adrenalina ou pacing transcutaneo.",
+    "ameaca": "BRADI INSTAVEL: ATROPINA",
+    "alternativas": [
+      "Adenosina",
+      "Amiodarona",
+      "1 mg EV (repetir ate 3 mg) enquanto prepara pacing",
+      "Betabloqueador"
+    ]
+  },
+  {
+    "inimigo": "Amiodarona na PCR em FV/TV refrataria",
+    "correta": "300 mg EV apos 3o choque (ACL S)",
+    "texto": "Alternativa: lidocaina.",
+    "ameaca": "PCR FV/TV: AMIODARONA",
+    "alternativas": [
+      "Adenosina",
+      "Atropina",
+      "300 mg EV apos 3o choque (ACL S)",
+      "Digoxina"
+    ]
+  },
+  {
+    "inimigo": "Onda P invertida em DII DIII aVF com PR curto",
+    "correta": "Ritmo atrial baixo / ectopico baixo",
+    "texto": "P negativa nas inferiores.",
+    "ameaca": "P NEGATIVA INFERIOR",
+    "alternativas": [
+      "Sinusal normal",
+      "Flutter",
+      "Ritmo atrial baixo / ectopico baixo",
+      "BAV 3o"
+    ]
+  },
+  {
+    "inimigo": "FC 150 fixa, regular, QRS estreito",
+    "correta": "Pensar flutter 2:1 ou TSV",
+    "texto": "Manobra vagal/adenosina para diagnosticar.",
+    "ameaca": "FC 150 FIXA",
+    "alternativas": [
+      "Sinusal do sono",
+      "FA lenta",
+      "Pensar flutter 2:1 ou TSV",
+      "Assistolia"
+    ]
+  },
+  {
+    "inimigo": "Bigeminismo ventricular",
+    "correta": "ESV a cada batimento sinusal",
+    "texto": "Investigar eletrolitos, isquemia, farmacos.",
+    "ameaca": "BIGEMINISMO",
+    "alternativas": [
+      "Trigeminismo atrial apenas",
+      "Wenckebach",
+      "ESV a cada batimento sinusal",
+      "Mobitz II"
+    ]
+  },
+  {
+    "inimigo": "R sobre T",
+    "correta": "ESV na onda T (periodo vulneravel) pode desencadear FV/TV",
+    "texto": "Evitar stimulos (MP undersensing) nesse periodo.",
+    "ameaca": "R SOBRE T",
+    "alternativas": [
+      "Sempre benigno",
+      "So ESA",
+      "ESV na onda T (periodo vulneravel) pode desencadear FV/TV",
+      "Artefato inofensivo"
+    ]
+  },
+  {
+    "inimigo": "Onda epsilon",
+    "correta": "Displasia arritmogenica do VD (ARVD/C)",
+    "texto": "Deflexao apos QRS em V1-V3; risco de TV/FV.",
+    "ameaca": "ONDA EPSILON",
+    "alternativas": [
+      "Onda delta",
+      "Osborn",
+      "Displasia arritmogenica do VD (ARVD/C)",
+      "Brugada"
+    ]
+  },
+  {
+    "inimigo": "Fragmentacao do QRS",
+    "correta": "Cicatriz / risco arrítmico em varias cardiopatias",
+    "texto": "Achado inespecifico mas prognostico em isquemicos.",
+    "ameaca": "QRS FRAGMENTADO",
+    "alternativas": [
+      "Sempre normal",
+      "So BRE",
+      "Cicatriz / risco arrítmico em varias cardiopatias",
+      "So artefato"
+    ]
+  },
+  {
+    "inimigo": "Sinal de Cabrera",
+    "correta": "Entalhe na braco ascendente de S em V3-V5 no BRE = IAM",
+    "texto": "Um dos criterios uteis no BRE.",
+    "ameaca": "CABRERA",
+    "alternativas": [
+      "BRD",
+      "Repolarizacao",
+      "Entalhe na braco ascendente de S em V3-V5 no BRE = IAM",
+      "HVE"
+    ]
+  },
+  {
+    "inimigo": "Sinal de Chapman",
+    "correta": "Entalhe na R em DI aVL V5-V6 no BRE = IAM",
+    "texto": "Complementa Sgarbossa/Cabrera.",
+    "ameaca": "CHAPMAN",
+    "alternativas": [
+      "Pericardite",
+      "Entalhe na R em DI aVL V5-V6 no BRE = IAM",
+      "Brugada",
+      "Wellens"
+    ]
+  },
+  {
+    "inimigo": "ST elevacao em aVR + infra difuso em paciente com dor",
+    "correta": "Oclusao de tronco / equivalente de 3 vasos",
+    "texto": "Emergencia; cateterismo urgente.",
+    "ameaca": "SUPRA aVR + INFRA DIFUSO",
+    "alternativas": [
+      "Pericardite",
+      "Repolarizacao",
+      "Oclusao de tronco / equivalente de 3 vasos",
+      "HiperK"
+    ]
+  },
+  {
+    "inimigo": "Hipercalemia grave no ECG (alem da T tented)",
+    "correta": "QRS largo, onda senoidal, BR, assistolia",
+    "texto": "Calcio EV imediato para estabilizar membrana.",
+    "ameaca": "HIPERK GRAVE",
+    "alternativas": [
+      "So U proeminente",
+      "So QT longo",
+      "QRS largo, onda senoidal, BR, assistolia",
+      "So onda delta"
+    ]
+  },
+  {
+    "inimigo": "Hipocalcemia no ECG",
+    "correta": "QT longo (ST longo)",
+    "texto": "Risco de torsades; repor Ca.",
+    "ameaca": "HIPOCA NO ECG",
+    "alternativas": [
+      "QT curto",
+      "T tented",
+      "QT longo (ST longo)",
+      "Onda U"
+    ]
+  },
+  {
+    "inimigo": "Hipercalcemia no ECG",
+    "correta": "QT curto",
+    "texto": "Investigar PTH e malignidade.",
+    "ameaca": "HIPERCA NO ECG",
+    "alternativas": [
+      "QT longo",
+      "U proeminente",
+      "QT curto",
+      "T invertida simetrica sempre"
+    ]
+  },
+  {
+    "inimigo": "Onda de Osborne + bradircardia + tremor",
+    "correta": "Hipotermia",
+    "texto": "Reaquecer; arritmias no reaquecimento.",
+    "ameaca": "OSBORN + BRADI",
+    "alternativas": [
+      "Hipertermia",
+      "HiperK",
+      "Hipotermia",
+      "Digoxina"
+    ]
+  },
+  {
+    "inimigo": "Baixa voltagem + taquicardia sinusal + historico de cancer",
+    "correta": "Derrame pericardico / tamponamento ate prova em contrario",
+    "texto": "Eco urgente; alternancia eletrica reforça.",
+    "ameaca": "BAIXA VOLTAGEM + TAQUI",
+    "alternativas": [
+      "HVE",
+      "Athleta",
+      "Derrame pericardico / tamponamento ate prova em contrario",
+      "WPW"
+    ]
+  },
+  {
+    "inimigo": "PR curto sem onda delta",
+    "correta": "Lown-Ganong-Levine (historico) ou variante / ritmo atrial baixo",
+    "texto": "LGL e controverso; avaliar clinicamente.",
+    "ameaca": "PR CURTO SEM DELTA",
+    "alternativas": [
+      "WPW classico",
+      "BAV 1o",
+      "Lown-Ganong-Levine (historico) ou variante / ritmo atrial baixo",
+      "BRD"
+    ]
+  },
+  {
+    "inimigo": "2:1 AV com PR fixo e P bloqueadas",
+    "correta": "BAV 2o grau 2:1 (nao se classifica bem em I ou II)",
+    "texto": "Se QRS largo, tratar como Mobitz II (alto risco).",
+    "ameaca": "BAV 2:1",
+    "alternativas": [
+      "BAV 1o",
+      "BAV 3o",
+      "BAV 2o grau 2:1 (nao se classifica bem em I ou II)",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "Marcha de Wenckebach tipica",
+    "correta": "Ciclos com PR crescente ate P bloqueada e pausa menor que 2x o RR",
+    "texto": "Geralmente benigno se nodal e assintomatico.",
+    "ameaca": "WENCKEBACH TIPICO",
+    "alternativas": [
+      "Mobitz II",
+      "BAV 3o",
+      "Ciclos com PR crescente ate P bloqueada e pausa menor que 2x o RR",
+      "Sinusal com ESA"
+    ]
+  },
+  {
+    "inimigo": "Escape-capture bigeminy",
+    "correta": "Par de escape + captura sinusal apos pausa",
+    "texto": "Ver em doenca do no ou farmacos.",
+    "ameaca": "ESCAPE-CAPTURE",
+    "alternativas": [
+      "Bigeminismo ventricular puro",
+      "Mobitz II",
+      "Par de escape + captura sinusal apos pausa",
+      "TV"
+    ]
+  },
+  {
+    "inimigo": "Aceleracao de ritmo idioventricular (RIVA)",
+    "correta": "RIVA 60-120 bpm (reperfusao)",
+    "texto": "Comum pos-trombolise/PCI; observar se estavel.",
+    "ameaca": "RIVA",
+    "alternativas": [
+      "TV maligna sempre",
+      "TSV",
+      "RIVA 60-120 bpm (reperfusao)",
+      "Sinusal"
+    ]
+  },
+  {
+    "inimigo": "Taquicardia de QRS largo em paciente com ICD chocando",
+    "correta": "TV/FV tratada pelo dispositivo ou choque inapropriado",
+    "texto": "Avaliar interrogacao do ICD.",
+    "ameaca": "ICD CHOCANDO",
+    "alternativas": [
+      "Sempre inapropriado",
+      "Sempre TSV",
+      "TV/FV tratada pelo dispositivo ou choque inapropriado",
+      "Artefato de celular"
+    ]
+  },
+  {
+    "inimigo": "Onda P apos o QRS na TSV",
+    "correta": "P retrograda (RP curto)",
+    "texto": "Sugere reentrada nodal tipica ou via acessoria.",
+    "ameaca": "P APOS QRS",
+    "alternativas": [
+      "P sinusal normal",
+      "Flutter F",
+      "P retrograda (RP curto)",
+      "Artefato"
+    ]
+  },
+  {
+    "inimigo": "Dissociacao isorritmica",
+    "correta": "P e QRS com FC similar mas independentes",
+    "texto": "Forma de dissociacao AV; ver BAV vs interferencia.",
+    "ameaca": "DISSOCIACAO ISORRITMICA",
+    "alternativas": [
+      "FA",
+      "Flutter 1:1",
+      "P e QRS com FC similar mas independentes",
+      "Sinusal perfeito"
+    ]
+  },
+  {
+    "inimigo": "Sinal de Ashman",
+    "correta": "Aberrancia (geralmente BRD) apos ciclo longo-curto na FA",
+    "texto": "Nao e ESV; condução aberrante fase 3.",
+    "ameaca": "ASHMAN",
+    "alternativas": [
+      "ESV monomorfica",
+      "TV",
+      "Aberrancia (geralmente BRD) apos ciclo longo-curto na FA",
+      "WPW"
+    ]
+  },
+  {
+    "inimigo": "Pre-excitacao + FA: QRS largo irregular muito rapido",
+    "correta": "FA pre-excitada (risco de FV)",
+    "texto": "Cardioversao se instavel; procainamida/ibutilida se estavel; evitar AV nodais.",
+    "ameaca": "FA + WPW",
+    "alternativas": [
+      "TSV com aberrancia",
+      "TV monomorfica",
+      "FA pre-excitada (risco de FV)",
+      "Flutter tipico"
+    ]
+  },
+  {
+    "inimigo": "Intervalo HV longo no estudo eletrofisiologico",
+    "correta": "Doenca do sistema His-Purkinje",
+    "texto": "Indica risco de BAV e pode indicar MP.",
+    "ameaca": "HV LONGO",
+    "alternativas": [
+      "No sinusal normal",
+      "So nodal",
+      "Doenca do sistema His-Purkinje",
+      "Via acessoria"
+    ]
+  },
+  {
+    "inimigo": "Teste de adenosine mostra bloqueio AV transitorio e continua taquicardia atrial",
+    "correta": "Taquicardia atrial focal (nao depende do no)",
+    "texto": "Ajuda a diagnosticar mecanismo.",
+    "ameaca": "ADENOSINA: TA CONTINUA",
+    "alternativas": [
+      "TRN que termina",
+      "Ortodromica que termina",
+      "Taquicardia atrial focal (nao depende do no)",
+      "TV"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Sokolow para HVD",
+    "correta": "R V1 + S V5/V6 > 10,5 mm (ou outros criterios)",
+    "texto": "Menor sensibilidade que para HVE.",
+    "ameaca": "HVD CRITERIO",
+    "alternativas": [
+      "Sokolow so para HVE",
+      "So eixo esquerdo",
+      "R V1 + S V5/V6 > 10,5 mm (ou outros criterios)",
+      "So BRE"
+    ]
+  },
+  {
+    "inimigo": "Strain pattern esquerdo",
+    "correta": "Infra de ST + T invertida em I aVL V5-V6 com HVE",
+    "texto": "Sobrecarga sistolica do VE.",
+    "ameaca": "STRAIN ESQUERDO",
+    "alternativas": [
+      "Wellens",
+      "Pericardite",
+      "Infra de ST + T invertida em I aVL V5-V6 com HVE",
+      "Brugada"
+    ]
+  },
+  {
+    "inimigo": "Strain direito",
+    "correta": "Infra de ST + T invertida em V1-V3 com HVD",
+    "texto": "Sobrecarga do VD.",
+    "ameaca": "STRAIN DIREITO",
+    "alternativas": [
+      "Wellens",
+      "Anterior STEMI",
+      "Infra de ST + T invertida em V1-V3 com HVD",
+      "Pericardite"
+    ]
+  },
+  {
+    "inimigo": "S1Q3T3 + taquicardia sinusal + BRD novo",
+    "correta": "Alta suspeita de TEP massivo/submassivo",
+    "texto": "AngioTC e estabilizacao hemodinamica.",
+    "ameaca": "S1Q3T3 + BRD NOVO",
+    "alternativas": [
+      "IAM inferior isolado",
+      "Pericardite",
+      "Alta suspeita de TEP massivo/submassivo",
+      "HVE"
+    ]
+  },
+  {
+    "inimigo": "Baixa voltagem so em derivacoes dos membros",
+    "correta": "Pode ser normal / enfisema / obesidade",
+    "texto": "Se precordiais tambem baixas: derrame/infiltrativo.",
+    "ameaca": "BAIXA VOLTAGEM SO NOS MEMBROS",
+    "alternativas": [
+      "Sempre tamponamento",
+      "Sempre amiloidose",
+      "Pode ser normal / enfisema / obesidade",
+      "Sempre erro de calibração apenas"
+    ]
+  },
+  {
+    "inimigo": "Calibracao padrao do ECG",
+    "correta": "10 mm/mV e 25 mm/s",
+    "texto": "Verificar no inicio da leitura; meia calibracao reduz amplitude.",
+    "ameaca": "CALIBRACAO",
+    "alternativas": [
+      "20 mm/mV",
+      "50 mm/s sempre",
+      "10 mm/mV e 25 mm/s",
+      "5 mm/mV"
+    ]
+  },
+  {
+    "inimigo": "Papel: 1 quadrado grande (5 mm) em velocidade 25 mm/s vale?",
+    "correta": "0,20 segundos",
+    "texto": "1 mm = 0,04 s; FC = 300 / numero de quadrados grandes entre R-R.",
+    "ameaca": "QUADRADO GRANDE",
+    "alternativas": [
+      "0,04 s",
+      "1 s",
+      "0,20 segundos",
+      "0,12 s"
+    ]
+  },
+  {
+    "inimigo": "Como estimar FC com ritmo regular no ECG?",
+    "correta": "300 / numero de quadrados grandes entre dois R",
+    "texto": "Ou 1500 / quadrados pequenos.",
+    "ameaca": "ESTIMAR FC",
+    "alternativas": [
+      "Sempre 60",
+      "Contar so P",
+      "300 / numero de quadrados grandes entre dois R",
+      "So pelo aparelho"
+    ]
+  },
+  {
+    "inimigo": "Onda P deve medir no maximo quantos ms (normal)?",
+    "correta": "Ate 120 ms (3 quadrados pequenos)",
+    "texto": "Mais larga: crescimento atrial esquerdo.",
+    "ameaca": "DURACAO DA P",
+    "alternativas": [
+      "40 ms",
+      "200 ms",
+      "Ate 120 ms (3 quadrados pequenos)",
+      "240 ms"
+    ]
+  },
+  {
+    "inimigo": "PR normal?",
+    "correta": "120 a 200 ms",
+    "texto": "Curto: pre-excitacao; longo: BAV 1o.",
+    "ameaca": "PR NORMAL",
+    "alternativas": [
+      "<100 ms",
+      ">220 ms sempre normal",
+      "120 a 200 ms",
+      "80-100 ms"
+    ]
+  },
+  {
+    "inimigo": "QRS normal em duracao?",
+    "correta": "< 120 ms (idealmente <100-110)",
+    "texto": ">=120 = bloqueio de ramo ou VT/aberancia.",
+    "ameaca": "QRS NORMAL",
+    "alternativas": [
+      ">140 ms",
+      ">200 ms",
+      "< 120 ms (idealmente <100-110)",
+      "Sempre 160"
+    ]
+  },
+  {
+    "inimigo": "QTc de Bazett: formula?",
+    "correta": "QT / raiz quadrada do RR (em segundos)",
+    "texto": "Usar com cautela em extremos de FC.",
+    "ameaca": "QTc BAZETT",
+    "alternativas": [
+      "QT x FC",
+      "QT + RR",
+      "QT / raiz quadrada do RR (em segundos)",
+      "So QT absoluto"
+    ]
+  },
+  {
+    "inimigo": "Derivacao aVR 'olha' para qual regiao?",
+    "correta": "Apex negativo / cavidade direita / tronco",
+    "texto": "Supra em aVR tem significado especial (tronco/3 vasos).",
+    "ameaca": "aVR",
+    "alternativas": [
+      "Parede lateral",
+      "Inferior",
+      "Apex negativo / cavidade direita / tronco",
+      "Posterior"
+    ]
+  },
+  {
+    "inimigo": "V1 e V2 exploram principalmente?",
+    "correta": "Septo / VD / parede anterior basal",
+    "texto": "BRD, Brugada, epsilon, posterior (espelho).",
+    "ameaca": "V1-V2",
+    "alternativas": [
+      "So lateral",
+      "So inferior",
+      "Septo / VD / parede anterior basal",
+      "So apical"
+    ]
+  },
+  {
+    "inimigo": "DII DIII aVF exploram?",
+    "correta": "Parede inferior (CD ou CX dominante)",
+    "texto": "STEMI inferior e flutter waves.",
+    "ameaca": "INFERIORES",
+    "alternativas": [
+      "Anterior",
+      "Lateral alta",
+      "Parede inferior (CD ou CX dominante)",
+      "Septo"
+    ]
+  },
+  {
+    "inimigo": "DI e aVL exploram?",
+    "correta": "Parede lateral alta (CX / diagonal)",
+    "texto": "Supra lateral alto.",
+    "ameaca": "LATERAL ALTA",
+    "alternativas": [
+      "Inferior",
+      "Direito",
+      "Parede lateral alta (CX / diagonal)",
+      "Posterior"
+    ]
+  },
+  {
+    "inimigo": "V5 e V6 exploram?",
+    "correta": "Parede lateral baixa / apical lateral",
+    "texto": "HVE, strain, STEMI lateral.",
+    "ameaca": "V5-V6",
+    "alternativas": [
+      "Septo",
+      "VD",
+      "Parede lateral baixa / apical lateral",
+      "So átrio"
+    ]
+  },
+  {
+    "inimigo": "Colocacao errada de precordiais pode causar?",
+    "correta": "Poor R progression / padroes falsos de IAM / eixo alterado",
+    "texto": "Repetir ECG se inconsistente com clinica.",
+    "ameaca": "ERRO DE POSICAO DE ELETRODOS",
+    "alternativas": [
+      "Nunca altera",
+      "So muda FC",
+      "Poor R progression / padroes falsos de IAM / eixo alterado",
+      "So muda calibracao"
+    ]
+  },
+  {
+    "inimigo": "Inversao de eletrodos de membros (D e E) causa?",
+    "correta": "P e QRS invertidos em DI (como dextrocardia tecnica)",
+    "texto": "Verificar P negativa em DI.",
+    "ameaca": "INVERSAO DE ELETRODOS",
+    "alternativas": [
+      "Brugada",
+      "STEMI",
+      "P e QRS invertidos em DI (como dextrocardia tecnica)",
+      "QT longo"
+    ]
+  },
+  {
+    "inimigo": "Dextrocardia verdadeira no ECG?",
+    "correta": "Progressao de R invertida (R maior em V1 que V6) + DI invertido",
+    "texto": "Confirmar clinicamente e com imagem.",
+    "ameaca": "DEXTROCARDIA",
+    "alternativas": [
+      "Situs solitus normal",
+      "Erro de V6 apenas",
+      "Progressao de R invertida (R maior em V1 que V6) + DI invertido",
+      "HVE"
+    ]
+  },
+  {
+    "inimigo": "Artefato de tremor Parkinsoniano pode imitar?",
+    "correta": "Flutter atrial ou oscilacoes de linha de base",
+    "texto": "Olhar varias derivacoes e pulso.",
+    "ameaca": "ARTEFATO DE TREMOR",
+    "alternativas": [
+      "Sempre FA verdadeira",
+      "Sempre FV",
+      "Flutter atrial ou oscilacoes de linha de base",
+      "Sempre STEMI"
+    ]
+  },
+  {
+    "inimigo": "Filtro de ECG muito agressivo pode?",
+    "correta": "Reduzir amplitude de Q e alterar ST",
+    "texto": "Usar configuracao diagnostica adequada.",
+    "ameaca": "FILTRO AGRESSIVO",
+    "alternativas": [
+      "Melhora sempre o diagnostico de STEMI",
+      "Nao altera nada",
+      "Reduzir amplitude de Q e alterar ST",
+      "Aumenta ondas P"
+    ]
+  },
+  {
+    "inimigo": "Onda T picuda + QRS alargando + bradicardia",
+    "correta": "Hipercalemia em progressao",
+    "texto": "Sequencia: T tented, PR longo, QRS largo, onda senoidal. Calcio EV.",
+    "ameaca": "HIPERK PROGRESSIVA",
+    "alternativas": [
+      "Hipocalemia",
+      "Isquemia",
+      "Hipercalemia em progressao",
+      "Digoxina"
+    ]
+  },
+  {
+    "inimigo": "Pausa sem onda P no Holter",
+    "correta": "Pausa sinusal ou bloqueio de saida sinoatrial",
+    "texto": "Se sintomatica pode indicar marcapasso.",
+    "ameaca": "PAUSA SEM P",
+    "alternativas": [
+      "BAV 2o sempre",
+      "Artefato",
+      "Pausa sinusal ou bloqueio de saida sinoatrial",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "P morfologia diferente apos pausa com FC 50-60",
+    "correta": "Ritmo de escape atrial",
+    "texto": "Pacemaker atrial ectopico assume o comando.",
+    "ameaca": "ESCAPE ATRIAL",
+    "alternativas": [
+      "Sinusal",
+      "Juncional sem P",
+      "Ritmo de escape atrial",
+      "Idioventricular"
+    ]
+  },
+  {
+    "inimigo": "QRS estreito 70-130 com P retrograda pos-op ou digoxina",
+    "correta": "Taquicardia juncional nao paroxistica",
+    "texto": "Tratar causa de base.",
+    "ameaca": "TAQ JUNCIONAL",
+    "alternativas": [
+      "TV",
+      "Flutter",
+      "Taquicardia juncional nao paroxistica",
+      "Sinusal"
+    ]
+  },
+  {
+    "inimigo": "Foco ventricular independente com fusao e ciclo matematico",
+    "correta": "Parassistolia ventricular",
+    "texto": "Geralmente benigna.",
+    "ameaca": "PARASSISTOLIA",
+    "alternativas": [
+      "ESV bigeminada",
+      "TV",
+      "Parassistolia ventricular",
+      "Artefato"
+    ]
+  },
+  {
+    "inimigo": "Aberrancia apos ciclo longo-curto na FA morfologia BRD",
+    "correta": "Fenomeno de Ashman",
+    "texto": "Nao e ESV maligna isolada.",
+    "ameaca": "ASHMAN",
+    "alternativas": [
+      "TV",
+      "ESV monomorfica",
+      "Fenomeno de Ashman",
+      "WPW"
+    ]
+  },
+  {
+    "inimigo": "Como medir o intervalo QT",
+    "correta": "Inicio do QRS ate o fim da T na melhor derivacao",
+    "texto": "Evitar incluir U; media de varios batimentos.",
+    "ameaca": "MEDIR QT",
+    "alternativas": [
+      "So ate o pico da T",
+      "So em aVR",
+      "Inicio do QRS ate o fim da T na melhor derivacao",
+      "So a onda P"
+    ]
+  },
+  {
+    "inimigo": "QTc acima de 500 ms",
+    "correta": "Alto risco de torsades de pointes",
+    "texto": "Corrigir eletrolitos e suspender farmacos culpados.",
+    "ameaca": "QTc >500",
+    "alternativas": [
+      "Normal",
+      "So em criancas importa",
+      "Alto risco de torsades de pointes",
+      "So em atletas"
+    ]
+  },
+  {
+    "inimigo": "Exemplos de farmacos que prolongam QT",
+    "correta": "Antiarrítmicos Ia/III, macrolideos, fluorquinolonas, antipsicoticos",
+    "texto": "Somar hipoK, hipoMg e sexo feminino.",
+    "ameaca": "FARMACOS QT",
+    "alternativas": [
+      "Paracetamol",
+      "Metformina",
+      "Antiarrítmicos Ia/III, macrolideos, fluorquinolonas, antipsicoticos",
+      "IECA"
+    ]
+  },
+  {
+    "inimigo": "Tratamento de torsades com pulso",
+    "correta": "Sulfato de magnesio EV + corrigir K",
+    "texto": "Pacing se bradi-dependente; cardioversao se instavel.",
+    "ameaca": "TORSADES TRATAMENTO",
+    "alternativas": [
+      "Amiodarona 1a linha",
+      "Digoxina",
+      "Sulfato de magnesio EV + corrigir K",
+      "Verapamil"
+    ]
+  },
+  {
+    "inimigo": "TV monomorfica com estabilidade hemodinamica",
+    "correta": "Amiodarona ou procainamida conforme diretriz",
+    "texto": "Se instavel: cardioversao sincronizada.",
+    "ameaca": "TV ESTAVEL",
+    "alternativas": [
+      "Adenosina de rotina",
+      "So betabloqueador",
+      "Amiodarona ou procainamida conforme diretriz",
+      "Digoxina"
+    ]
+  },
+  {
+    "inimigo": "Verapamil EV contraindicado em",
+    "correta": "TV ou FA pre-excitada",
+    "texto": "Pode piorar ou acelerar via acessoria.",
+    "ameaca": "BCC CONTRAINDICADO",
+    "alternativas": [
+      "TSV nodal estavel",
+      "HAS oral",
+      "TV ou FA pre-excitada",
+      "Flutter sem pre-excitacao"
+    ]
+  },
+  {
+    "inimigo": "Efeitos colaterais da adenosina",
+    "correta": "Flush, dor toracica breve, asistolia momentanea",
+    "texto": "Cuidado em asmaticos (broncoespasmo).",
+    "ameaca": "ADENOSINA EFEITOS",
+    "alternativas": [
+      "Sem efeitos",
+      "So cefaleia",
+      "Flush, dor toracica breve, asistolia momentanea",
+      "Hipertensao prolongada"
+    ]
+  },
+  {
+    "inimigo": "FA com pre-excitacao (QRS largo irregular muito rapido)",
+    "correta": "Cardioversao se instavel; evitar adenosina BB BCC digoxina",
+    "texto": "Procainamida ou ibutilida se estavel.",
+    "ameaca": "FA WPW",
+    "alternativas": [
+      "Adenosina",
+      "Verapamil",
+      "Cardioversao se instavel; evitar adenosina BB BCC digoxina",
+      "Digoxina isolada"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Lewis para HVE",
+    "correta": "R em I + S em III maior que 25 mm",
+    "texto": "Baixa sensibilidade isolada.",
+    "ameaca": "LEWIS",
+    "alternativas": [
+      "So Sokolow",
+      "So Cornell",
+      "R em I + S em III maior que 25 mm",
+      "So eixo direito"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Cornell para HVE",
+    "correta": "R aVL + S V3 maior que 28 mm em homens ou 20 em mulheres",
+    "texto": "Boa performance diagnostica.",
+    "ameaca": "CORNELL",
+    "alternativas": [
+      "R V1 + S V6",
+      "So S V1",
+      "R aVL + S V3 maior que 28 mm em homens ou 20 em mulheres",
+      "So R V6"
+    ]
+  },
+  {
+    "inimigo": "Cuidado no IAM de ventriculo direito",
+    "correta": "Evitar nitratos e diureticos; volume se hipotenso",
+    "texto": "Supra em V4R confirma.",
+    "ameaca": "IAM VD",
+    "alternativas": [
+      "Sempre mais fluidos sem limite",
+      "Betabloqueador agressivo",
+      "Evitar nitratos e diureticos; volume se hipotenso",
+      "Digoxina"
+    ]
+  },
+  {
+    "inimigo": "Quando repetir ECG na dor toracica",
+    "correta": "Dor recorrente, mudanca clinica ou tracado inicial nao diagnostico",
+    "texto": "STEMI pode evoluir em minutos.",
+    "ameaca": "REPETIR ECG",
+    "alternativas": [
+      "Nunca no PS",
+      "So apos 24h",
+      "Dor recorrente, mudanca clinica ou tracado inicial nao diagnostico",
+      "So se troponina positiva"
+    ]
+  },
+  {
+    "inimigo": "Onda Q isolada em DIII",
+    "correta": "Pode ser normal especialmente se some na inspiracao",
+    "texto": "Q patologica exige criterios e contexto.",
+    "ameaca": "Q EM DIII",
+    "alternativas": [
+      "Sempre IAM inferior antigo",
+      "Sempre agudo",
+      "Pode ser normal especialmente se some na inspiracao",
+      "Sempre BRE"
+    ]
+  },
+  {
+    "inimigo": "Strain de HVE vs isquemia primaria",
+    "correta": "Strain e assimetrico com voltagem de HVE; isquemia e mais simetrica em territorio",
+    "texto": "Comparar com ECG antigo.",
+    "ameaca": "STRAIN vs ISQUEMIA",
+    "alternativas": [
+      "Iguais",
+      "Strain so em V1",
+      "Strain e assimetrico com voltagem de HVE; isquemia e mais simetrica em territorio",
+      "So laboratorio"
+    ]
+  },
+  {
+    "inimigo": "Sinal de de Winter",
+    "correta": "Infra de ST com T hiperagudas precordiais = oclusao de DA",
+    "texto": "Equivalente de STEMI; cateterismo urgente.",
+    "ameaca": "DE WINTER",
+    "alternativas": [
+      "Pericardite",
+      "Repolarizacao precoce",
+      "Infra de ST com T hiperagudas precordiais = oclusao de DA",
+      "Wellens apenas"
+    ]
+  },
+  {
+    "inimigo": "Wellens tipo A e tipo B",
+    "correta": "A: T bifasica V2-V3; B: T invertida profunda V2-V3",
+    "texto": "Ambos = lesao critica de DA.",
+    "ameaca": "WELLENS A B",
+    "alternativas": [
+      "So tipo A existe",
+      "So tipo B e isquemia",
+      "A: T bifasica V2-V3; B: T invertida profunda V2-V3",
+      "Wellens e inferior"
+    ]
+  },
+  {
+    "inimigo": "Sgarbossa modificado de Smith",
+    "correta": "Usa razao ST sobre S para melhorar sensibilidade no BRE com IAM",
+    "texto": "Supra discordante excessivo sugere IAM.",
+    "ameaca": "SGARBOSSA SMITH",
+    "alternativas": [
+      "So no BRD",
+      "Substitui troponina",
+      "Usa razao ST sobre S para melhorar sensibilidade no BRE com IAM",
+      "Nao e usado"
+    ]
+  },
+  {
+    "inimigo": "IAM em ritmo de marcapasso",
+    "correta": "Criterios tipo Sgarbossa e clinica mais troponina ajudam",
+    "texto": "Supra concordante ainda e util.",
+    "ameaca": "IAM EM MP",
+    "alternativas": [
+      "Impossivel diagnosticar",
+      "So pelo QRS",
+      "Criterios tipo Sgarbossa e clinica mais troponina ajudam",
+      "So pela FC"
+    ]
+  },
+  {
+    "inimigo": "Como confirmar flutter atrial 2:1",
+    "correta": "Manobra vagal ou adenosina para ver ondas F",
+    "texto": "Nao usar se pre-excitacao suspeita.",
+    "ameaca": "FLUTTER 2:1",
+    "alternativas": [
+      "So cardioversao",
+      "So digoxina",
+      "Manobra vagal ou adenosina para ver ondas F",
+      "So eletrodo esofagico"
+    ]
+  },
+  {
+    "inimigo": "Bloqueio bifascicular",
+    "correta": "BRD associado a hemibloqueio anterior ou posterior",
+    "texto": "Risco de BAV total se sintomatico.",
+    "ameaca": "BIFASCICULAR",
+    "alternativas": [
+      "So BRE",
+      "So BAV 1o",
+      "BRD associado a hemibloqueio anterior ou posterior",
+      "So FA"
+    ]
+  },
+  {
+    "inimigo": "Bloqueio trifascicular",
+    "correta": "Bifascicular mais BAV de 1o grau",
+    "texto": "Alto risco; avaliar marcapasso.",
+    "ameaca": "TRIFASCICULAR",
+    "alternativas": [
+      "So BRD",
+      "So eixo esquerdo",
+      "Bifascicular mais BAV de 1o grau",
+      "So sinusal"
+    ]
+  },
+  {
+    "inimigo": "Hemibloqueio anterior esquerdo eixo",
+    "correta": "Eixo -45 a -90 com qR em aVL e rS inferiores",
+    "texto": "Isolado geralmente benigno.",
+    "ameaca": "HBAE",
+    "alternativas": [
+      "Eixo direito",
+      "Eixo +120",
+      "Eixo -45 a -90 com qR em aVL e rS inferiores",
+      "Eixo normal"
+    ]
+  },
+  {
+    "inimigo": "Hemibloqueio posterior esquerdo eixo",
+    "correta": "Eixo direito +90 a +180 com rS em I aVL e qR inferiores",
+    "texto": "Raro isolado; excluir HVD.",
+    "ameaca": "HBPE",
+    "alternativas": [
+      "Eixo -60",
+      "So BRE",
+      "Eixo direito +90 a +180 com rS em I aVL e qR inferiores",
+      "So BRD"
+    ]
+  },
+  {
+    "inimigo": "Hipocalcemia vs hipercalcemia no QT",
+    "correta": "HipoCa alonga QT; HiperCa encurta QT",
+    "texto": "ST e o segmento mais afetado.",
+    "ameaca": "CALCIO E QT",
+    "alternativas": [
+      "Ambos alongam",
+      "Ambos encurtam",
+      "HipoCa alonga QT; HiperCa encurta QT",
+      "Ca nao afeta"
+    ]
+  },
+  {
+    "inimigo": "Onde a onda U e mais visivel",
+    "correta": "V2 e V3",
+    "texto": "Proeminente na hipocalemia.",
+    "ameaca": "ONDA U LOCAL",
+    "alternativas": [
+      "aVR",
+      "DIII",
+      "V2 e V3",
+      "Nunca em V1"
+    ]
+  },
+  {
+    "inimigo": "Regra 300-150-100-75-60-50",
+    "correta": "FC pelo numero de quadrados grandes entre R-R",
+    "texto": "1=300, 2=150, 3=100, 4=75, 5=60, 6=50.",
+    "ameaca": "REGRA QUADRADOS",
+    "alternativas": [
+      "So para FA",
+      "So para flutter",
+      "FC pelo numero de quadrados grandes entre R-R",
+      "Invalida se regular"
+    ]
+  },
+  {
+    "inimigo": "ECG na PCR",
+    "correta": "Monitor para ritmo; 12 derivacoes apos ROSC para STEMI",
+    "texto": "Nao atrasar choque.",
+    "ameaca": "ECG PCR",
+    "alternativas": [
+      "12 derivacoes antes de choque",
+      "Nunca 12 derivacoes",
+      "Monitor para ritmo; 12 derivacoes apos ROSC para STEMI",
+      "So Holter"
+    ]
+  },
+  {
+    "inimigo": "Supra em aVR maior que em V1",
+    "correta": "Sugere oclusao de tronco de coronaria esquerda",
+    "texto": "Com infra difuso = emergencia.",
+    "ameaca": "aVR MAIOR QUE V1",
+    "alternativas": [
+      "Sempre normal",
+      "So BRD",
+      "Sugere oclusao de tronco de coronaria esquerda",
+      "So HVE"
+    ]
+  },
+  {
+    "inimigo": "Primeira pergunta ao ler ECG",
+    "correta": "O paciente esta estavel clinicamente",
+    "texto": "Clinica manda sobre o papel.",
+    "ameaca": "1A PERGUNTA ECG",
+    "alternativas": [
+      "So calibracao",
+      "So eixo",
+      "O paciente esta estavel clinicamente",
+      "So quadrados"
+    ]
+  },
+  {
+    "inimigo": "Sequencia sistematica de leitura do ECG",
+    "correta": "Ritmo, FC, eixo, intervalos, hipertrofias, isquemia/lesao/necrose",
+    "texto": "Evita erros de omissao.",
+    "ameaca": "LEITURA SISTEMATICA",
+    "alternativas": [
+      "So ST",
+      "So FC",
+      "Ritmo, FC, eixo, intervalos, hipertrofias, isquemia/lesao/necrose",
+      "So Google"
+    ]
+  },
+  {
+    "inimigo": "ECG inicial normal afasta SCA",
+    "correta": "Nao; 20-30% dos IAM tem ECG inicial normal",
+    "texto": "Repetir series e usar troponina.",
+    "ameaca": "ECG NORMAL SCA",
+    "alternativas": [
+      "Afasta 100%",
+      "So se troponina negativa uma vez",
+      "Nao; 20-30% dos IAM tem ECG inicial normal",
+      "Alta imediata"
+    ]
+  },
+  {
+    "inimigo": "Pericardite vs STEMI no ECG",
+    "correta": "Pericardite: supra difuso concavo e PR deprimido; STEMI: convexo localizado com espelhos",
+    "texto": "Clinica e eco ajudam.",
+    "ameaca": "PERICARDITE vs STEMI",
+    "alternativas": [
+      "Iguais",
+      "Pericardite tem Q sempre",
+      "Pericardite: supra difuso concavo e PR deprimido; STEMI: convexo localizado com espelhos",
+      "So idade"
+    ]
+  },
+  {
+    "inimigo": "O que e o ponto J",
+    "correta": "Juncao entre o fim do QRS e o inicio do ST",
+    "texto": "Importante em repolarizacao precoce e Brugada.",
+    "ameaca": "PONTO J",
+    "alternativas": [
+      "Inicio da P",
+      "Fim da T",
+      "Juncao entre o fim do QRS e o inicio do ST",
+      "Meio do PR"
+    ]
+  },
+  {
+    "inimigo": "Segmento ST normal",
+    "correta": "No nivel da linha de base isoeletrica",
+    "texto": "Medir supra/infra no ponto J.",
+    "ameaca": "ST NORMAL",
+    "alternativas": [
+      "Sempre 2 mm acima",
+      "Sempre 1 mm abaixo",
+      "No nivel da linha de base isoeletrica",
+      "Nao se mede"
+    ]
+  },
+  {
+    "inimigo": "Onda T normal",
+    "correta": "Assimetrica e positiva na maioria das derivacoes",
+    "texto": "Excecao aVR e as vezes V1.",
+    "ameaca": "T NORMAL",
+    "alternativas": [
+      "Sempre invertida em V5",
+      "Sempre picuda",
+      "Assimetrica e positiva na maioria das derivacoes",
+      "Ausente em DII"
+    ]
+  },
+  {
+    "inimigo": "1 mm no papel a 25 mm/s vale",
+    "correta": "0,04 segundos",
+    "texto": "Base para medir intervalos.",
+    "ameaca": "1 MM TEMPO",
+    "alternativas": [
+      "0,20 s",
+      "1 s",
+      "0,04 segundos",
+      "0,12 s"
+    ]
+  },
+  {
+    "inimigo": "QRS normal em quadrados pequenos",
+    "correta": "Menos de 3 quadrados (menos de 120 ms)",
+    "texto": "3 quadrados = limite de BR.",
+    "ameaca": "QRS QUADRADOS",
+    "alternativas": [
+      "5",
+      "7",
+      "Menos de 3 quadrados (menos de 120 ms)",
+      "10"
+    ]
+  },
+  {
+    "inimigo": "PR normal em quadrados pequenos",
+    "correta": "3 a 5 quadrados (120 a 200 ms)",
+    "texto": "Mais de 5 = BAV 1o.",
+    "ameaca": "PR QUADRADOS",
+    "alternativas": [
+      "1 a 2",
+      "6 a 8",
+      "3 a 5 quadrados (120 a 200 ms)",
+      "10"
+    ]
+  },
+  {
+    "inimigo": "Quando usar V3R e V4R",
+    "correta": "IAM inferior para ver envolvimento de VD",
+    "texto": "Supra em V4R muda conduta.",
+    "ameaca": "V4R INDICACAO",
+    "alternativas": [
+      "So BRD",
+      "So crianca",
+      "IAM inferior para ver envolvimento de VD",
+      "Nunca"
+    ]
+  },
+  {
+    "inimigo": "Quando usar V7 V8 V9",
+    "correta": "Suspeita de IAM posterior",
+    "texto": "Confirma oclusao frequentemente de CX.",
+    "ameaca": "POSTERIORES",
+    "alternativas": [
+      "So BRE",
+      "So HVE",
+      "Suspeita de IAM posterior",
+      "Nunca"
+    ]
+  },
+  {
+    "inimigo": "ECG do atleta possivelmente normal",
+    "correta": "Bradicardia, voltagem de HVE, repolarizacao precoce, BAV 1o",
+    "texto": "T invertida profunda exige investigacao.",
+    "ameaca": "ECG ATLETA",
+    "alternativas": [
+      "Qualquer T invertida normal",
+      "Qualquer BRE normal",
+      "Bradicardia, voltagem de HVE, repolarizacao precoce, BAV 1o",
+      "FA permanente normal"
+    ]
+  },
+  {
+    "inimigo": "Achado patologicos no atleta",
+    "correta": "Brugada tipo 1, TV, Mobitz II, Q patologica com sintomas",
+    "texto": "Afastar e investigar.",
+    "ameaca": "PATOLOGICO ATLETA",
+    "alternativas": [
+      "Bradicardia 40 assintomatica",
+      "Repolarizacao precoce",
+      "Brugada tipo 1, TV, Mobitz II, Q patologica com sintomas",
+      "BAV 1o leve"
+    ]
+  },
+  {
+    "inimigo": "Monitor vs ECG 12 derivacoes",
+    "correta": "Monitor para ritmo e alarmes; 12 derivacoes para isquemia e morfologia",
+    "texto": "Sao complementares.",
+    "ameaca": "MONITOR vs 12D",
+    "alternativas": [
+      "Monitor substitui 12D",
+      "12D nao ve ritmo",
+      "Monitor para ritmo e alarmes; 12 derivacoes para isquemia e morfologia",
+      "Sao iguais"
+    ]
+  },
+  {
+    "inimigo": "Tremor no ECG imitando FA",
+    "correta": "Conferir pulso e outra derivacao",
+    "texto": "Tremor parkinsoniano imita ondas f.",
+    "ameaca": "TREMOR vs FA",
+    "alternativas": [
+      "Sempre FA se linha grossa",
+      "Sempre flutter",
+      "Conferir pulso e outra derivacao",
+      "Sempre FV"
+    ]
+  },
+  {
+    "inimigo": "Regra de ouro final do ECG",
+    "correta": "Trate o paciente nao o papel; correlacione sempre",
+    "texto": "ECG e complementar, nao absoluto isolado.",
+    "ameaca": "REGRA DE OURO",
+    "alternativas": [
+      "O papel manda sempre",
+      "Ignore clinica se ECG normal",
+      "Trate o paciente nao o papel; correlacione sempre",
+      "So o aparelho decide"
+    ]
+  },
+  {
+    "inimigo": "AESP definicao",
+    "correta": "Atividade eletrica organizada sem pulso",
+    "texto": "Tratar Hs e Ts; nao desfibrilar.",
+    "ameaca": "AESP",
+    "alternativas": [
+      "FV",
+      "Assistolia",
+      "Atividade eletrica organizada sem pulso",
+      "TV com pulso"
+    ]
+  },
+  {
+    "inimigo": "Hs e Ts da AESP",
+    "correta": "Hipovolemia hipoxia acidose potassio temperatura toxinas tamponamento pneumotorax trombose",
+    "texto": "Busca ativa na RCP.",
+    "ameaca": "Hs Ts",
+    "alternativas": [
+      "So hipovolemia",
+      "So IAM",
+      "Hipovolemia hipoxia acidose potassio temperatura toxinas tamponamento pneumotorax trombose",
+      "So febre"
+    ]
+  },
+  {
+    "inimigo": "Energia bifasica inicial tipica adulto PCR",
+    "correta": "120 a 200 J conforme fabricante",
+    "texto": "Monofasico 360 J.",
+    "ameaca": "ENERGIA CHOQUE",
+    "alternativas": [
+      "10 J",
+      "50 J",
+      "120 a 200 J conforme fabricante",
+      "1000 J"
+    ]
+  },
+  {
+    "inimigo": "Cardioversao sincronizada da FA energia",
+    "correta": "120 a 200 J sincronizada bifasica",
+    "texto": "Flutter e TSV podem precisar menos.",
+    "ameaca": "CARDIOVERSAO FA",
+    "alternativas": [
+      "Nao sincronizada",
+      "10 J",
+      "120 a 200 J sincronizada bifasica",
+      "360 sempre"
+    ]
+  },
+  {
+    "inimigo": "Por que sincronizar a cardioversao",
+    "correta": "Evitar choque na onda T que induz FV",
+    "texto": "Periodo vulneravel.",
+    "ameaca": "SINCRONIZAR",
+    "alternativas": [
+      "Aumentar energia",
+      "Diminuir dor",
+      "Evitar choque na onda T que induz FV",
+      "Medir QT"
+    ]
+  },
+  {
+    "inimigo": "ECG pos-ROSC",
+    "correta": "12 derivacoes o mais breve possivel para STEMI",
+    "texto": "Tambem otimizar O2 PA temperatura.",
+    "ameaca": "POS ROSC",
+    "alternativas": [
+      "Apos 24h",
+      "So se troponina alta",
+      "12 derivacoes o mais breve possivel para STEMI",
+      "Desnecessario"
+    ]
+  },
+  {
+    "inimigo": "Fase negativa profunda da P em V1",
+    "correta": "Crescimento atrial esquerdo",
+    "texto": "Indice de Morris.",
+    "ameaca": "P V1 NEGATIVA",
+    "alternativas": [
+      "So direito",
+      "Normal sempre",
+      "Crescimento atrial esquerdo",
+      "BAV"
+    ]
+  },
+  {
+    "inimigo": "R maior que S em V1 no adulto",
+    "correta": "Pensar HVD IAM posterior WPW erro de eletrodo",
+    "texto": "Integrar eixo e clinica.",
+    "ameaca": "R>S V1",
+    "alternativas": [
+      "Normal sempre",
+      "So BRE",
+      "Pensar HVD IAM posterior WPW erro de eletrodo",
+      "So hiperK"
+    ]
+  },
+  {
+    "inimigo": "S profunda V1 e R alta V6",
+    "correta": "Compativel com criterios de voltagem de HVE",
+    "texto": "Somar strain e clinica.",
+    "ameaca": "S V1 R V6",
+    "alternativas": [
+      "HVD",
+      "BRD",
+      "Compativel com criterios de voltagem de HVE",
+      "IAM posterior"
+    ]
+  },
+  {
+    "inimigo": "Alternancia de morfologia do QRS na taquicardia",
+    "correta": "TV bidirectional ou alternancia eletrica",
+    "texto": "Digoxina ou tamponamento conforme contexto.",
+    "ameaca": "ALTERNANCIA MORFOLOGIA",
+    "alternativas": [
+      "Sinusal",
+      "FA estreita",
+      "TV bidirectional ou alternancia eletrica",
+      "So respiracao"
+    ]
+  },
+  {
+    "inimigo": "Onda J de Osborn mais o que sugere",
+    "correta": "Hipotermia",
+    "texto": "Reaquecer com cuidado com arritmias.",
+    "ameaca": "OSBORN",
+    "alternativas": [
+      "Hipertermia",
+      "HiperK isolada",
+      "Hipotermia",
+      "Digoxina"
+    ]
+  },
+  {
+    "inimigo": "Baixa voltagem mais taquicardia e cancer",
+    "correta": "Derrame pericardico ate prova em contrario",
+    "texto": "Eco urgente.",
+    "ameaca": "BAIXA VOLTAGEM TAQUI",
+    "alternativas": [
+      "HVE",
+      "Atleta",
+      "Derrame pericardico ate prova em contrario",
+      "WPW"
+    ]
+  },
+  {
+    "inimigo": "PR curto sem delta",
+    "correta": "Variante ou ritmo atrial baixo ou LGL historico",
+    "texto": "Avaliar clinicamente.",
+    "ameaca": "PR CURTO SEM DELTA",
+    "alternativas": [
+      "WPW classico",
+      "BAV 1o",
+      "Variante ou ritmo atrial baixo ou LGL historico",
+      "BRD"
+    ]
+  },
+  {
+    "inimigo": "BAV 2:1",
+    "correta": "Nao classifica bem em Mobitz I ou II; se QRS largo tratar como alto risco",
+    "texto": "Considerar marcapasso.",
+    "ameaca": "BAV 2:1",
+    "alternativas": [
+      "BAV 1o",
+      "BAV 3o",
+      "Nao classifica bem em Mobitz I ou II; se QRS largo tratar como alto risco",
+      "FA"
+    ]
+  },
+  {
+    "inimigo": "RIVA pos-reperfusao",
+    "correta": "Ritmo idioventricular acelerado 60-120 bpm frequentemente benigno",
+    "texto": "Observar se estavel.",
+    "ameaca": "RIVA",
+    "alternativas": [
+      "TV maligna sempre",
+      "TSV",
+      "Ritmo idioventricular acelerado 60-120 bpm frequentemente benigno",
+      "Sinusal"
+    ]
+  },
+  {
+    "inimigo": "ICD aplicando choques",
+    "correta": "TV/FV tratada ou choque inapropriado; interrogar o dispositivo",
+    "texto": "Magnet pode suspender terapia se inapropriado e orientado.",
+    "ameaca": "ICD CHOQUES",
+    "alternativas": [
+      "Sempre inapropriado",
+      "Sempre TSV",
+      "TV/FV tratada ou choque inapropriado; interrogar o dispositivo",
+      "Artefato celular"
+    ]
+  },
+  {
+    "inimigo": "P apos o QRS na TSV",
+    "correta": "P retrograda com RP curto",
+    "texto": "Sugere TRN tipica ou ortodromica.",
+    "ameaca": "P APOS QRS",
+    "alternativas": [
+      "P sinusal",
+      "Flutter F",
+      "P retrograda com RP curto",
+      "Artefato"
+    ]
+  },
+  {
+    "inimigo": "Calibracao padrao do ECG diagnostico",
+    "correta": "10 mm por mV e 25 mm por s",
+    "texto": "Verificar sempre no inicio.",
+    "ameaca": "CALIBRACAO",
+    "alternativas": [
+      "20 mm/mV",
+      "50 mm/s sempre",
+      "10 mm por mV e 25 mm por s",
+      "5 mm/mV"
+    ]
+  },
+  {
+    "inimigo": "1 quadrado grande a 25 mm/s",
+    "correta": "0,20 segundos",
+    "texto": "Base da regra dos 300.",
+    "ameaca": "QUADRADO GRANDE",
+    "alternativas": [
+      "0,04 s",
+      "1 s",
+      "0,20 segundos",
+      "0,12 s"
+    ]
+  },
+  {
+    "inimigo": "Estimativa de FC ritmo regular",
+    "correta": "300 dividido pelo numero de quadrados grandes R-R",
+    "texto": "Ou 1500 por quadrados pequenos.",
+    "ameaca": "ESTIMAR FC",
+    "alternativas": [
+      "Sempre 60",
+      "Contar so P",
+      "300 dividido pelo numero de quadrados grandes R-R",
+      "So aparelho"
+    ]
+  },
+  {
+    "inimigo": "Duracao maxima normal da onda P",
+    "correta": "120 ms",
+    "texto": "Mais larga sugere crescimento atrial esquerdo.",
+    "ameaca": "P DURACAO",
+    "alternativas": [
+      "40 ms",
+      "200 ms",
+      "120 ms",
+      "240 ms"
+    ]
+  },
+  {
+    "inimigo": "Intervalo PR normal",
+    "correta": "120 a 200 ms",
+    "texto": "Curto pre-excitacao; longo BAV 1o.",
+    "ameaca": "PR NORMAL RANGE",
+    "alternativas": [
+      "Menor que 100",
+      "Maior que 220 normal",
+      "120 a 200 ms",
+      "80 a 100"
+    ]
+  },
+  {
+    "inimigo": "Duracao normal do QRS",
+    "correta": "Menor que 120 ms",
+    "texto": "120 ou mais = bloqueio de ramo ou VT.",
+    "ameaca": "QRS NORMAL RANGE",
+    "alternativas": [
+      "Maior que 140",
+      "Maior que 200",
+      "Menor que 120 ms",
+      "Sempre 160"
+    ]
+  },
+  {
+    "inimigo": "Formula de Bazett do QTc",
+    "correta": "QT dividido pela raiz quadrada do RR em segundos",
+    "texto": "Cautela em extremos de FC.",
+    "ameaca": "BAZETT",
+    "alternativas": [
+      "QT vezes FC",
+      "QT mais RR",
+      "QT dividido pela raiz quadrada do RR em segundos",
+      "So QT absoluto"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 👾 ANOMALIAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA DE DIAGNÓSTICO] ANOMALIA DETECTADA: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[DIAGNÓSTICO]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: SUCESSO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: FALHA]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[CMD_INPUT]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[LOG_DATA]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[SCAN]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🚨`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE O DIAGNÓSTICO CORRETO.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`EXECUTANDO ANÁLISE PARA '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('DIAGNÓSTICO BEM-SUCEDIDO! ANOMALIA CLASSIFICADA.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('DIAGNÓSTICO INCORRETO. ERRO NA CLASSIFICAÇÃO.', 'falha');
+        await printTerminal(`Anomalia classificada incorretamente. RECALIBRANDO...`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE SIMULAÇÃO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos diagnósticos! Você acertou ${acertos} de ${maxAmeacas} anomalias.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE ANÁLISE CARDÍACA INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

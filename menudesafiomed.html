@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+   <link rel="icon" type="image/png" href="iconepq.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Portal - Escolha seu desafio de conhecimento. Quiz sobre Atenção Primária da Saúde, Termos Técnicos e Termos Técnicos em Medicina.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Medicina Ciclo Básico Pro</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow-y: auto; /* Permite a rolagem vertical quando o conteúdo excede a altura */
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Centraliza horizontalmente */
+      justify-content: flex-start; /* Alinha o conteúdo ao topo por padrão */
+      min-height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+      position: relative; /* Necessário para posicionamento absoluto/fixo se necessário */
+    }
+
+    /* Estilo do terminal de boas-vindas */
+    #welcome-terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-size: 1.5em;
+      height: 60px; /* Altura fixa para a mensagem de boas-vindas */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #00ff00;
+      text-shadow: 0 0 10px #00ff00;
+      /* Novas propriedades para centralizar na tela */
+      position: fixed; /* Fixa na viewport */
+      top: 50%; /* 50% do topo */
+      left: 50%; /* 50% da esquerda */
+      transform: translate(-50%, -50%); /* Ajusta para centralizar o próprio elemento */
+      width: 100%; /* Ocupa a largura total para centralizar o texto */
+      max-width: 90vw; /* Limita a largura para evitar quebras de linha estranhas em telas muito largas */
+      z-index: 1000; /* Garante que fique acima de outros elementos */
+    }
+
+    /* Estilo geral do conteúdo principal */
+    #main-content {
+      display: none; /* Esconde inicialmente */
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      flex-direction: column;
+      align-items: center;
+      /* Remove justify-content para permitir que o título fique no topo */
+      flex-grow: 1; /* Permite que ocupe o espaço disponível */
+      width: 100%; /* Garante que ocupe a largura total */
+      padding-top: 20px; /* Espaço para o título no topo */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      /* Garante que o H1 vá para o topo do main-content */
+      margin-top: 0;
+    }
+
+    p {
+      font-size: 1.1em;
+      margin-top: 0;
+      margin-bottom: 30px;
+    }
+
+    /* Estilo do contêiner dos botões de quiz */
+    #quiz-selection {
+      display: flex;
+      flex-direction: column; /* Botões em coluna */
+      gap: 20px; /* Espaço entre os botões */
+      width: 80%; /* Largura do contêiner */
+      max-width: 500px; /* Largura máxima para centralizar */
+      padding: 20px;
+      border: 2px solid #00ff00;
+      border-radius: 8px;
+      background-color: #0d0d0d;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+      text-align: center;
+    }
+
+    /* Estilo dos botões de quiz */
+    .quiz-button {
+      padding: 15px 25px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1.2em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+      text-decoration: none; /* Remover sublinhado de link */
+      display: block; /* Ocupa a largura total do contêiner */
+    }
+
+    .quiz-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto; /* Empurra o rodapé para o final da página */
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: middle; /* Ajusta a posição vertical do cursor */
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Media query para telas menores */
+    @media (max-width: 600px) {
+        h1 {
+            font-size: 1.8em;
+        }
+        p {
+            font-size: 1em;
+        }
+        .quiz-button {
+            font-size: 1em;
+            padding: 12px 20px;
+        }
+        #quiz-selection {
+            width: 95%;
+            padding: 15px;
+        }
+        #welcome-terminal {
+            font-size: 1.1em;
+            padding: 0 10px;
+            max-width: 95vw; /* Ajusta para telas menores */
+        }
+    }
+  </style>
+</head>
+<body>
+  <div id="welcome-terminal"></div>
+
+  <div id="main-content">
+    <h1>PenseQuiz Medicina Ciclo Básico Pro</h1>
+    <p>Bem-vindo, Estudantes!!! Selecione um módulo de conhecimento para iniciar o seu desafio.</p>
+
+    <div id="quiz-selection">
+      <a href="atencaoprimaria.html" class="quiz-button">🌱 DESAFIO ATENÇÃO PRIMÁRIA DA SAÚDE</a>
+      <a href="termostecnicos.html" class="quiz-button">🩺 DESAFIO TERMOS TÉCNICOS EM MEDICINA</a>
+      <a href="analiseclinica.html" class="quiz-button">🧪 DESAFIO ANÁLISES CLÍNICAS</a>
+      <a href="anatomia.html" class="quiz-button">🦴 DESAFIO ANATOMIA</a>
+      <a href="bio.html" class="quiz-button">🌿 DESAFIO BIOLOGIA</a>
+      <a href="biofisica.html" class="quiz-button">⚛️ DESAFIO BIOFÍSICA</a>
+      <a href="bioquimica.html" class="quiz-button">🧬 DESAFIO BIOQUÍMICA</a>
+      <a href="casoclinicos.html" class="quiz-button">🧠 DESAFIO CASOS CLÍNICOS</a>
+      <a href="clinicamedica.html" class="quiz-button">🏥 DESAFIO CLÍNICA MÉDICA</a>
+      <a href="ecg.html" class="quiz-button">📈 DESAFIO ECG MÉDICA</a>
+      <a href="embrio.html" class="quiz-button">👶 DESAFIO EMBRIOLOGIA</a>
+      <a href="farma.html" class="quiz-button">💊 DESAFIO FARMACOLOGIA</a>
+      <a href="fisiologia.html" class="quiz-button">💪 DESAFIO FISIOLOGIA</a>
+      <a href="genetica.html" class="quiz-button">🔬 DESAFIO GENÉTICA</a>
+      <a href="histologia.html" class="quiz-button"> DESAFIO HISTOLOGIA</a>
+      <a href="imuno.html" class="quiz-button">🛡️ DESAFIO IMUNOLOGIA</a>
+      <a href="infectologia.html" class="quiz-button">🦠 DESAFIO INFECTOLOGIA</a>
+      <a href="micro.html" class="quiz-button">🦠 DESAFIO MICROBIOLOGIA</a>
+      <a href="parasitologia.html" class="quiz-button">🪱 DESAFIO PARASITOLOGIA</a>
+      <a href="patologia.html" class="quiz-button">💀 DESAFIO PATOLOGIA</a>
+      <a href="suportevida.html" class="quiz-button">❤️‍🩹 DESAFIO SUPORTE BÁSICO À VIDA</a>
+      <a href="sus.html" class="quiz-button">🇧🇷 DESAFIO SISTEMA ÚNICO DE SAÚDE (SUS)</a>
+    </div>
+  </div>
+  
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <script>
+    // Referências aos elementos do DOM
+    const welcomeTerminal = document.getElementById("welcome-terminal");
+    const mainContent = document.getElementById("main-content");
+    
+    // Mensagem de boas-vindas
+    const welcomeMessageText = "INICIANDO SISTEMA CENTRAL. ACESSO PERMITIDO. 🚀";
+    const typingSpeed = 50; // Velocidade da digitação (ms por caractere)
+    const displayTime = 1500; // Tempo que a mensagem fica visível após digitar (ms)
+
+    // Função para simular o efeito de digitação
+    function typeWriterEffect(element, text, speed) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.innerHTML = ''; // Limpa o conteúdo
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan); // Garante que o cursor esteja sempre no final
+            i++;
+            setTimeout(type, speed);
+          } else {
+            // Após digitar tudo, mantém o cursor piscando por um tempo
+            setTimeout(() => {
+                cursorSpan.remove(); // Remove o cursor
+                resolve(); // Resolve a Promise para continuar o fluxo
+            }, displayTime);
+          }
+        }
+        type();
+      });
+    }
+
+    // Função principal para iniciar o portal
+    async function startPortal() {
+      // Inicia a digitação da mensagem de boas-vindas
+      await typeWriterEffect(welcomeTerminal, welcomeMessageText, typingSpeed);
+      
+      // Oculta o terminal de boas-vindas e revela o conteúdo principal
+      welcomeTerminal.style.opacity = '0';
+      welcomeTerminal.style.transition = 'opacity 0.5s ease-out';
+
+      setTimeout(() => {
+        welcomeTerminal.style.display = 'none'; // Remove o terminal de boas-vindas do fluxo
+        mainContent.style.display = 'flex'; // Mostra o conteúdo principal
+        setTimeout(() => {
+          mainContent.style.opacity = '1'; // Faz o fade-in do conteúdo principal
+          // Garante que o body não esteja mais centralizando verticalmente todo o conteúdo
+          // Isso é importante para que o título fique no topo
+          document.body.style.justifyContent = 'flex-start'; 
+        }, 50); // Pequeno delay para garantir que o display:flex seja aplicado antes do opacity
+      }, 500); // Espera um pouco para a transição de opacidade do welcomeTerminal
+    }
+
+    // Inicia o portal ao carregar a página
+    window.onload = startPortal;
+
+    // Service Worker (mantido o comentário sobre o protocolo)
+    /*
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js') // Certifique-se que o path está correto se você tiver um sw.js
+          .then(reg => console.log('Service Worker registrado com sucesso:', reg))
+          .catch(error => console.error('Falha ao registrar o Service Worker:', error));
+      });
+    }
+    */
+  </script>
+</body>
+</html>

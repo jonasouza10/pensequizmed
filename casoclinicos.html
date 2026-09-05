@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Casos Clínicos - Um quiz para testar seu raciocínio clínico e diagnóstico.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Casos Clínicos</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Casos Clínicos</h1>
+  <p>Aplique seu raciocínio médico para desvendar diagnósticos! 🧠</p>
+
+  <div id="terminal">[SISTEMA DE DIAGNÓSTICO CLÍNICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🩺 Casos restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR CASOS CLÍNICOS</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE DIAGNÓSTICO CLÍNICO</h2>
+      <p>Bem-vindo, Doutor(a)! Este simulador foi desenvolvido para aprimorar suas habilidades de raciocínio clínico e diagnóstico diferencial.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Analisar cenários de casos clínicos com dados de anamnese, exame físico e, por vezes, exames complementares.</li>
+        <li>Formular o diagnóstico mais provável ou a conduta mais adequada com base nas informações apresentadas.</li>
+        <li>Desenvolver sua capacidade de integração de informações e tomada de decisão clínica.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará um "Caso Clínico" no terminal.</li>
+        <li><strong>Análise:</strong> Leia o caso e os dados do paciente ("SCAN") cuidadosamente. Identifique sintomas, sinais e dados relevantes.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções. Clique na opção que você considera o diagnóstico mais provável ou a conduta mais indicada.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada, e uma breve justificativa será fornecida.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de casos restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todos os casos tiverem sido processados.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A prática leva à excelência no raciocínio clínico. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Casos Clínicos foram elaboradas com base em conhecimentos médicos gerais e princípios de raciocínio clínico. As informações apresentadas são para fins educacionais e não devem ser usadas como substituto de aconselhamento médico profissional ou diagnóstico.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica:</p>
+      <ul>
+        <li>**LIVRO:** Harrison's Principles of Internal Medicine [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Cecil Textbook of Medicine / Goldman's Cecil Medicine [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Robbins Basic Pathology / Robbins and Cotran Pathologic Basis of Disease [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**GUIAS CLÍNICOS:** Diretrizes e consensos de sociedades médicas (ex: AMB, CFM, sociedades de especialidade).</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos originais e revisões sistemáticas publicados em periódicos médicos revisados por pares.</li>
+        <li>**PLATAFORMAS EDUCAÇÃO MÉDICA:** Recursos online confiáveis para educação médica continuada (ex: UpToDate, Medscape, NEJM).</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos, o estudo da fisiopatologia e a experiência clínica supervisionada.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Homem 65a, tabagista, dor toracica retroesternal intensa irradiando para braco esquerdo, sudorese e nauseas ha 30 min.",
+    "correta": "Infarto Agudo do Miocardio",
+    "texto": "Dor tipica + fatores de risco = SCA ate prova em contrario. ECG e troponina urgentes.",
+    "ameaca": "CASO: DOR TORACICA EM TABAGISTA",
+    "alternativas": [
+      "Crise de ansiedade",
+      "Refluxo",
+      "Panico",
+      "Infarto Agudo do Miocardio"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, febre alta, calafrios, tosse produtiva amarelada, dor pleuritica. Crepitacoes em base direita.",
+    "correta": "Pneumonia",
+    "texto": "Febre + tosse produtiva + crepitacoes = pneumonia. Confirmar com RX torax.",
+    "ameaca": "CASO: FEBRE E TOSSE PRODUTIVA",
+    "alternativas": [
+      "Resfriado",
+      "Bronquite alergica",
+      "Asma",
+      "Pneumonia"
+    ]
+  },
+  {
+    "inimigo": "Crianca 5a, febre 39C, rigidez de nuca, fotofobia, vomitos, irritabilidade e sonolencia.",
+    "correta": "Meningite",
+    "texto": "Sinais meningeos + febre = emergencia. Punção lombar apos TC se indicado.",
+    "ameaca": "CASO: FEBRE E RIGIDEZ DE NUCA",
+    "alternativas": [
+      "Gripe",
+      "Encefalite",
+      "Caxumba",
+      "Meningite"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, DM2 mal controlado, polidipsia, poliuria, perda de peso, visao turva.",
+    "correta": "Hiperglicemia descompensada",
+    "texto": "Sintomas classicos de hiperglicemia. Avaliar cetoacidose ou estado hiperosmolar.",
+    "ameaca": "CASO: DIABETICO COM POLIURIA",
+    "alternativas": [
+      "ITU",
+      "Hipotireoidismo",
+      "IRC",
+      "Hiperglicemia descompensada"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, dor abdominal QID intensa ha 12h, nauseas, vomitos, Blumberg positivo.",
+    "correta": "Apendicite aguda",
+    "texto": "Dor migratoria para FID + Blumberg = apendicite. Avaliar cirurgia.",
+    "ameaca": "CASO: DOR EM FID",
+    "alternativas": [
+      "Gastroenterite",
+      "Cisto ovariano",
+      "ITU",
+      "Apendicite aguda"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, HAS e FA, sudita dificuldade de falar, desvio de comissura, hemiparesia direita.",
+    "correta": "AVE (AVC)",
+    "texto": "Deficit neurologico focal sudito + FA = AVC isquemico ate prova em contrario. Janela trombolise.",
+    "ameaca": "CASO: DEFICIT NEUROLOGICO SUDITO",
+    "alternativas": [
+      "Convulsao",
+      "Enxaqueca",
+      "Hipotensao",
+      "AVE (AVC)"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, perda de peso, sudorese noturna, tosse com hemoptise, febre baixa >3 sem. RX com cavitacao apical.",
+    "correta": "Tuberculose pulmonar",
+    "texto": "Sindrome consuptiva + hemoptise + cavitacao apical = TB. Isolar e investigar BAAR.",
+    "ameaca": "CASO: TOSSE CRONICA E HEMOPTISE",
+    "alternativas": [
+      "Bronquite cronica",
+      "Cancer de pulmao",
+      "Asma",
+      "Tuberculose pulmonar"
+    ]
+  },
+  {
+    "inimigo": "Mulher 55a, calculos biliares, dor intensa em hipocondrio D apos refeicao gordurosa, nauseas, febre.",
+    "correta": "Colecistite aguda",
+    "texto": "Dor em HD pos-prandial + febre em colelitiase = colecistite. USG e cirurgia.",
+    "ameaca": "CASO: DOR EM HD POS-PRANDIAL",
+    "alternativas": [
+      "Pancreatite",
+      "Ulcera",
+      "Gastroenterite",
+      "Colecistite aguda"
+    ]
+  },
+  {
+    "inimigo": "RN 3 dias, ictericia precoce e progressiva, bilirrubina indireta muito elevada.",
+    "correta": "Ictericia neonatal patologica",
+    "texto": "Ictericia <24h ou progressao rapida = patologica. Investigar hemolise.",
+    "ameaca": "CASO: ICTERICIA PRECOCE EM RN",
+    "alternativas": [
+      "Fisiologica",
+      "Atresia biliar",
+      "Gilbert",
+      "Ictericia neonatal patologica"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, drogas injetaveis, febre, calafrios, sopro novo, nodulos de Osler.",
+    "correta": "Endocardite infecciosa",
+    "texto": "Febre + sopro novo + fenomenos embolicos em usuario de drogas = endocardite. Hemoculturas e Eco.",
+    "ameaca": "CASO: FEBRE E SOPRO EM USUARIO DE DROGAS",
+    "alternativas": [
+      "Gripe",
+      "Miocardite",
+      "Pericardite",
+      "Endocardite infecciosa"
+    ]
+  },
+  {
+    "inimigo": "Mulher 22a, dor em baixo ventre, corrimento, febre baixa, dor a mobilizacao do colo.",
+    "correta": "Doenca inflamatoria pelvica",
+    "texto": "Cervicite + dor pelvica + febre = DIP. Tratar cobrindo gonococo e clamídia.",
+    "ameaca": "CASO: DOR PELVICA E CORRIMENTO",
+    "alternativas": [
+      "Cistite",
+      "Apendicite",
+      "Endometriose",
+      "Doenca inflamatoria pelvica"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, dor em faixa no epigastrio irradiando para dorso, nauseas, apos bebida alcoolica. Lipase elevada.",
+    "correta": "Pancreatite aguda",
+    "texto": "Dor em cinta + lipase elevada + alcool = pancreatite. Jejum, hidratacao, analgesia.",
+    "ameaca": "CASO: DOR EPIGASTRICA E LIPASE ALTA",
+    "alternativas": [
+      "Ulcera perfurada",
+      "IAM inferior",
+      "Colecistite",
+      "Pancreatite aguda"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, dispneia sudita, dor toracica pleuritica, taquicardia, uso de ACO e viagem longa.",
+    "correta": "Tromboembolismo pulmonar",
+    "texto": "Fatores de risco + dispneia sudita + dor pleuritica = TEP. D-dimero/angioTC.",
+    "ameaca": "CASO: DISPNEIA SUDITA E ACO",
+    "alternativas": [
+      "Pneumonia",
+      "Pneumotorax",
+      "Ansiedade",
+      "Tromboembolismo pulmonar"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, edema de MMII, dispneia aos esforcos, ortopneia, crepitacoes bibasais, B3.",
+    "correta": "Insuficiencia cardiaca congestiva",
+    "texto": "Congestao + disfuncao cardiaca = ICC. Rx, BNP, ecocardiograma.",
+    "ameaca": "CASO: DISPNEIA E EDEMA",
+    "alternativas": [
+      "DPOC",
+      "Cirrose",
+      "Sindrome nefrotica",
+      "Insuficiencia cardiaca congestiva"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, oliguria, edema, HAS, urina escura apos faringite ha 2 semanas.",
+    "correta": "Glomerulonefrite pos-estreptococica",
+    "texto": "Sindrome nefritica apos infeccao estreptococica. Complemento baixo, ASO.",
+    "ameaca": "CASO: OLIGURIA E URINA ESCURA",
+    "alternativas": [
+      "ITU",
+      "Sindrome nefrotica",
+      "Pielonefrite",
+      "Glomerulonefrite pos-estreptococica"
+    ]
+  },
+  {
+    "inimigo": "Crianca 2a, diarreia aquosa ha 3 dias, vomitos, olhos fundos, turgor diminuido.",
+    "correta": "Desidratacao por gastroenterite",
+    "texto": "Sinais de desidratacao + diarreia = reidratacao oral ou EV conforme gravidade.",
+    "ameaca": "CASO: DIARREIA E DESIDRATAÇÃO",
+    "alternativas": [
+      "Intolerancia a lactose",
+      "Apendicite",
+      "Invaginacao",
+      "Desidratacao por gastroenterite"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, hematemese e melena, historia de ulcera e uso de AINE. PA 90x60, FC 120.",
+    "correta": "Hemorragia digestiva alta com choque",
+    "texto": "Sangramento GI + instabilidade = reanimacao, IBP EV, endoscopia urgente.",
+    "ameaca": "CASO: HEMATEMESE E CHOQUE",
+    "alternativas": [
+      "Hemorroida",
+      "Cancer colon",
+      "Ulcera sem sangramento",
+      "Hemorragia digestiva alta com choque"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, confusao mental, febre, disuria. Sem rigidez de nuca.",
+    "correta": "Infeccao urinaria complicada / bacteremia",
+    "texto": "Idoso com confusao + disuria = ITU ate prova em contrario. Urocultura e antibiotico.",
+    "ameaca": "CASO: CONFUSAO E DISURIA EM IDOSA",
+    "alternativas": [
+      "AVC",
+      "Meningite",
+      "Demencia",
+      "Infeccao urinaria complicada / bacteremia"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, dor lombar intensa irradiando para regiao inguinal, hematuria, inquietacao.",
+    "correta": "Colica nefretica (calculo ureteral)",
+    "texto": "Dor em cólica + hematuria + inquietacao = litíase. Analgesia e imagem.",
+    "ameaca": "CASO: DOR LOMBAR EM COLICA",
+    "alternativas": [
+      "Pielonefrite",
+      "Aneurisma Aorta",
+      "Hérnia de disco",
+      "Colica nefretica (calculo ureteral)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 32a, prurido intenso nas palmas e plantas, ictericia no 3o trimestre da gestacao.",
+    "correta": "Colestase intra-hepatica da gravidez",
+    "texto": "Prurido palmoplantar + ictericia no 3o trimestre. Acidos biliares, obstetra.",
+    "ameaca": "CASO: PRURIDO NA GESTACAO",
+    "alternativas": [
+      "Hepatite viral",
+      "Pre-eclampsia",
+      "Dermatite",
+      "Colestase intra-hepatica da gravidez"
+    ]
+  },
+  {
+    "inimigo": "Homem 28a, febre, mialgia, cefaleia, dor retrocular, petequias em MMII apos viagem a area endemica.",
+    "correta": "Dengue",
+    "texto": "Febre + dor retrocular + petequias + epidemiologia = dengue. Hemograma e hidratacao.",
+    "ameaca": "CASO: FEBRE E PETEQUIAS POS-VIAGEM",
+    "alternativas": [
+      "Malaria",
+      "Zika",
+      "Chikungunya",
+      "Dengue"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, tremor fino, perda de peso, intolerancia ao calor, taquicardia, bocio difuso.",
+    "correta": "Hipertireoidismo (Graves)",
+    "texto": "Sintomas de hipermetabolismo + bocio = hipertireoidismo. TSH baixo, T4 alto.",
+    "ameaca": "CASO: TREMOR E PERDA DE PESO",
+    "alternativas": [
+      "Ansiedade",
+      "Diabetes",
+      "Feocromocitoma",
+      "Hipertireoidismo (Graves)"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, fadiga, ganho de peso, intolerancia ao frio, pele seca, bradircardia, macroglossia.",
+    "correta": "Hipotireoidismo",
+    "texto": "Sintomas de hipometabolismo. TSH alto, T4 livre baixo.",
+    "ameaca": "CASO: FADIGA E INTOLERANCIA AO FRIO",
+    "alternativas": [
+      "Depressao",
+      "ICC",
+      "Anemia",
+      "Hipotireoidismo"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, poliartrite simetrica de pequenas articulacoes, rigidez matinal >1h, fator reumatoide positivo.",
+    "correta": "Artrite reumatoide",
+    "texto": "Poliartrite simetrica + rigidez matinal prolongada = AR. Anti-CCP, metotrexato.",
+    "ameaca": "CASO: POLIARTRITE SIMETRICA",
+    "alternativas": [
+      "Osteoartrite",
+      "Lupus",
+      "Gota",
+      "Artrite reumatoide"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, dor em podagra (1a metatarsofalangeana), hiperuricemia, tofo no olecrano.",
+    "correta": "Gota (artrite gotosa)",
+    "texto": "Podagra + hiperuricemia = gota. Colchicina/AINE na crise; alopurinol depois.",
+    "ameaca": "CASO: DOR NO HALUX",
+    "alternativas": [
+      "Celulite",
+      "Fratura",
+      "Osteoartrite",
+      "Gota (artrite gotosa)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, rash malar, fotossensibilidade, artrite, proteinúria, ANA positivo.",
+    "correta": "Lupus eritematoso sistemico",
+    "texto": "Criterios clinicos + ANA = LES. Anti-dsDNA, complemento, hidroxi-cloroquina.",
+    "ameaca": "CASO: RASH MALAR E ARTRITE",
+    "alternativas": [
+      "Rosacea",
+      "Dermatomiosite",
+      "Psoriase",
+      "Lupus eritematoso sistemico"
+    ]
+  },
+  {
+    "inimigo": "Homem 65a, claudicacao intermitente, dor em panturrilha ao caminhar que melhora com repouso. Tabagista.",
+    "correta": "Doenca arterial periferica",
+    "texto": "Claudicacao + tabagismo = DAP. ITB, antiagregante, estatina, parar de fumar.",
+    "ameaca": "CASO: CLAUDICACAO INTERMITENTE",
+    "alternativas": [
+      "TVP",
+      "Neuropatia",
+      "Estenose espinhal",
+      "Doenca arterial periferica"
+    ]
+  },
+  {
+    "inimigo": "Mulher 45a, edema assimetrico de panturrilha, dor, cordao palpavel, Homans positivo apos cirurgia.",
+    "correta": "Trombose venosa profunda",
+    "texto": "Edema assimetrico + fatores de risco = TVP. Doppler e anticoagulacao.",
+    "ameaca": "CASO: EDEMA ASSIMETRICO DE PANTURRILHA",
+    "alternativas": [
+      "Celulite",
+      "Insuficiencia venosa",
+      "Ruptura de cisto Baker",
+      "Trombose venosa profunda"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, dor toracica lancinante irradiando para as costas, assimetria de PA nos bracos, HAS.",
+    "correta": "Sindrome aortica aguda (disseccao)",
+    "texto": "Dor lancinante + assimetria de PA = disseccao. AngioTC urgente, controle de PA.",
+    "ameaca": "CASO: DOR TORACICA LANCINANTE",
+    "alternativas": [
+      "IAM",
+      "TEP",
+      "Pneumotorax",
+      "Sindrome aortica aguda (disseccao)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 20a, crise de sibilancia, dispneia, uso de musculatura acessoria, historia de asma.",
+    "correta": "Crise asmatica",
+    "texto": "Sibilos + dispneia em asmatico = crise. Beta-agonista, corticóide, O2.",
+    "ameaca": "CASO: SIBILOS E DISPNEIA",
+    "alternativas": [
+      "TEP",
+      "ICC",
+      "Pneumonia",
+      "Crise asmatica"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, tabagista, dispneia progressiva, tosse cronica, torax em tonel, sibilos e roncos.",
+    "correta": "DPOC",
+    "texto": "Tabagismo + sintomas cronicos = DPOC. Espirometria, broncodilatadores.",
+    "ameaca": "CASO: DISPNEIA CRONICA EM TABAGISTA",
+    "alternativas": [
+      "Asma",
+      "ICC",
+      "Fibrose",
+      "DPOC"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, diarreia cronica, emagrecimento, anemia ferropriva, anti-transglutaminase positivo.",
+    "correta": "Doenca celiaca",
+    "texto": "Diarreia + malabsorcao + sorologia = celíaca. Dieta sem gluten, biopsia.",
+    "ameaca": "CASO: DIARREIA CRONICA E ANEMIA",
+    "alternativas": [
+      "IBS",
+      "Crohn",
+      "Intolerancia lactose",
+      "Doenca celiaca"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, diarreia com sangue, dor abdominal, perda de peso, jovem. Colonoscopia com ulceras continuas no reto.",
+    "correta": "Retocolite ulcerativa",
+    "texto": "Colite continua a partir do reto em jovem = RCU. Corticóide, 5-ASA.",
+    "ameaca": "CASO: DIARREIA SANGUINOLENTA",
+    "alternativas": [
+      "Infecciosa",
+      "Crohn",
+      "Hemorroida",
+      "Retocolite ulcerativa"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, dor em QID recorrente, diarreia, fistula perianal, aftoides orais.",
+    "correta": "Doenca de Crohn",
+    "texto": "Envolvimento transmural + fistulas + aftoides = Crohn. Imunossupressao.",
+    "ameaca": "CASO: DIARREIA E FISTULA",
+    "alternativas": [
+      "RCU",
+      "Apendicite cronica",
+      "IBS",
+      "Doenca de Crohn"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, ascite, ictericia, eritema palmar, varizes esofagicas, alcoolismo cronico.",
+    "correta": "Cirrose hepatica",
+    "texto": "Estigmas de hepatopatia cronica + ascite = cirrose. USG, endoscopia, tratamento da causa.",
+    "ameaca": "CASO: ASCITE E ICTERICIA",
+    "alternativas": [
+      "ICC direita",
+      "Sindrome nefrotica",
+      "Peritonite",
+      "Cirrose hepatica"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, cefaleia intensa, pior cefaleia da vida, rigidez de nuca, sem febre.",
+    "correta": "Hemorragia subaracnoidea",
+    "texto": "Pior cefaleia da vida + meningismo = HSA. TC e punção se necessario.",
+    "ameaca": "CASO: PIOR CEFALEIA DA VIDA",
+    "alternativas": [
+      "Enxaqueca",
+      "Meningite",
+      "Sinusite",
+      "Hemorragia subaracnoidea"
+    ]
+  },
+  {
+    "inimigo": "Homem 35a, crises de cefaleia unilateral pulsatil com nauseas e fotofobia, aura visual.",
+    "correta": "Enxaqueca",
+    "texto": "Cefaleia pulsatil + nauseas + fotofobia +/- aura = migranea. Triptanos, profilaxia.",
+    "ameaca": "CASO: CEFALEIA PULSATIL COM AURA",
+    "alternativas": [
+      "Cefaleia tensional",
+      "Cluster",
+      "AVC",
+      "Enxaqueca"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, dor orbital intensa unilateral ha 30 min, lacrimejamento, rinorreia, agitado.",
+    "correta": "Cefaleia em salvas (cluster)",
+    "texto": "Dor orbital breve + sinais autonomicos + agitacao = cluster. Oxigenio, triptano.",
+    "ameaca": "CASO: DOR ORBITAL COM LACRIMEJAMENTO",
+    "alternativas": [
+      "Enxaqueca",
+      "Sinusite",
+      "Glaucoma",
+      "Cefaleia em salvas (cluster)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 60a, perda de visao monocular transitoria (amaurose fugaz), sopro carotideo.",
+    "correta": "AIT / estenose carotidea",
+    "texto": "Amaurose fugaz = AIT. Doppler de carotidas, antiagregante, investigacao.",
+    "ameaca": "CASO: AMAEROSE FUGAZ",
+    "alternativas": [
+      "Enxaqueca",
+      "Glaucoma",
+      "Descolamento de retina",
+      "AIT / estenose carotidea"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, febre, tosse, confusao, sat O2 88%, RX com consolidacao. Idoso institucionalizado.",
+    "correta": "Pneumonia adquirida na comunidade grave",
+    "texto": "CRB-65/CURB-65 elevado. Internar, antibiotico, O2.",
+    "ameaca": "CASO: PNEUMONIA EM IDOSO",
+    "alternativas": [
+      "Resfriado",
+      "TB",
+      "ICC",
+      "Pneumonia adquirida na comunidade grave"
+    ]
+  },
+  {
+    "inimigo": "Mulher 22a, polidipsia, poliuria, perda de peso, hálito cetônico, glicemia 450, pH 7,2.",
+    "correta": "Cetoacidose diabetica",
+    "texto": "Hiperglicemia + acidose + cetonas em jovem = CAD. Soro, insulina, potassio.",
+    "ameaca": "CASO: GLICEMIA ALTA E ACIDOSE",
+    "alternativas": [
+      "Estado hiperosmolar",
+      "Hipoglicemia",
+      "Sepse",
+      "Cetoacidose diabetica"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, DM2, glicemia 800, desidratacao grave, sem cetose significativa, confusao.",
+    "correta": "Estado hiperosmolar hiperglicemico",
+    "texto": "Hiperglicemia extrema + hiperosmolaridade sem cetose em idoso. Hidratacao cuidadosa.",
+    "ameaca": "CASO: GLICEMIA MUITO ALTA SEM CETOSE",
+    "alternativas": [
+      "CAD",
+      "AVC",
+      "Uremia",
+      "Estado hiperosmolar hiperglicemico"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, tremor, sudorese, confusao, DM1 em uso de insulina, glicemia 40.",
+    "correta": "Hipoglicemia",
+    "texto": "Sintomas neuroglicopenicos + glicemia baixa. Glicose oral ou EV.",
+    "ameaca": "CASO: TREMOR E GLICEMIA BAIXA",
+    "alternativas": [
+      "Crise convulsiva",
+      "Ansiedade",
+      "AVC",
+      "Hipoglicemia"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, dor toracica tipica, ECG com supra de ST em DII, DIII, aVF.",
+    "correta": "IAM com supra de ST de parede inferior",
+    "texto": "Supra em inferior = oclusao tipicamente de coronaria direita. Reperfusao urgente.",
+    "ameaca": "CASO: SUPRA DE ST INFERIOR",
+    "alternativas": [
+      "Pericardite",
+      "TEP",
+      "Angina instavel",
+      "IAM com supra de ST de parede inferior"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, dor toracica que melhora sentada e piora deitada, atrito pericardico, supra difuso.",
+    "correta": "Pericardite aguda",
+    "texto": "Dor posicional + atrito + supra difuso = pericardite. AINE, colchicina.",
+    "ameaca": "CASO: DOR TORACICA POSICIONAL",
+    "alternativas": [
+      "IAM",
+      "TEP",
+      "Refluxo",
+      "Pericardite aguda"
+    ]
+  },
+  {
+    "inimigo": "Homem 30a, alto, magro, dor toracica sudita e dispneia. Hiper-ressonancia e MV abolido a D.",
+    "correta": "Pneumotorax espontaneo",
+    "texto": "Jovem alto + abolicao de MV = pneumotorax. RX e drenagem se necessario.",
+    "ameaca": "CASO: DOR TORACICA E MV ABOLIDO",
+    "alternativas": [
+      "TEP",
+      "Pneumonia",
+      "Derrame pleural",
+      "Pneumotorax espontaneo"
+    ]
+  },
+  {
+    "inimigo": "Mulher 50a, asma grave, uso excessivo de beta-agonista, agora silêncio pulmonar e confusao.",
+    "correta": "Status asmaticus / falencia respiratoria iminente",
+    "texto": "Silencio pulmonar = gravidade extrema. O2, beta-agonista continuo, corticóide, UTI.",
+    "ameaca": "CASO: SILENCIO PULMONAR EM ASMATICA",
+    "alternativas": [
+      "Melhora da crise",
+      "TEP",
+      "Pneumotorax",
+      "Status asmaticus / falencia respiratoria iminente"
+    ]
+  },
+  {
+    "inimigo": "Homem 65a, hematuria indolor, tabagista, massa vesical na cistoscopia.",
+    "correta": "Cancer de bexiga",
+    "texto": "Hematuria indolor em tabagista = investigar neoplasia urotelial.",
+    "ameaca": "CASO: HEMATURIA INDOLOR",
+    "alternativas": [
+      "ITU",
+      "Calculo",
+      "Glomerulonefrite",
+      "Cancer de bexiga"
+    ]
+  },
+  {
+    "inimigo": "Mulher 55a, nódulo tireoidiano unico, frio na cintilografia, punção com celulas atipicas.",
+    "correta": "Neoplasia de tireoide (suspeita)",
+    "texto": "Nodulo frio + citologia atipica = cirurgia e estadiamento.",
+    "ameaca": "CASO: NODULO TIREOIDIANO FRIO",
+    "alternativas": [
+      "Bocio difuso",
+      "Cisto benigno",
+      "Tireoidite",
+      "Neoplasia de tireoide (suspeita)"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, ictericia progressiva indolor, acolia, coluria, perda de peso. Massa em cabeca de pancreas.",
+    "correta": "Cancer de cabeca de pancreas",
+    "texto": "Ictericia indolor + acolia + massa pancreatica = neoplasia. TC e bilirrubina.",
+    "ameaca": "CASO: ICTERICIA INDOLOR",
+    "alternativas": [
+      "Hepatite",
+      "Calculo coledociano",
+      "Cirrose",
+      "Cancer de cabeca de pancreas"
+    ]
+  },
+  {
+    "inimigo": "Mulher 45a, anemia ferropriva, sangue oculto positivo, colonoscopia com lesao em colon direito.",
+    "correta": "Cancer colorretal",
+    "texto": "Anemia ferropriva + sangue oculto = investigar colon. Estadiamento e cirurgia.",
+    "ameaca": "CASO: ANEMIA E SANGUE OCULTO",
+    "alternativas": [
+      "Hemorroida",
+      "Ulcera",
+      "Doenca celiaca",
+      "Cancer colorretal"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, sintomas urinarios obstrutivos, PSA elevado, nodulo prostatico ao toque.",
+    "correta": "Cancer de prostata (suspeita)",
+    "texto": "PSA elevado + toque anormal = biopsia. Estadiamento.",
+    "ameaca": "CASO: PSA ELEVADO E NODULO",
+    "alternativas": [
+      "HPB",
+      "Prostatite",
+      "ITU",
+      "Cancer de prostata (suspeita)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, amenorreia secundaria, galactorreia, cefaleia, campo visual alterado.",
+    "correta": "Prolactinoma",
+    "texto": "Amenorreia + galactorreia + prolactin a alta = micro/macroprolactinoma. RM e cabergolina.",
+    "ameaca": "CASO: AMENORREIA E GALACTORREIA",
+    "alternativas": [
+      "Gravidez",
+      "Hipotireoidismo",
+      "SOP",
+      "Prolactinoma"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, ginecomastia, pequenos testiculos, infertilidade, cariotipo XXY.",
+    "correta": "Sindrome de Klinefelter",
+    "texto": "Hipogonadismo hipergonadotrófico + XXY = Klinefelter. Testosterona.",
+    "ameaca": "CASO: GINECOMASTIA E INFERTILIDADE",
+    "alternativas": [
+      "Cirrose",
+      "Tumor testicular",
+      "Obesidade",
+      "Sindrome de Klinefelter"
+    ]
+  },
+  {
+    "inimigo": "Mulher 18a, obesidade, hirsutismo, acne, ciclos irregulares, ovarios micropoliquisticos.",
+    "correta": "Sindrome dos ovarios policisticos",
+    "texto": "Hiperandrogenismo + anovulacao + morfologia = SOP. Metformina, anticoncepcional.",
+    "ameaca": "CASO: HIRSUTISMO E CICLOS IRREGULARES",
+    "alternativas": [
+      "Cushing",
+      "Congenital adrenal",
+      "Tumor ovariano",
+      "Sindrome dos ovarios policisticos"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, fraqueza proximal, estrias violaceas, hipertensao, glicemia alta, face em lua cheia.",
+    "correta": "Sindrome de Cushing",
+    "texto": "Fenotipo cushingóide. Cortisol livre urinario / supressao com dexametasona.",
+    "ameaca": "CASO: ESTRIAS E FACE EM LUA",
+    "alternativas": [
+      "Obesidade simples",
+      "Hipotireoidismo",
+      "Acromegalia",
+      "Sindrome de Cushing"
+    ]
+  },
+  {
+    "inimigo": "Mulher 50a, crises de cefaleia, palpitações, sudorese, HAS paroxistica.",
+    "correta": "Feocromocitoma",
+    "texto": "Triade + HAS paroxistica. Metanefrinas, imagem de adrenal.",
+    "ameaca": "CASO: HAS PAROXISTICA E SUDORESE",
+    "alternativas": [
+      "Panic attack",
+      "Hipertireoidismo",
+      "Carcinoide",
+      "Feocromocitoma"
+    ]
+  },
+  {
+    "inimigo": "Homem 35a, polidipsia e poliuria com urina diluida, sodio alto, apos cirurgia hipofisaria.",
+    "correta": "Diabetes insipidus",
+    "texto": "Poliuria hipotônica pos-cirurgia hipofisaria = DI. Desmopressina.",
+    "ameaca": "CASO: POLIURIA POS-CIRURGIA HIPOFISARIA",
+    "alternativas": [
+      "DM",
+      "ITU",
+      "IRC",
+      "Diabetes insipidus"
+    ]
+  },
+  {
+    "inimigo": "Mulher 60a, tetania, formigamento perioral, QT longo, pos-tireoidectomia.",
+    "correta": "Hipocalcemia (hipoparatireoidismo)",
+    "texto": "Pos-tireoidectomia + tetania = hipopara. Calcio EV e calcitriol.",
+    "ameaca": "CASO: TETANIA POS-TIREOIDECTOMIA",
+    "alternativas": [
+      "Hipomagnesemia isolada",
+      "AVC",
+      "Ansiedade",
+      "Hipocalcemia (hipoparatireoidismo)"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, dor ossea, calculos renais, constipacao, calcio alto, PTH alto.",
+    "correta": "Hiperparatireoidismo primario",
+    "texto": "Pedras, ossos, gemidos, psychiatric overtones. Paratireoidectomia se indicado.",
+    "ameaca": "CASO: HIPERCALCEMIA E PTH ALTO",
+    "alternativas": [
+      "Metastase ossea",
+      "Mieloma",
+      "Sarcoidose",
+      "Hiperparatireoidismo primario"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, anemia, dor ossea, proteinúria de Bence-Jones, pico monoclonal.",
+    "correta": "Mieloma multiplo",
+    "texto": "CRAB + pico monoclonal = mieloma. Eletroforese, biopsia de medula.",
+    "ameaca": "CASO: ANEMIA E PICO MONOCLONAL",
+    "alternativas": [
+      "MGUS",
+      "Linfoma",
+      "Metastase",
+      "Mieloma multiplo"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, linfonodomegalia cervical indolora, febre, sudorese noturna, perda de peso. Biopsia com celulas de Reed-Sternberg.",
+    "correta": "Linfoma de Hodgkin",
+    "texto": "Sintomas B + Reed-Sternberg = Hodgkin. Estadiamento e quimio.",
+    "ameaca": "CASO: LINFONODO E REED-STERNBERG",
+    "alternativas": [
+      "TB",
+      "HIV",
+      "Linfoma nao-Hodgkin",
+      "Linfoma de Hodgkin"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, petequias, epistaxe, plaquetas 8.000, resto do hemograma normal.",
+    "correta": "Púrpura trombocitopenica imunologica (PTI)",
+    "texto": "Trombocitopenia isolada = PTI. Corticóide, imunoglobulina se grave.",
+    "ameaca": "CASO: PLAQUETAS MUITO BAIXAS",
+    "alternativas": [
+      "Leucemia",
+      "Aplasia",
+      "SHU",
+      "Púrpura trombocitopenica imunologica (PTI)"
+    ]
+  },
+  {
+    "inimigo": "Crianca 5a, apos gastroenterite, oliguria, anemia hemolitica, plaquetopenia, creatinina alta.",
+    "correta": "Sindrome hemolitico-uremica",
+    "texto": "Triade apos diarreia = SHU (E. coli STEC). Suporte, dialise se necessario.",
+    "ameaca": "CASO: ANEMIA E INSUFICIENCIA RENAL POS-DIARREIA",
+    "alternativas": [
+      "PTI",
+      "PTI trombotica",
+      "Sepse",
+      "Sindrome hemolitico-uremica"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, febre, anemia hemolitica, plaquetopenia, confusao, creatinina alta. Esquizocitos.",
+    "correta": "Púrpura trombocitopenica trombotica (PTT)",
+    "texto": "Pentade + esquizocitos = PTT. Plasmaferese urgente.",
+    "ameaca": "CASO: ESQUIZOCITOS E CONFUSAO",
+    "alternativas": [
+      "SHU",
+      "CIVD",
+      "Malaria",
+      "Púrpura trombocitopenica trombotica (PTT)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, gravida, PA 160/100, proteinúria, edema, cefaleia.",
+    "correta": "Pre-eclampsia",
+    "texto": "HAS + proteinúria apos 20 semanas = pre-eclampsia. Sulfato de Mg se grave, resolucao = parto.",
+    "ameaca": "CASO: HAS NA GRAVIDEZ",
+    "alternativas": [
+      "HAS cronica",
+      "Eclampsia",
+      "HELLP",
+      "Pre-eclampsia"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, gravida, convulsas, hiperreflexia, PA alta.",
+    "correta": "Eclampsia",
+    "texto": "Convulsao + pre-eclampsia = eclampsia. MgSO4 e parto.",
+    "ameaca": "CASO: CONVULSAO NA GRAVIDEZ",
+    "alternativas": [
+      "Epilepsia",
+      "AVC",
+      "Hipoglicemia",
+      "Eclampsia"
+    ]
+  },
+  {
+    "inimigo": "Mulher 32a, gravida, dor em HD, nauseas, plaquetas baixas, AST alta, hemolise.",
+    "correta": "Sindrome HELLP",
+    "texto": "Hemolise + enzimas hepaticas + plaquetopenia = HELLP. Estabilizar e resolver gestacao.",
+    "ameaca": "CASO: HEMOLISE E PLAQUETOPENIA NA GRAVIDEZ",
+    "alternativas": [
+      "Pre-eclampsia leve",
+      "Hepatite",
+      "PTI",
+      "Sindrome HELLP"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, febre, ictericia, dor em HD, historia de calculo biliar.",
+    "correta": "Colangite aguda",
+    "texto": "Triade de Charcot = colangite. Antibiotico e descompressao biliar.",
+    "ameaca": "CASO: FEBRE ICTERICIA E DOR EM HD",
+    "alternativas": [
+      "Colecistite",
+      "Hepatite",
+      "Pancreatite",
+      "Colangite aguda"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, dor em HD, febre, massa palpavel, historia de calculos. Sinal de Murphy positivo.",
+    "correta": "Colecistite aguda",
+    "texto": "Murphy + + febre + calculos = colecistite. USG, antibiotico, colecistectomia.",
+    "ameaca": "CASO: MURPHY POSITIVO",
+    "alternativas": [
+      "Apendicite",
+      "Ulcera",
+      "Pancreatite",
+      "Colecistite aguda"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, dor abdominal difusa, distensao, ausencia de eliminacao de gases e fezes, niveis hidroaéreos.",
+    "correta": "Obstrucao intestinal",
+    "texto": "Parada de eliminacao + niveis = obstrucao. SNG, soro, cirurgia se estrangulamento.",
+    "ameaca": "CASO: DISTENSAO E PARADA DE ELIMINACAO",
+    "alternativas": [
+      "Ileo paralitico",
+      "Gastroenterite",
+      "Apendicite",
+      "Obstrucao intestinal"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, dor abdominal desproporcional ao exame, FA, acidose lactica.",
+    "correta": "Isquemia mesenterica",
+    "texto": "Dor desproporcional + FA + lactato = isquemia. AngioTC e cirurgia/vascular.",
+    "ameaca": "CASO: DOR DESPROPORCIONAL E FA",
+    "alternativas": [
+      "Pancreatite",
+      "Ulcera",
+      "Apendicite",
+      "Isquemia mesenterica"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, trauma abdominal, instabilidade hemodinamica, liquido livre no FAST.",
+    "correta": "Hemoperitonio / trauma abdominal com sangramento",
+    "texto": "FAST positivo + choque = laparotomia de emergencia.",
+    "ameaca": "CASO: TRAUMA E FAST POSITIVO",
+    "alternativas": [
+      "Contusao simples",
+      "Pneumoperitonio isolado",
+      "Lesao pequen a",
+      "Hemoperitonio / trauma abdominal com sangramento"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, trauma craniano, dilatacao pupilar unilateral, queda do nivel de consciencia.",
+    "correta": "Herniacao uncal / hematoma intracraniano",
+    "texto": "Sinais de herniacao = manitol/solucao hipertonica e neurocirurgia urgente.",
+    "ameaca": "CASO: PUPILA DILATADA POS-TRAUMA",
+    "alternativas": [
+      "Intoxicacao",
+      "AVC isquemico",
+      "Convulsao",
+      "Herniacao uncal / hematoma intracraniano"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, queimadura em 40% da SC, via aerea com fuligem, rouquidao.",
+    "correta": "Queimadura grave com risco de via aerea",
+    "texto": "Inalacao + area extensa = intubacao precoce, Parkland, UTI de queimados.",
+    "ameaca": "CASO: QUEIMADURA EXTENSA E FULIGEM",
+    "alternativas": [
+      "Queimadura superficial",
+      "Apenas cutanea",
+      "Sem risco",
+      "Queimadura grave com risco de via aerea"
+    ]
+  },
+  {
+    "inimigo": "Mulher 50a, picada de cobra, equimose progressiva, coagulopatia, dor local intensa.",
+    "correta": "Acidente ofidico botrópico",
+    "texto": "Sinais locais + coagulopatia = Bothrops. Soro antibotropico.",
+    "ameaca": "CASO: PICADA DE COBRA E COAGULOPATIA",
+    "alternativas": [
+      "Cascavel",
+      "Coral",
+      "Aranha",
+      "Acidente ofidico botrópico"
+    ]
+  },
+  {
+    "inimigo": "Homem 30a, afogamento em agua doce, agora dispneia e crepitacoes.",
+    "correta": "Lesao pulmonar pos-afogamento",
+    "texto": "Aspiracao + edema = suporte ventilatorio e O2. Observar 24h.",
+    "ameaca": "CASO: DISPNEIA POS-AFOGAMENTO",
+    "alternativas": [
+      "TEP",
+      "Pneumonia imediata",
+      "Asma",
+      "Lesao pulmonar pos-afogamento"
+    ]
+  },
+  {
+    "inimigo": "Mulher 22a, tentativa de suicidio com paracetamol ha 12h. Assintomatica agora.",
+    "correta": "Intoxicacao por paracetamol",
+    "texto": "Janela para N-acetilcisteina. Dosar nivel e tratar conforme nomograma.",
+    "ameaca": "CASO: INGESTAO DE PARACETAMOL",
+    "alternativas": [
+      "Sem risco apos 12h",
+      "Apenas suporte",
+      "Lavagem apenas",
+      "Intoxicacao por paracetamol"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, intoxicacao por organofosforado, sialorreia, miose, broncorreia, bradicardia.",
+    "correta": "Sindrome colinergica / organofosforado",
+    "texto": "DUMBBELS. Atropina e pralidoxima, descontaminacao.",
+    "ameaca": "CASO: MIOSE E BRADICARDIA POS-EXPOSICAO",
+    "alternativas": [
+      "Simpaticomimetico",
+      "Anticolinergico",
+      "Opioide",
+      "Sindrome colinergica / organofosforado"
+    ]
+  },
+  {
+    "inimigo": "Mulher 60a, uso de opioide, miose puntiforme, depressao respiratoria, coma.",
+    "correta": "Intoxicacao por opioide",
+    "texto": "Triade classica. Naloxona e suporte ventilatorio.",
+    "ameaca": "CASO: MIOSE E COMA",
+    "alternativas": [
+      "Benzodiazepinico",
+      "Anticolinergico",
+      "Simpaticomimetico",
+      "Intoxicacao por opioide"
+    ]
+  },
+  {
+    "inimigo": "Homem 35a, agitacao, midriase, taquicardia, hipertermia, pele seca apos droga.",
+    "correta": "Sindrome anticolinergica",
+    "texto": "Mad as a hatter, hot as a hare, dry as a bone. Suporte, benzodiazepinico, fisostigmina se grave.",
+    "ameaca": "CASO: AGITACAO E PELE SECA",
+    "alternativas": [
+      "Simpaticomimetico",
+      "Colinergico",
+      "Opioide",
+      "Sindrome anticolinergica"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, febre, rigidez muscular, alteracao mental apos antipsicotico.",
+    "correta": "Sindrome neuroleptica maligna",
+    "texto": "Rigidez + febre + antipsicotico = SNM. Suspender droga, resfriar, dantrolene/bromocriptina.",
+    "ameaca": "CASO: RIGIDEZ E FEBRE POS-ANTIPSICOTICO",
+    "alternativas": [
+      "Sindrome serotoninergica",
+      "Meningite",
+      "Golpe de calor",
+      "Sindrome neuroleptica maligna"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, hiperreflexia, clonus, agitacao, febre apos ISRS + tramadol.",
+    "correta": "Sindrome serotoninergica",
+    "texto": "Clonus + hiperreflexia + serotonérgicos = SS. Suspender, benzodiazepinico, ciproheptadina.",
+    "ameaca": "CASO: CLONUS E ISRS",
+    "alternativas": [
+      "SNM",
+      "Meningite",
+      "Abstinencia",
+      "Sindrome serotoninergica"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, síncope ao se levantar, PA 80x50, FC 40, ECG com BAV total.",
+    "correta": "Bloqueio atrioventricular total",
+    "texto": "BAV 3o grau com instabilidade = atropina e marcapasso.",
+    "ameaca": "CASO: SINCOPE E FC 40",
+    "alternativas": [
+      "Vasovagal",
+      "TEP",
+      "IAM sem bloqueio",
+      "Bloqueio atrioventricular total"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, FA cronica sem anticoagulante, deficit neurologico sudito.",
+    "correta": "AVC cardioembolico",
+    "texto": "FA sem anticoag + deficit sudito = AVC embolico. Janela e imagem.",
+    "ameaca": "CASO: FA E DEFICIT SUDITO",
+    "alternativas": [
+      "AIT sem causa",
+      "Convulsao",
+      "Tumor",
+      "AVC cardioembolico"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, dor toracica, supra difuso, PR deprimido, pos-viral.",
+    "correta": "Pericardite aguda",
+    "texto": "Supra difuso + PR deprimido pos-viral = pericardite.",
+    "ameaca": "CASO: SUPRA DIFUSO POS-VIRAL",
+    "alternativas": [
+      "IAM",
+      "Miocardite isolada",
+      "TEP",
+      "Pericardite aguda"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, uso de ACO, dispneia e dor pleuritica apos viagem de aviao.",
+    "correta": "TEP",
+    "texto": "ACO + viagem + dispneia = TEP ate prova em contrario.",
+    "ameaca": "CASO: DISPNEIA POS-VIAGEM",
+    "alternativas": [
+      "Pneumonia",
+      "Ansiedade",
+      "Pneumotorax",
+      "TEP"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, edema unilateral de MMII, cordao palpavel, pos-cirurgia ortopedica.",
+    "correta": "TVP",
+    "texto": "Edema unilateral pos-op = TVP. Doppler e anticoagulacao.",
+    "ameaca": "CASO: EDEMA UNILATERAL POS-OP",
+    "alternativas": [
+      "Celulite",
+      "Linfedema",
+      "Insuficiencia venosa",
+      "TVP"
+    ]
+  },
+  {
+    "inimigo": "Crianca 3a, estridor, febre, toxemia, posicao de tripode.",
+    "correta": "Epiglotite",
+    "texto": "Tripode + toxemia = epiglotite. Nao examinar garganta, via aerea, antibiotico.",
+    "ameaca": "CASO: ESTRIDOR E TOXEMIA",
+    "alternativas": [
+      "Crupe",
+      "Corpo estranho",
+      "Asma",
+      "Epiglotite"
+    ]
+  },
+  {
+    "inimigo": "Crianca 2a, latido de cachorro, estridor, sem toxemia, melhora com ar frio.",
+    "correta": "Crupe viral",
+    "texto": "Latido + estridor sem toxemia = crupe. Corticoide nebulizado.",
+    "ameaca": "CASO: LATIDO E ESTRIDOR",
+    "alternativas": [
+      "Epiglotite",
+      "Asma",
+      "Corpo estranho",
+      "Crupe viral"
+    ]
+  },
+  {
+    "inimigo": "Lactente 6m, crise de choro, palidez, fezes em geleia de morango.",
+    "correta": "Invaginacao intestinal",
+    "texto": "Choro intermitente + fezes em geleia = invaginacao. USG e enema.",
+    "ameaca": "CASO: FEZES EM GELEIA DE MORANGO",
+    "alternativas": [
+      "Gastroenterite",
+      "Apendicite",
+      "Hernia",
+      "Invaginacao intestinal"
+    ]
+  },
+  {
+    "inimigo": "RN, vomitos biliosos, distensao, falha de rotacao intestinal na historia.",
+    "correta": "Volvulo / ma-rotacao",
+    "texto": "Vomito bilioso em RN = emergencia cirurgica.",
+    "ameaca": "CASO: VOMITO BILIOSO EM RN",
+    "alternativas": [
+      "Refluxo",
+      "Estenose pilorica",
+      "Gastroenterite",
+      "Volvulo / ma-rotacao"
+    ]
+  },
+  {
+    "inimigo": "Lactente 3 sem, vomitos em jato nao biliosos, massa em oliva no epigastrio.",
+    "correta": "Estenose hipertrofica do piloro",
+    "texto": "Jato + oliva = piloro. USG e piloromiotomia.",
+    "ameaca": "CASO: VOMITO EM JATO E OLIVA",
+    "alternativas": [
+      "Refluxo",
+      "Volvulo",
+      "Alergia ao leite",
+      "Estenose hipertrofica do piloro"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, febre, tosse, consolidacao, alcoolista, escarro em geleia de groselha.",
+    "correta": "Pneumonia por Klebsiella",
+    "texto": "Alcoolista + escarro em geleia = Klebsiella. Antibiotico abrangente.",
+    "ameaca": "CASO: ESCARRO EM GELEIA DE GROSELHA",
+    "alternativas": [
+      "Pneumococica",
+      "TB",
+      "Abscesso",
+      "Pneumonia por Klebsiella"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, tosse seca, dispneia, infiltrado intersticial, HIV com CD4 baixo.",
+    "correta": "Pneumocystis jirovecii",
+    "texto": "HIV + CD4 baixo + intersticial = PCP. TMP-SMX e corticóide se hipoxemia.",
+    "ameaca": "CASO: INFILTRADO EM HIV",
+    "alternativas": [
+      "TB",
+      "Bacteriana",
+      "Kaposi",
+      "Pneumocystis jirovecii"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, diarreia cronica, perda de peso, CD4 50, cistos no exame de fezes.",
+    "correta": "Criptosporidiose / infeccao oportunista",
+    "texto": "CD4 muito baixo + diarreia = oportunista. HAART e suporte.",
+    "ameaca": "CASO: DIARREIA EM AIDS",
+    "alternativas": [
+      "IBS",
+      "Celíaca",
+      "Crohn",
+      "Criptosporidiose / infeccao oportunista"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, artrite, uretrite, uveíte apos diarreia ou DST.",
+    "correta": "Artrite reativa",
+    "texto": "Triade de Reiter. Tratar infeccao de base e AINE.",
+    "ameaca": "CASO: ARTRITE E URETRITE",
+    "alternativas": [
+      "AR",
+      "Gota",
+      "LES",
+      "Artrite reativa"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, dor lombar, claudicacao de marcha que melhora ao inclinar para frente.",
+    "correta": "Estenose de canal lombar",
+    "texto": "Claudicacao neurogenica. RM e fisioterapia/cirurgia.",
+    "ameaca": "CASO: CLAUDICACAO QUE MELHORA AO INCLINAR",
+    "alternativas": [
+      "DAP",
+      "Hérnia de disco",
+      "Metastase",
+      "Estenose de canal lombar"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, dor cervical irradiando para braco, formigamento em dedos, sinal de Spurling.",
+    "correta": "Radiculopatia cervical",
+    "texto": "Dor + dermatomo + Spurling. Fisioterapia, analgesia, RM se deficit.",
+    "ameaca": "CASO: DOR CERVICAL COM IRRADIACAO",
+    "alternativas": [
+      "Torcicolo",
+      "IAM",
+      "TEP",
+      "Radiculopatia cervical"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, queda, dor em quadril, encurtamento e rotacao externa do membro.",
+    "correta": "Fratura de femur proximal",
+    "texto": "Encurtamento + rotacao externa = fratura de quadril. RX e ortopedia.",
+    "ameaca": "CASO: QUEDA E ROTACAO EXTERNA",
+    "alternativas": [
+      "Contusao",
+      "Luxacao posterior",
+      "Fratura de pelve isolada",
+      "Fratura de femur proximal"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, trauma de joelho, estalo, edema, instabilidade em gaveta anterior.",
+    "correta": "Ruptura de LCA",
+    "texto": "Estalo + gaveta anterior = LCA. RM e ortopedia.",
+    "ameaca": "CASO: ESTALO NO JOELHO",
+    "alternativas": [
+      "Menisco apenas",
+      "LCM",
+      "Fratura",
+      "Ruptura de LCA"
+    ]
+  },
+  {
+    "inimigo": "Homem 30a, dor no calcaneo matinal, pior primeiros passos, atleta.",
+    "correta": "Fascite plantar",
+    "texto": "Dor matinal no calcaneo. Alongamento, palmilha, anti-inflamatorio.",
+    "ameaca": "CASO: DOR MATINAL NO CALCANEO",
+    "alternativas": [
+      "Espora sem fascite",
+      "Tendinite de Aquiles",
+      "Fratura de estresse",
+      "Fascite plantar"
+    ]
+  },
+  {
+    "inimigo": "Mulher 55a, dor em polegar na base, Finkelstein positivo.",
+    "correta": "Tenossinovite de De Quervain",
+    "texto": "Finkelstein +. Tala e AINE.",
+    "ameaca": "CASO: DOR NA BASE DO POLEGAR",
+    "alternativas": [
+      "Rizartrose",
+      "Tunel do carpo",
+      "Fratura de escafoide",
+      "Tenossinovite de De Quervain"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, formigamento em 1-3 dedos, piora a noite, Tinel e Phalen positivos.",
+    "correta": "Sindrome do tunel do carpo",
+    "texto": "Distribuicao mediana + testes positivos. Tala noturna, eletroforca se necessario.",
+    "ameaca": "CASO: FORMIGAMENTO NOTURNO NAS MAOS",
+    "alternativas": [
+      "Cervical",
+      "Neuropatia ulnar",
+      "AVC",
+      "Sindrome do tunel do carpo"
+    ]
+  },
+  {
+    "inimigo": "Mulher 60a, dor em ombro, limitacao de elevacao, arco doloroso.",
+    "correta": "Sindrome do impacto / manguito rotador",
+    "texto": "Arco doloroso. Fisioterapia e analgesia.",
+    "ameaca": "CASO: ARCO DOLOROSO NO OMBRO",
+    "alternativas": [
+      "Luxacao",
+      "Fratura",
+      "IAM referido",
+      "Sindrome do impacto / manguito rotador"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, HASresistente a 3 drogas, sopro abdominal, assimetria de tamanho renal.",
+    "correta": "Estenose de arteria renal",
+    "texto": "HAS resistente + sopro = estenose. Doppler/angio e nefrologista.",
+    "ameaca": "CASO: HAS RESISTENTE E SOPRO",
+    "alternativas": [
+      "Hiperaldosteronismo",
+      "Feocromocitoma",
+      "Cushing",
+      "Estenose de arteria renal"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, HAS, hipocalemia, adenoma adrenal.",
+    "correta": "Hiperaldosteronismo primario (Conn)",
+    "texto": "HAS + hipoK + adenoma = Conn. Espironolactona ou cirurgia.",
+    "ameaca": "CASO: HAS E HIPOCALEMIA",
+    "alternativas": [
+      "Essencial",
+      "Renovascular",
+      "Cushing",
+      "Hiperaldosteronismo primario (Conn)"
+    ]
+  },
+  {
+    "inimigo": "Homem 35a, febre de origem indeterminada, sopro, hemoculturas positivas, vegetacao no Eco.",
+    "correta": "Endocardite infecciosa",
+    "texto": "Duke criteria. Antibiotico prolongado e cirurgia se indicado.",
+    "ameaca": "CASO: FEBRE E VEGETACAO",
+    "alternativas": [
+      "Miocardite",
+      "Febre reumatica",
+      "TEP septico isolado",
+      "Endocardite infecciosa"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, coreia, cardite, eritema marginado apos faringite estreptococica.",
+    "correta": "Febre reumatica",
+    "texto": "Criterios de Jones. Penicilina e AAS/corticoide.",
+    "ameaca": "CASO: COREIA POS-FARINGITE",
+    "alternativas": [
+      "LES",
+      "Coreia de Huntington",
+      "AVC",
+      "Febre reumatica"
+    ]
+  },
+  {
+    "inimigo": "Homem 20a, uretrite, artrite, uveíte, HLA-B27.",
+    "correta": "Artrite reativa / espondiloartrite",
+    "texto": "Triade + B27. AINE e tratar infeccao.",
+    "ameaca": "CASO: URETRITE E ARTRITE",
+    "alternativas": [
+      "AR",
+      "Gota",
+      "LES",
+      "Artrite reativa / espondiloartrite"
+    ]
+  },
+  {
+    "inimigo": "Mulher 50a, dor lombar inflamatoria, rigidez matinal, sacroiliite, HLA-B27.",
+    "correta": "Espondilite anquilosante",
+    "texto": "Lombalgia inflamatoria + sacroiliite = EA. AINE, anti-TNF se refratario.",
+    "ameaca": "CASO: LOMBALGIA INFLAMATORIA",
+    "alternativas": [
+      "Mecanica",
+      "Hernia",
+      "Metastase",
+      "Espondilite anquilosante"
+    ]
+  },
+  {
+    "inimigo": "Homem 65a, claudicacao de mandibula, cefaleia temporal, VHS alto, risco de cegueira.",
+    "correta": "Arterite temporal (celulas gigantes)",
+    "texto": "VHS alto + sintomas = corticóide imediato e biopsia.",
+    "ameaca": "CASO: CLAUDICACAO DE MANDIBULA",
+    "alternativas": [
+      "Enxaqueca",
+      "AVC",
+      "Sinusite",
+      "Arterite temporal (celulas gigantes)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, livedo, abortos de repeticao, trombose, anticoagulante lupico.",
+    "correta": "Sindrome antifosfolipide",
+    "texto": "Trombose + abortos + anticorpos = SAF. Anticoagulacao.",
+    "ameaca": "CASO: ABORTOS E TROMBOSE",
+    "alternativas": [
+      "LES isolado",
+      "Trombofilia genetica apenas",
+      "Causa desconhecida",
+      "Sindrome antifosfolipide"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, tosse cronica, sinusite, hematuria, c-ANCA positivo.",
+    "correta": "Granulomatose com poliangiite (Wegener)",
+    "texto": "Via aerea + rim + c-ANCA = GPA. Imunossupressao.",
+    "ameaca": "CASO: TOSSE E HEMATURIA COM ANCA",
+    "alternativas": [
+      "TB",
+      "Goodpasture",
+      "LES",
+      "Granulomatose com poliangiite (Wegener)"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, hemoptise, hematuria, anti-MBG positivo.",
+    "correta": "Sindrome de Goodpasture",
+    "texto": "Pulmao + rim + anti-MBG = Goodpasture. Plasmaferese e imunossupressao.",
+    "ameaca": "CASO: HEMOPTISE E HEMATURIA",
+    "alternativas": [
+      "Wegener",
+      "LES",
+      "TB",
+      "Sindrome de Goodpasture"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, ascite, elevacao de CA-125, mesotelioma ou carcinomatose.",
+    "correta": "Carcinomatose peritoneal / neoplasia",
+    "texto": "Ascite maligna. Citologia e estadiamento oncologico.",
+    "ameaca": "CASO: ASCITE E CA-125",
+    "alternativas": [
+      "Cirrose",
+      "ICC",
+      "TB peritoneal",
+      "Carcinomatose peritoneal / neoplasia"
+    ]
+  },
+  {
+    "inimigo": "Mulher 60a, linfonodo supraclavicular esquerdo (Virchow), perda de peso, dispepsia.",
+    "correta": "Cancer gastrico (suspeita)",
+    "texto": "Nodulo de Virchow = metastase. Endoscopia urgente.",
+    "ameaca": "CASO: NODULO DE VIRCHOW",
+    "alternativas": [
+      "Linfoma",
+      "TB",
+      "Tireoide",
+      "Cancer gastrico (suspeita)"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, disfagia progressiva a solidos e depois liquidos, perda de peso, tabagista.",
+    "correta": "Cancer de esofago",
+    "texto": "Disfagia progressiva = endoscopia. Estadiamento.",
+    "ameaca": "CASO: DISFAGIA PROGRESSIVA",
+    "alternativas": [
+      "Acalasia",
+      "Estenose benigna",
+      "Globus",
+      "Cancer de esofago"
+    ]
+  },
+  {
+    "inimigo": "Mulher 45a, disfagia a liquidos e solidos, regurgitacao, pico de pressao no EIE.",
+    "correta": "Acalasia",
+    "texto": "Disfagia a liquidos = acalasia. Manometria e dilatacao/miotomia.",
+    "ameaca": "CASO: DISFAGIA A LIQUIDOS",
+    "alternativas": [
+      "Cancer",
+      "Estenose",
+      "DRGE",
+      "Acalasia"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, pirose, regurgitacao, alivio com IBP, Barrett na endoscopia.",
+    "correta": "DRGE com esôfago de Barrett",
+    "texto": "Barrett = vigilancia de adenocarcinoma.",
+    "ameaca": "CASO: PIROSE E BARRETT",
+    "alternativas": [
+      "Ulcera",
+      "Cancer avancado",
+      "Acalasia",
+      "DRGE com esôfago de Barrett"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, diarreia, flush, lesao cardiaca direita, tumor carcinoide.",
+    "correta": "Sindrome carcinoide",
+    "texto": "Flush + diarreia + tumor neuroendocrino. Octreotide e cirurgia.",
+    "ameaca": "CASO: FLUSH E DIARREIA",
+    "alternativas": [
+      "Menopausa",
+      "Feocromocitoma",
+      "Alergia",
+      "Sindrome carcinoide"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, anemia, glossite, neuropatia, B12 baixa, anticorpos anti-FI.",
+    "correta": "Anemia perniciosa",
+    "texto": "B12 baixa + anti-FI = perniciosa. B12 parenteral.",
+    "ameaca": "CASO: ANEMIA E NEUROPATIA",
+    "alternativas": [
+      "Ferropriva",
+      "Talassemia",
+      "Aplasia",
+      "Anemia perniciosa"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, anemia, ictericia, esplenomegalia, esferocitos, Coombs negativo.",
+    "correta": "Esferocitose hereditaria",
+    "texto": "Esferocitos + Coombs - = hereditaria. Esplenectomia se grave.",
+    "ameaca": "CASO: ESFEROCITOS E COOMBS NEGATIVO",
+    "alternativas": [
+      "AHAI",
+      "G6PD",
+      "Drepanocitose",
+      "Esferocitose hereditaria"
+    ]
+  },
+  {
+    "inimigo": "Homem 20a, crise hemolitica apos primaquina, G6PD baixo.",
+    "correta": "Deficiencia de G6PD",
+    "texto": "Hemolise induzida por oxidante. Evitar gatilhos.",
+    "ameaca": "CASO: HEMOLISE POS-PRIMAQUINA",
+    "alternativas": [
+      "AHAI",
+      "Esferocitose",
+      "PTT",
+      "Deficiencia de G6PD"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, anemia falciforme, dor intensa em ossos, febre.",
+    "correta": "Crise vaso-oclusiva",
+    "texto": "Dor em falciforme = crise. Analgesia, hidratacao, O2.",
+    "ameaca": "CASO: DOR EM FALCIFORME",
+    "alternativas": [
+      "Osteomielite apenas",
+      "AVC",
+      "Sequestro",
+      "Crise vaso-oclusiva"
+    ]
+  },
+  {
+    "inimigo": "Crianca falciforme, palidez sudita, choque, bacinete grande.",
+    "correta": "Sequestro esplênico",
+    "texto": "Queda de Hb + esplenomegalia = sequestro. Transfusao e esplenectomia futura.",
+    "ameaca": "CASO: CHOQUE EM FALCIFORME",
+    "alternativas": [
+      "Crise dolorosa",
+      "Aplasia",
+      "Infeccao",
+      "Sequestro esplênico"
+    ]
+  },
+  {
+    "inimigo": "Homem 58a, HAS, dispneia progressiva, ortopneia, estertores bibasais, B3.",
+    "correta": "Insuficiencia cardiaca esquerda",
+    "texto": "Sinais de congestao pulmonar + B3 = ICC esquerda. BNP e ecocardiograma.",
+    "ameaca": "CASO: DISPNÉIA E ORTOPNEIA",
+    "alternativas": [
+      "DPOC isolada",
+      "Pneumonia",
+      "Insuficiencia cardiaca esquerda",
+      "TEP cronico"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, edema de MMII, turgencia jugular, hepatomegalia, ascite.",
+    "correta": "Insuficiencia cardiaca direita",
+    "texto": "Sinais de congestao sistemica = ICC direita (ou global).",
+    "ameaca": "CASO: EDEMA E TURGENCIA JUGULAR",
+    "alternativas": [
+      "Cirrose isolada",
+      "Sindrome nefrotica",
+      "Insuficiencia cardiaca direita",
+      "Hipotireoidismo"
+    ]
+  },
+  {
+    "inimigo": "Homem 62a, dor toracica em aperto ao esforco, alivia com repouso, ECG com depressao de ST ao esforco.",
+    "correta": "Angina estavel",
+    "texto": "Dor previsivel ao esforco = angina estavel. Teste ergometrico / cateterismo conforme risco.",
+    "ameaca": "CASO: DOR TORACICA AO ESFORCO",
+    "alternativas": [
+      "IAM com supra",
+      "Angina instavel",
+      "Angina estavel",
+      "Pericardite"
+    ]
+  },
+  {
+    "inimigo": "Mulher 55a, dor toracica em repouso, crescente, troponina normal, ECG com alteracoes dinamicas.",
+    "correta": "Angina instavel / SCA sem supra",
+    "texto": "Dor em repouso + ECG dinamico = SCA. Antiagregante, anticoagular, estrategia invasiva.",
+    "ameaca": "CASO: DOR TORACICA EM REPOUSO",
+    "alternativas": [
+      "Angina estavel",
+      "Ansiedade",
+      "Angina instavel / SCA sem supra",
+      "DRGE"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, dor toracica pleuritica, alivia sentado inclinado, atrito pericardico, ST difuso.",
+    "correta": "Pericardite aguda",
+    "texto": "Dor posicional + atrito + ST difuso = pericardite. AINE ± colchicina.",
+    "ameaca": "CASO: DOR PLEURITICA E ATRITO",
+    "alternativas": [
+      "IAM",
+      "TEP",
+      "Pericardite aguda",
+      "Pneumonia"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, dispneia subita, dor toracica, taquicardia, imobilizacao recente, D-dimer elevado.",
+    "correta": "Tromboembolismo pulmonar",
+    "texto": "Fatores de risco + dispneia subita = TEP. AngioTC se estavel.",
+    "ameaca": "CASO: DISPNÉIA SUBITA POS-IMOBILIZACAO",
+    "alternativas": [
+      "Pneumonia",
+      "IAM",
+      "Tromboembolismo pulmonar",
+      "Crise de panico"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, sibilancia, dispneia, uso de musculatura acessoria, PEF baixo, historia de asma.",
+    "correta": "Crise asmatica",
+    "texto": "Obstrucao reversivel. Salbutamol, corticoide, O2 se hipoxemia.",
+    "ameaca": "CASO: SIBILANCIA E DISPNÉIA",
+    "alternativas": [
+      "DPOC exacerbacao",
+      "TEP",
+      "Crise asmatica",
+      "ICC"
+    ]
+  },
+  {
+    "inimigo": "Mulher 68a, tabagista, dispneia cronica, torax em barril, sibilos, VEF1/CVF <0,7.",
+    "correta": "DPOC",
+    "texto": "Obstrucao fixa + tabagismo = DPOC. Broncodilatadores e cessacao.",
+    "ameaca": "CASO: DISPNÉIA CRONICA EM TABAGISTA",
+    "alternativas": [
+      "Asma",
+      "Fibrose pulmonar",
+      "DPOC",
+      "ICC isolada"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, febre, tosse com escarro enferrujado, consolidacao lobar no RX.",
+    "correta": "Pneumonia pneumococica",
+    "texto": "Escarro enferrujado + consolidacao = pneumococo. Beta-lactamico.",
+    "ameaca": "CASO: ESCARRO ENFERRUJADO",
+    "alternativas": [
+      "TB",
+      "Cancer",
+      "Pneumonia pneumococica",
+      "Bronquite"
+    ]
+  },
+  {
+    "inimigo": "Mulher 32a, tosse ha 3 semanas, sudorese noturna, perda de peso, infiltrado apical.",
+    "correta": "Tuberculose pulmonar",
+    "texto": "Sintomas constitucionais + apical = TB. BAAR e cultura.",
+    "ameaca": "CASO: TOSSE E SUDORESE NOTURNA",
+    "alternativas": [
+      "Pneumonia comunitária",
+      "Cancer",
+      "Tuberculose pulmonar",
+      "Asma"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, hemoptise, hematuria, anti-MBG positivo.",
+    "correta": "Sindrome de Goodpasture",
+    "texto": "Pulmao + rim + anti-MBG. Plasmaferese e imunossupressao.",
+    "ameaca": "CASO: HEMOPTISE E HEMATURIA",
+    "alternativas": [
+      "Wegener",
+      "LES",
+      "Sindrome de Goodpasture",
+      "TB"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, tosse, sinusite, hematuria, c-ANCA+.",
+    "correta": "Granulomatose com poliangiite",
+    "texto": "Via aerea superior + rim + c-ANCA = GPA.",
+    "ameaca": "CASO: SINUSITE E HEMATURIA",
+    "alternativas": [
+      "Goodpasture",
+      "TB",
+      "Granulomatose com poliangiite",
+      "Sarcoidose"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, linfonodomegalia cervical, febre, sudorese, perda de peso, biopsia com celulas de Reed-Sternberg.",
+    "correta": "Linfoma de Hodgkin",
+    "texto": "RS + sintomas B = Hodgkin. Estadiamento e quimio.",
+    "ameaca": "CASO: LINFONODO E CELULAS DE RS",
+    "alternativas": [
+      "Linfoma nao-Hodgkin",
+      "TB",
+      "Linfoma de Hodgkin",
+      "Metastase"
+    ]
+  },
+  {
+    "inimigo": "Mulher 55a, fadiga, palidez, petechiae, blastos no sangue periferico.",
+    "correta": "Leucemia aguda",
+    "texto": "Blasto + citopenias = leucemia aguda. Mielograma urgente.",
+    "ameaca": "CASO: BLASTOS NO PERIFERICO",
+    "alternativas": [
+      "Anemia ferropiva",
+      "ITP isolada",
+      "Leucemia aguda",
+      "Linfoma"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, anemia, dor ossea, pico monoclonal IgG, lesoes liticas.",
+    "correta": "Mieloma multiplo",
+    "texto": "CRAB + paraproteina = mieloma. Hematologista.",
+    "ameaca": "CASO: LESOES LITICAS E PICO MONOCLONAL",
+    "alternativas": [
+      "Metastase prostatica",
+      "Hiperparatireoidismo",
+      "Mieloma multiplo",
+      "Osteoporose"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, sangramento gengival, petequias, plaquetas 8.000, medula normal.",
+    "correta": "PTI (purpura trombocitopenica imune)",
+    "texto": "Plaquetopenia isolada = PTI. Corticoide se sangramento.",
+    "ameaca": "CASO: PLAQUETOPENIA ISOLADA",
+    "alternativas": [
+      "PTT",
+      "CIVD",
+      "PTI (purpura trombocitopenica imune)",
+      "Aplasia"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, febre, anemia hemolitica, plaquetopenia, esquizocitos, creatinina alta.",
+    "correta": "PTT (purpura trombocitopenica trombotica)",
+    "texto": "Pentade incompleta + ADAMTS13. Plasmaferese urgente.",
+    "ameaca": "CASO: ESQUIZOCITOS E PLAQUETOPENIA",
+    "alternativas": [
+      "PTI",
+      "SHU isolado",
+      "PTT (purpura trombocitopenica trombotica)",
+      "CIVD"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, apos parto, sangramento, plaquetopenia, TP/TTPa alongados, D-dimer alto, fibrinogenio baixo.",
+    "correta": "CIVD",
+    "texto": "Consumo de fatores + fibrinólise. Tratar causa e suporte.",
+    "ameaca": "CASO: COAGULOPATIA POS-PARTO",
+    "alternativas": [
+      "PTI",
+      "PTT",
+      "CIVD",
+      "Hemofilia"
+    ]
+  },
+  {
+    "inimigo": "Homem 22a, hemartrose apos trauma minimo, fator VIII baixo.",
+    "correta": "Hemofilia A",
+    "texto": "Hemartrose + FVIII baixo. Fator e profilaxia.",
+    "ameaca": "CASO: HEMARTROSE",
+    "alternativas": [
+      "Hemofilia B",
+      "von Willebrand",
+      "Hemofilia A",
+      "PTI"
+    ]
+  },
+  {
+    "inimigo": "Mulher 18a, menorragia, epistaxe, fator de von Willebrand baixo.",
+    "correta": "Doenca de von Willebrand",
+    "texto": "Sangramento mucoso + VWF baixo. DDAVP ou concentrado.",
+    "ameaca": "CASO: MENORRAGIA E EPISTAXE",
+    "alternativas": [
+      "Hemofilia A",
+      "PTI",
+      "Doenca de von Willebrand",
+      "CIVD"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, ictericia, coluria, acolia, FA e GGT muito altas, dilatacao de vias biliares.",
+    "correta": "Icterícia obstrutiva",
+    "texto": "Padrao colestatico + dilatacao = obstrucao. USG e colangioRM/CPRE.",
+    "ameaca": "CASO: ICTERICIA E ACOLIA",
+    "alternativas": [
+      "Hepatite viral",
+      "Hemólise",
+      "Icterícia obstrutiva",
+      "Sindrome de Gilbert"
+    ]
+  },
+  {
+    "inimigo": "Mulher 45a, fadiga, prurido, FA alta, AMA positivo.",
+    "correta": "Cirrose biliar primaria / colangite biliar primaria",
+    "texto": "Prurido + AMA = CBP. Ursodesoxicolico.",
+    "ameaca": "CASO: PRURIDO E AMA",
+    "alternativas": [
+      "Colangite esclerosante",
+      "Hepatite autoimune",
+      "Cirrose biliar primaria / colangite biliar primaria",
+      "Obstrucao por calculo"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, alcoolista, ascite, aranhas vasculares, albumina baixa, INR alto.",
+    "correta": "Cirrose hepatica descompensada",
+    "texto": "Estigmas + ascite = cirrose. Paracentese e tratamento da causa.",
+    "ameaca": "CASO: ASCITE EM ALCOOLISTA",
+    "alternativas": [
+      "ICC isolada",
+      "Sindrome nefrotica",
+      "Cirrose hepatica descompensada",
+      "TB peritoneal"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, febre, dor em QSD, Murphy positivo, leucocitose.",
+    "correta": "Colecistite aguda",
+    "texto": "Murphy + = colecistite. USG e cirurgia.",
+    "ameaca": "CASO: MURPHY POSITIVO",
+    "alternativas": [
+      "Apendicite",
+      "Hepatite",
+      "Colecistite aguda",
+      "Pancreatite"
+    ]
+  },
+  {
+    "inimigo": "Homem 48a, dor em cinta, nauseas, lipasemia 5x o normal, alcoolismo.",
+    "correta": "Pancreatite aguda",
+    "texto": "Dor + lipase = pancreatite. Hidratacao e suporte.",
+    "ameaca": "CASO: DOR EM CINTA E LIPASE",
+    "alternativas": [
+      "Colecistite",
+      "Ulcera perfurada",
+      "Pancreatite aguda",
+      "IAM inferior"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, epigastralgia em queimacao, alivia com antiacido, H. pylori positivo.",
+    "correta": "Dispepsia / ulcera peptica por H. pylori",
+    "texto": "Erradicar H. pylori e IBP.",
+    "ameaca": "CASO: EPIGASTRALGIA E H. PYLORI",
+    "alternativas": [
+      "Cancer gastrico",
+      "Pancreatite",
+      "Dispepsia / ulcera peptica por H. pylori",
+      "IAM"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, disfagia progressiva a solidos, perda de peso, tabagista/etilista.",
+    "correta": "Cancer de esofago (suspeita)",
+    "texto": "Disfagia progressiva = endoscopia urgente.",
+    "ameaca": "CASO: DISFAGIA PROGRESSIVA",
+    "alternativas": [
+      "Acalasia",
+      "Estenose benigna",
+      "Cancer de esofago (suspeita)",
+      "Globus"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, diarreia cronica, emagrecimento, anti-transglutaminase positivo.",
+    "correta": "Doenca celiaca",
+    "texto": "Sorologia + biopsia duodenal. Dieta sem gluten.",
+    "ameaca": "CASO: DIARREIA E ANTI-TTG",
+    "alternativas": [
+      "IBD",
+      "SII",
+      "Doenca celiaca",
+      "Intolerancia a lactose"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, diarreia com sangue, tenesmo, colonoscopia com ulcerações contínuas no reto.",
+    "correta": "Retocolite ulcerativa",
+    "texto": "Continuidade + reto = RCU. 5-ASA e seguimento.",
+    "ameaca": "CASO: RETORRAGIA E TENESMO",
+    "alternativas": [
+      "Doenca de Crohn",
+      "Infecciosa",
+      "Retocolite ulcerativa",
+      "Hemorroida apenas"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, dor abdominal, diarreia, fistulas perianais, acometimento transmural salteado.",
+    "correta": "Doenca de Crohn",
+    "texto": "Salteado + fistulas = Crohn. Imunomoduladores/biologicos.",
+    "ameaca": "CASO: FISTULAS PERIANAIS",
+    "alternativas": [
+      "RCU",
+      "Abscesso isolado",
+      "Doenca de Crohn",
+      "IBS"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, anemia ferropiva, sangue oculto positivo, sem sintomas digestivos altos.",
+    "correta": "Cancer colorretal (rastrear)",
+    "texto": "Anemia ferropiva em homem/pos-menopausa = colonoscopia.",
+    "ameaca": "CASO: ANEMIA FERROPIVA E SANGUE OCULTO",
+    "alternativas": [
+      "Hemorroida",
+      "Ulcera duodenal",
+      "Cancer colorretal (rastrear)",
+      "Dieta pobre em ferro"
+    ]
+  },
+  {
+    "inimigo": "Mulher 50a, alteracao do habito intestinal, massa em fossa iliaca esquerda, emagrecimento.",
+    "correta": "Cancer de colon esquerdo (suspeita)",
+    "texto": "Colonoscopia e estadiamento.",
+    "ameaca": "CASO: MASSA EM FIE",
+    "alternativas": [
+      "Diverticulite",
+      "SII",
+      "Cancer de colon esquerdo (suspeita)",
+      "Constipacao funcional"
+    ]
+  },
+  {
+    "inimigo": "Homem 65a, dor em FIE, febre, leucocitose, diverticulos no TC.",
+    "correta": "Diverticulite aguda",
+    "texto": "Antibiótico e dieta; cirurgia se complicada.",
+    "ameaca": "CASO: DOR EM FIE E FEBRE",
+    "alternativas": [
+      "Apendicite",
+      "Cancer perfurado",
+      "Diverticulite aguda",
+      "Colite isquemica"
+    ]
+  },
+  {
+    "inimigo": "Mulher 22a, dor em FID, amenorreia, beta-HCG positivo, massa anexial.",
+    "correta": "Gravidez ectopica",
+    "texto": "Beta-HCG + dor + massa = ectopica. USG e cirurgiao.",
+    "ameaca": "CASO: DOR EM FID E BETA-HCG+",
+    "alternativas": [
+      "Apendicite",
+      "Cisto ovariano",
+      "Gravidez ectopica",
+      "DPI"
+    ]
+  },
+  {
+    "inimigo": "Homem 30a, dor testicular subita, nauseas, reflexo cremasterico ausente.",
+    "correta": "Torção testicular",
+    "texto": "Emergencia cirurgica. USG se nao atrasar cirurgia.",
+    "ameaca": "CASO: DOR TESTICULAR SUBITA",
+    "alternativas": [
+      "Orquiepididimite",
+      "Hernia",
+      "Torção testicular",
+      "Litíase ureteral referida"
+    ]
+  },
+  {
+    "inimigo": "Mulher 45a, disuria, polaciuria, urina turva, nitrito positivo.",
+    "correta": "Cistite aguda",
+    "texto": "ATB curto conforme guia local.",
+    "ameaca": "CASO: DISURIA E NITRITO",
+    "alternativas": [
+      "Pielonefrite",
+      "Vaginite",
+      "Cistite aguda",
+      "Prostatite"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, febre, disuria, dor lombar, leucocitose, bacteríuria.",
+    "correta": "Pielonefrite aguda",
+    "texto": "ATB e hidratacao; internar se grave.",
+    "ameaca": "CASO: FEBRE E DOR LOMBAR",
+    "alternativas": [
+      "Cistite",
+      "Prostatite cronica",
+      "Pielonefrite aguda",
+      "Litíase sem infeccao"
+    ]
+  },
+  {
+    "inimigo": "Homem 75a, jato fraco, polaciuria noturna, PSA 4,5, prostata aumentada ao toque.",
+    "correta": "Hiperplasia prostatica benigna",
+    "texto": "Alfa-bloqueador ± inibidor 5-alfa.",
+    "ameaca": "CASO: JATO FRACO E NOCTURIA",
+    "alternativas": [
+      "Cancer de prostata",
+      "ITU",
+      "Hiperplasia prostatica benigna",
+      "Bexiga neurogenica"
+    ]
+  },
+  {
+    "inimigo": "Homem 68a, PSA 25, nodulo prostatico endurecido, metástases osseas.",
+    "correta": "Cancer de prostata",
+    "texto": "Biopsia e estadiamento. Hormonioterapia se avancado.",
+    "ameaca": "CASO: PSA ALTO E NODULO",
+    "alternativas": [
+      "HPB",
+      "Prostatite",
+      "Cancer de prostata",
+      "Litíase"
+    ]
+  },
+  {
+    "inimigo": "Mulher 55a, hematuria indolor, tabagista, massa vesical na cistoscopia.",
+    "correta": "Cancer de bexiga",
+    "texto": "Resseccao e estadiamento.",
+    "ameaca": "CASO: HEMATURIA INDOLOR",
+    "alternativas": [
+      "Cistite",
+      "Litíase",
+      "Cancer de bexiga",
+      "Glomerulonefrite"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, dor lombar em colica irradiando para regiao inguinal, hematuria microscopica.",
+    "correta": "Litíase ureteral",
+    "texto": "Analgesia, hidratacao; urologista se complicada.",
+    "ameaca": "CASO: COLICA NEFRÉTICA",
+    "alternativas": [
+      "Pielonefrite",
+      "Apendicite",
+      "Litíase ureteral",
+      "Aneurisma aortico"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, edema, hipertensao, oliguria, hematuria, cilindros hematicos apos faringite.",
+    "correta": "Glomerulonefrite pos-estreptococica",
+    "texto": "Suporte e seguimento de funcao renal.",
+    "ameaca": "CASO: EDEMA E HEMATURIA POS-FARINGITE",
+    "alternativas": [
+      "Sindrome nefrotica",
+      "ITU",
+      "Glomerulonefrite pos-estreptococica",
+      "LES"
+    ]
+  },
+  {
+    "inimigo": "Crianca 6a, edema periorbitario, proteinúria maciça, hipoalbuminemia, dislipidemia.",
+    "correta": "Sindrome nefrotica (doenca de lesoes minimas)",
+    "texto": "Corticoide; excelente resposta em criancas.",
+    "ameaca": "CASO: EDEMA E PROTEINURIA EM CRIANCA",
+    "alternativas": [
+      "GN agudo",
+      "Insuficiencia cardiaca",
+      "Sindrome nefrotica (doenca de lesoes minimas)",
+      "Alergia"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, HAS, creatinina elevada, rins pequenos, proteinuria moderada.",
+    "correta": "Doenca renal cronica",
+    "texto": "Estagiar TFG e tratar complicacoes.",
+    "ameaca": "CASO: CREATININA ALTA E RINS PEQUENOS",
+    "alternativas": [
+      "IRA pre-renal",
+      "Glomerulonefrite aguda",
+      "Doenca renal cronica",
+      "Obstrucao"
+    ]
+  },
+  {
+    "inimigo": "Mulher 60a, apos diarreia intensa, creatinina sobe, ureia alta, FENa <1%.",
+    "correta": "IRA pre-renal",
+    "texto": "Volume e tratar causa.",
+    "ameaca": "CASO: CREATININA APOS DIARREIA",
+    "alternativas": [
+      "NTA",
+      "IRC",
+      "IRA pre-renal",
+      "GN"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, apos choque prolongado, creatinina alta, FENa >2%, cilindros granulosos.",
+    "correta": "Necrose tubular aguda",
+    "texto": "Suporte e dialise se indicado.",
+    "ameaca": "CASO: IRA APOS CHOQUE",
+    "alternativas": [
+      "Pre-renal",
+      "Postrenal",
+      "Necrose tubular aguda",
+      "GN rapidamente progressiva"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, anuria, massa pelvica, hidronefrose bilateral.",
+    "correta": "IRA pos-renal (obstrutiva)",
+    "texto": "Aliviar obstrucao (sonda/nefrostomia).",
+    "ameaca": "CASO: ANURIA E HIDRONEFROSE",
+    "alternativas": [
+      "Pre-renal",
+      "NTA",
+      "IRA pos-renal (obstrutiva)",
+      "GN"
+    ]
+  },
+  {
+    "inimigo": "Homem 35a, fraqueza, hipertensao, hipocalemia, alcalose metabolica, adenoma adrenal.",
+    "correta": "Hiperaldosteronismo primario",
+    "texto": "Espironolactona ou adrenalectomia.",
+    "ameaca": "CASO: HAS E HIPOCALEMIA",
+    "alternativas": [
+      "Cushing",
+      "Essencial",
+      "Hiperaldosteronismo primario",
+      "Renovascular"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, obesidade centrípeta, estrias largas, HAS, glicemia alta, cortisol nao suprime.",
+    "correta": "Sindrome de Cushing",
+    "texto": "Confirmar e investigar causa (ACTH).",
+    "ameaca": "CASO: ESTRIAS E OBESIDADE CENTRIPETA",
+    "alternativas": [
+      "Obesidade simples",
+      "Hipotireoidismo",
+      "Sindrome de Cushing",
+      "SOP"
+    ]
+  },
+  {
+    "inimigo": "Homem 45a, cefaleia, palpitações, sudorese paroxisticas, HAS, metanefrinas altas.",
+    "correta": "Feocromocitoma",
+    "texto": "Bloqueio alfa depois beta; cirurgia.",
+    "ameaca": "CASO: HAS PAROXISTICA",
+    "alternativas": [
+      "Panic attack",
+      "Hipertireoidismo",
+      "Feocromocitoma",
+      "Carcinoide"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, nervosismo, perda de peso, tremores, TA 180/100, TSH baixo, T4 livre alto.",
+    "correta": "Hipertireoidismo (Basedow/Graves)",
+    "texto": "ATD, betabloqueador; radioiodo ou cirurgia.",
+    "ameaca": "CASO: TSH BAIXO E SINTOMAS",
+    "alternativas": [
+      "Ansiedade",
+      "Feocromocitoma",
+      "Hipertireoidismo (Basedow/Graves)",
+      "Menopausa"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, fadiga, pele seca, obstipacao, TSH alto, T4 livre baixo.",
+    "correta": "Hipotireoidismo primario",
+    "texto": "Levotiroxina.",
+    "ameaca": "CASO: TSH ALTO E FADIGA",
+    "alternativas": [
+      "Depressao",
+      "IRC",
+      "Hipotireoidismo primario",
+      "Cushing"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, nódulo tireoidiano frio, biopsia suspeita.",
+    "correta": "Nódulo tireoidiano — indicar PAAF / câncer se Bethesda alto",
+    "texto": "PAAF guia conduta.",
+    "ameaca": "CASO: NODULO TIREOIDIANO",
+    "alternativas": [
+      "Hipertireoidismo",
+      "Cisto benigno sempre",
+      "Nódulo tireoidiano — indicar PAAF / câncer se Bethesda alto",
+      "Hipotireoidismo"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, poliuria, polidipsia, glicemia 450, cetose, anion gap alto.",
+    "correta": "Cetoacidose diabetica",
+    "texto": "Insulina, volume, reposicao de K.",
+    "ameaca": "CASO: CETOSE E HIPERGLICEMIA",
+    "alternativas": [
+      "Estado hiperosmolar",
+      "Acidose láctica isolada",
+      "Cetoacidose diabetica",
+      "Uremia"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, confusao, glicemia 900, osmolaridade alta, sem cetose.",
+    "correta": "Estado hiperosmolar hiperglicemico",
+    "texto": "Volume agressivo e insulina.",
+    "ameaca": "CASO: HIPERGLICEMIA SEM CETOSE",
+    "alternativas": [
+      "CAD",
+      "AVC",
+      "Estado hiperosmolar hiperglicemico",
+      "Intoxicacao"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, tremor, sudorese, confusao, glicemia 40.",
+    "correta": "Hipoglicemia",
+    "texto": "Glicose IV ou glucagon; investigar causa.",
+    "ameaca": "CASO: HIPOGLICEMIA SINTOMATICA",
+    "alternativas": [
+      "AVC",
+      "Ansiedade",
+      "Hipoglicemia",
+      "Crise convulsiva primaria"
+    ]
+  },
+  {
+    "inimigo": "Mulher 50a, tetania, sinal de Chvostek, Ca baixo, PTH baixo apos tireoidectomia.",
+    "correta": "Hipoparatireoidismo pos-cirurgico",
+    "texto": "Calcio e vitamina D.",
+    "ameaca": "CASO: TETANIA POS-TIREOIDECTOMIA",
+    "alternativas": [
+      "Hiperparatireoidismo",
+      "Deficiencia de Mg isolada",
+      "Hipoparatireoidismo pos-cirurgico",
+      "Ansiedade"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, calculos renais de repeticao, Ca alto, PTH alto.",
+    "correta": "Hiperparatireoidismo primario",
+    "texto": "Cirurgia se indicado.",
+    "ameaca": "CASO: HIPERCALCEMIA E CALCULOS",
+    "alternativas": [
+      "Metastase ossea",
+      "Sarcoidose",
+      "Hiperparatireoidismo primario",
+      "Hipervitaminose D"
+    ]
+  },
+  {
+    "inimigo": "Mulher 65a, dor ossea, fratura de punho com trauma minimo, T-score -2,8.",
+    "correta": "Osteoporose com fratura por fragilidade",
+    "texto": "Bifosfonato, Ca, vit D, prevencao de quedas.",
+    "ameaca": "CASO: FRATURA POR FRAGILIDADE",
+    "alternativas": [
+      "Osteomalacia",
+      "Metastase",
+      "Osteoporose com fratura por fragilidade",
+      "Trauma normal"
+    ]
+  },
+  {
+    "inimigo": "Homem 40a, artrite de 1ª MTF, tofo, acido urico alto.",
+    "correta": "Gota aguda",
+    "texto": "AINE/colchicina/corticoide; depois hipouricemiante se indicado.",
+    "ameaca": "CASO: PODAGRA",
+    "alternativas": [
+      "Infecciosa",
+      "Pseudogota",
+      "Gota aguda",
+      "Trauma"
+    ]
+  },
+  {
+    "inimigo": "Mulher 70a, artrite de joelho, cristais de pirofosfato, condrocalcinose.",
+    "correta": "Pseudogota (CPPD)",
+    "texto": "AINE e aspiracao.",
+    "ameaca": "CASO: CRISTAIS DE PIROFOSFATO",
+    "alternativas": [
+      "Gota",
+      "AR",
+      "Pseudogota (CPPD)",
+      "Artrose simples"
+    ]
+  },
+  {
+    "inimigo": "Mulher 45a, artrite simetrica de maos, rigidez matinal >1h, FR e anti-CCP positivos.",
+    "correta": "Artrite reumatoide",
+    "texto": "DMARD precoce (metotrexato).",
+    "ameaca": "CASO: ARTRITE SIMETRICA DE MAOS",
+    "alternativas": [
+      "Artrose",
+      "LES",
+      "Artrite reumatoide",
+      "Gota"
+    ]
+  },
+  {
+    "inimigo": "Mulher 28a, eritema malar, fotossensibilidade, artrite, ANA e anti-dsDNA positivos.",
+    "correta": "Lupus eritematoso sistemico",
+    "texto": "Hidroxicloroquina e imunossupressao conforme orgao.",
+    "ameaca": "CASO: ERITEMA MALAR E ANTI-DSDNA",
+    "alternativas": [
+      "Rosacea",
+      "AR",
+      "Lupus eritematoso sistemico",
+      "Dermatomiosite"
+    ]
+  },
+  {
+    "inimigo": "Homem 50a, fraqueza proximal, elevacao de CK, anti-Jo1.",
+    "correta": "Polimiosite / sindrome antissintetase",
+    "texto": "Corticoide e imunossupressor; avaliar intersticio pulmonar.",
+    "ameaca": "CASO: FRAQUEZA E CK ALTA",
+    "alternativas": [
+      "Miastenia",
+      "Hipotireoidismo",
+      "Polimiosite / sindrome antissintetase",
+      "AVC"
+    ]
+  },
+  {
+    "inimigo": "Mulher 60a, cefaleia temporal, claudicacao de mandibula, VHS 90, risco de cegueira.",
+    "correta": "Arterite de celulas gigantes",
+    "texto": "Corticoide imediato + biopsia.",
+    "ameaca": "CASO: CLAUDICACAO DE MANDIBULA",
+    "alternativas": [
+      "Enxaqueca",
+      "AVC",
+      "Arterite de celulas gigantes",
+      "Sinusite"
+    ]
+  },
+  {
+    "inimigo": "Homem 30a, lombalgia inflamatoria, sacroiliite, HLA-B27.",
+    "correta": "Espondilite anquilosante",
+    "texto": "AINE; anti-TNF se refratario.",
+    "ameaca": "CASO: LOMBALGIA INFLAMATORIA",
+    "alternativas": [
+      "Mecanica",
+      "Hernia discal",
+      "Espondilite anquilosante",
+      "Metastase"
+    ]
+  },
+  {
+    "inimigo": "Mulher 35a, Raynaud, esclerodactilia, disfagia, anti-Scl-70.",
+    "correta": "Esclerose sistemica",
+    "texto": "Suporte de orgaos; imunossupressao se intersticio.",
+    "ameaca": "CASO: RAYNAUD E ESCLERODACTILIA",
+    "alternativas": [
+      "LES",
+      "AR",
+      "Esclerose sistemica",
+      "Hipotireoidismo"
+    ]
+  },
+  {
+    "inimigo": "Homem 25a, uveíte anterior, artrite, uretrite, HLA-B27.",
+    "correta": "Artrite reativa",
+    "texto": "AINE e tratar infeccao desencadeante.",
+    "ameaca": "CASO: UVEITE E URETRITE",
+    "alternativas": [
+      "AR",
+      "Gota",
+      "Artrite reativa",
+      "LES"
+    ]
+  },
+  {
+    "inimigo": "Mulher 40a, livedo, trombose, abortos de repeticao, anticoagulante lupico.",
+    "correta": "Sindrome antifosfolipide",
+    "texto": "Anticoagulacao prolongada.",
+    "ameaca": "CASO: TROMBOSE E ABORTOS",
+    "alternativas": [
+      "LES isolado",
+      "Trombofilia genetica apenas",
+      "Sindrome antifosfolipide",
+      "Causa idiopatica"
+    ]
+  },
+  {
+    "inimigo": "Homem 55a, ptose fatigavel, diplopia, anti-AChR positivo.",
+    "correta": "Miastenia gravis",
+    "texto": "Anticolinesterase ± imunossupressao; avaliar timoma.",
+    "ameaca": "CASO: PTOSE FATIGAVEL",
+    "alternativas": [
+      "AVC",
+      "Botulismo",
+      "Miastenia gravis",
+      "Sindrome de Lambert-Eaton"
+    ]
+  },
+  {
+    "inimigo": "Mulher 30a, hemiparesia subita, afasia, TC sem sangue.",
+    "correta": "AVC isquemico agudo",
+    "texto": "Janela de trombolise / trombectomia se elegivel.",
+    "ameaca": "CASO: DEFICIT NEUROLOGICO SUBITO",
+    "alternativas": [
+      "Crise convulsiva",
+      "Enxaqueca com aura",
+      "AVC isquemico agudo",
+      "Tumor"
+    ]
+  },
+  {
+    "inimigo": "Homem 70a, cefaleia intensa subita, rigidez de nuca, TC com sangue no espaco subaracnoideo.",
+    "correta": "Hemorragia subaracnoidea",
+    "texto": "Angiografia e neurocirurgia; nimodipino.",
+    "ameaca": "CASO: CEFALEIA EM TROVOADA",
+    "alternativas": [
+      "Enxaqueca",
+      "Meningite",
+      "Hemorragia subaracnoidea",
+      "Sinusite"
+    ]
+  },
+  {
+    "inimigo": "Mulher 25a, crise tonico-clonica, mordedura de lingua, confusao pos-ictal.",
+    "correta": "Crise convulsiva / epilepsia a esclarecer",
+    "texto": "Proteger via aerea; investigar causa primeira crise.",
+    "ameaca": "CASO: CRISE TONICO-CLONICA",
+    "alternativas": [
+      "Sincope",
+      "AVC",
+      "Crise convulsiva / epilepsia a esclarecer",
+      "Hipoglicemia apenas"
+    ]
+  },
+  {
+    "inimigo": "Homem 60a, tremor de repouso, rigidez, bradicinesia, marcha arrastada.",
+    "correta": "Doenca de Parkinson",
+    "texto": "Levodopa e suporte multidisciplinar.",
+    "ameaca": "CASO: TREMOR DE REPOUSO",
+    "alternativas": [
+      "Tremor essencial",
+      "AVC",
+      "Doenca de Parkinson",
+      "Hipotireoidismo"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🩺 CASOS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA CLÍNICO] CASO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[CENÁRIO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🩺`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! DIAGNÓSTICO ACERTADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REAVALIAR DIAGNÓSTICO.', 'falha');
+        await printTerminal(`Caso respondido incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE DIAGNÓSTICO CLÍNICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} casos.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE DIAGNÓSTICO CLÍNICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

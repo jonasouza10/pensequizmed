@@ -1,0 +1,2877 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Biofísica - Um quiz de Biofísica para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Biofísica</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Biofísica</h1>
+  <p>Aplique a física aos sistemas biológicos! ⚛️</p>
+
+  <div id="terminal">[SISTEMA DE TESTE BIOFÍSICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🧪 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE BIOFÍSICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE BIOFÍSICA</h2>
+      <p>Bem-vindo, Futuro Biofísico! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre os princípios físicos aplicados aos sistemas biológicos.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente conceitos e fenômenos biofísicos apresentados no terminal.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre a interação entre física e biologia.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Biofísica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A compreensão dos princípios biofísicos é crucial. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Biofísica foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura científica:</p>
+      <ul>
+        <li>**LIVRO:** Biofísica Básica de [Nome do Autor/Editora] [Ano da Edição].</li>
+        <li>**LIVRO:** Princípios de Biofísica de [Nome do Autor/Editora] [Ano da Edição].</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Biofísica.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino e pesquisa reconhecidas, como sites de universidades com cursos e materiais de Biofísica.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Fenômeno de movimento de água através de membrana semipermeável",
+    "correta": "Osmose",
+    "texto": "A osmose é a difusão de água do meio hipotônico para o hipertônico através de membrana semipermeável.",
+    "ameaca": "TRANSPORTE: QUAL FENÔMENO MOVE ÁGUA POR MEMBRANA?",
+    "alternativas": [
+      "Difusão facilitada",
+      "Transporte ativo",
+      "Osmose",
+      "Fagocitose"
+    ]
+  },
+  {
+    "inimigo": "Princípio que explica o potencial de ação neuronal",
+    "correta": "Variação da permeabilidade iônica da membrana",
+    "texto": "Canais de Na+ e K+ abrem e fecham de forma sequencial, gerando despolarização e repolarização.",
+    "ameaca": "NEUROBIOFÍSICA: O QUE GERA O POTENCIAL DE AÇÃO?",
+    "alternativas": [
+      "Lei da Gravidade",
+      "Lei de Fick",
+      "Variação da permeabilidade iônica da membrana",
+      "Lei de Ohm"
+    ]
+  },
+  {
+    "inimigo": "Técnica de alta resolução para estruturas celulares",
+    "correta": "Microscopia eletrônica",
+    "texto": "Usa feixe de elétrons, atingindo resolução muito superior à microscopia óptica.",
+    "ameaca": "MÉTODOS: QUAL TÉCNICA DÁ ALTA RESOLUÇÃO CELULAR?",
+    "alternativas": [
+      "Cromatografia",
+      "Espectroscopia",
+      "Microscopia eletrônica",
+      "Eletroforese"
+    ]
+  },
+  {
+    "inimigo": "Pressão que impede a passagem de água por osmose",
+    "correta": "Pressão osmótica",
+    "texto": "É a pressão hidrostática necessária para anular o fluxo osmótico de água.",
+    "ameaca": "TRANSPORTE: QUAL PRESSÃO COMPENSA A OSMOSE?",
+    "alternativas": [
+      "Pressão hidrostática",
+      "Pressão arterial",
+      "Pressão osmótica",
+      "Pressão de vapor"
+    ]
+  },
+  {
+    "inimigo": "Transporte passivo de íons por canais proteicos",
+    "correta": "Difusão facilitada",
+    "texto": "Ocorre a favor do gradiente, mediado por canais ou transportadores, sem gasto de ATP.",
+    "ameaca": "TRANSPORTE: QUAL PROCESSO USA CANAIS SEM GASTAR ENERGIA?",
+    "alternativas": [
+      "Transporte ativo",
+      "Bomba Na/K",
+      "Difusão simples",
+      "Difusão facilitada"
+    ]
+  },
+  {
+    "inimigo": "Lei que relaciona tensão, corrente e resistência",
+    "correta": "Lei de Ohm",
+    "texto": "V = I·R; fundamental para modelar a condução elétrica em membranas e tecidos.",
+    "ameaca": "ELETRICIDADE: QUAL LEI RELACIONA V, I E R?",
+    "alternativas": [
+      "Lei de Faraday",
+      "Lei de Coulomb",
+      "Lei de Ohm",
+      "Lei de Boyle"
+    ]
+  },
+  {
+    "inimigo": "Técnica que mede absorção de luz por biomoléculas",
+    "correta": "Espectrofotometria",
+    "texto": "Quantifica a absorção em diferentes comprimentos de onda, permitindo dosar substâncias.",
+    "ameaca": "ÓPTICA: QUAL TÉCNICA USA ABSORÇÃO DE LUZ?",
+    "alternativas": [
+      "Fluorescência apenas",
+      "Difração",
+      "Ressonância magnética",
+      "Espectrofotometria"
+    ]
+  },
+  {
+    "inimigo": "Molécula que modula a fluidez da membrana plasmática",
+    "correta": "Colesterol",
+    "texto": "O colesterol reduz a fluidez em altas temperaturas e impede empacotamento rígido em baixas.",
+    "ameaca": "MEMBRANA: QUAL LIPÍDIO AJUSTA A FLUIDEZ?",
+    "alternativas": [
+      "Proteínas",
+      "Carboidratos",
+      "Fosfolipídios apenas",
+      "Colesterol"
+    ]
+  },
+  {
+    "inimigo": "Método que separa biomoléculas por carga e tamanho em campo elétrico",
+    "correta": "Eletroforese",
+    "texto": "DNA, RNA e proteínas migram conforme carga/massa sob campo elétrico.",
+    "ameaca": "MÉTODOS: QUAL TÉCNICA SEPARA POR CARGA E TAMANHO?",
+    "alternativas": [
+      "Centrifugação",
+      "Cromatografia",
+      "Eletroforese",
+      "Diálise"
+    ]
+  },
+  {
+    "inimigo": "Conversão de energia luminosa em energia química",
+    "correta": "Fotossíntese",
+    "texto": "Processo biofísico em que a luz é captada por pigmentos e convertida em ATP e NADPH, fixando CO2.",
+    "ameaca": "ENERGIA: QUAL PROCESSO CONVERTE LUZ EM ENERGIA QUÍMICA?",
+    "alternativas": [
+      "Respiração celular",
+      "Quimiossíntese",
+      "Fotossíntese",
+      "Glicólise"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Potencial de repouso da membrana'?",
+    "correta": "Diferença de potencial elétrico em repouso (cerca de -70 mV em neurônios)",
+    "texto": "Mantido principalmente pela bomba Na+/K+ e canais de vazamento de K+.",
+    "ameaca": "NEUROBIOFÍSICA: 'POTENCIAL DE REPOUSO DA MEMBRANA'",
+    "alternativas": [
+      "0 mV",
+      "+30 mV",
+      "Diferença de potencial elétrico em repouso (cerca de -70 mV em neurônios)",
+      "+70 mV"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Bomba de sódio-potássio'?",
+    "correta": "Transporte ativo que troca 3 Na+ para fora por 2 K+ para dentro",
+    "texto": "Consome ATP e mantém os gradientes iônicos essenciais ao potencial de membrana.",
+    "ameaca": "TRANSPORTE: 'BOMBA DE SÓDIO-POTÁSSIO'",
+    "alternativas": [
+      "Difusão facilitada",
+      "Osmose",
+      "Transporte ativo que troca 3 Na+ para fora por 2 K+ para dentro",
+      "Canal passivo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Canal iônico voltagem-dependente'?",
+    "correta": "Abre ou fecha conforme o potencial de membrana",
+    "texto": "Essencial para a propagação do potencial de ação.",
+    "ameaca": "NEUROBIOFÍSICA: 'CANAL IÔNICO VOLTAGEM-DEPENDENTE'",
+    "alternativas": [
+      "Canal ligand-dependente apenas",
+      "Bomba ativa",
+      "Abre ou fecha conforme o potencial de membrana",
+      "Transportador facilitado"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Canal iônico ligand-dependente'?",
+    "correta": "Abre quando um neurotransmissor ou ligante se liga",
+    "texto": "Medeia sinapses químicas e respostas a mensageiros.",
+    "ameaca": "NEUROBIOFÍSICA: 'CANAL IÔNICO LIGAND-DEPENDENTE'",
+    "alternativas": [
+      "Canal voltagem-dependente",
+      "Bomba Na/K",
+      "Abre quando um neurotransmissor ou ligante se liga",
+      "Porina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Despolarização'?",
+    "correta": "Redução da polaridade da membrana (torna-se menos negativa)",
+    "texto": "Ocorre pela entrada de Na+ no início do potencial de ação.",
+    "ameaca": "NEUROBIOFÍSICA: 'DESPOLARIZAÇÃO'",
+    "alternativas": [
+      "Hiperpolarização",
+      "Repolarização apenas",
+      "Redução da polaridade da membrana (torna-se menos negativa)",
+      "Potencial de repouso"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Repolarização'?",
+    "correta": "Retorno do potencial de membrana ao valor de repouso",
+    "texto": "Devida principalmente à saída de K+ pelos canais de potássio.",
+    "ameaca": "NEUROBIOFÍSICA: 'REPOLARIZAÇÃO'",
+    "alternativas": [
+      "Despolarização",
+      "Hiperpolarização prolongada",
+      "Retorno do potencial de membrana ao valor de repouso",
+      "Limiar"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Hiperpolarização'?",
+    "correta": "Potencial de membrana mais negativo que o de repouso",
+    "texto": "Aumenta a dificuldade de disparar novo potencial de ação.",
+    "ameaca": "NEUROBIOFÍSICA: 'HIPERPOLARIZAÇÃO'",
+    "alternativas": [
+      "Despolarização",
+      "Limiar",
+      "Potencial de membrana mais negativo que o de repouso",
+      "Pico do PA"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Período refratário'?",
+    "correta": "Intervalo em que a membrana não responde (ou responde pouco) a novo estímulo",
+    "texto": "Garante a unidirecionalidade do potencial de ação e limita a frequência de disparo.",
+    "ameaca": "NEUROBIOFÍSICA: 'PERÍODO REFRATÁRIO'",
+    "alternativas": [
+      "Limiar",
+      "Potencial de repouso",
+      "Intervalo em que a membrana não responde (ou responde pouco) a novo estímulo",
+      "Despolarização"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Limiar de excitação'?",
+    "correta": "Valor de potencial necessário para disparar o potencial de ação",
+    "texto": "Em muitos neurônios fica em torno de -55 mV.",
+    "ameaca": "NEUROBIOFÍSICA: 'LIMIAR DE EXCITAÇÃO'",
+    "alternativas": [
+      "Potencial de repouso",
+      "Pico do PA",
+      "Valor de potencial necessário para disparar o potencial de ação",
+      "0 mV"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei do tudo ou nada'?",
+    "correta": "O potencial de ação ocorre com amplitude máxima ou não ocorre",
+    "texto": "Uma vez atingido o limiar, a resposta é estereotipada.",
+    "ameaca": "NEUROBIOFÍSICA: 'LEI DO TUDO OU NADA'",
+    "alternativas": [
+      "Resposta graduada",
+      "Somação apenas",
+      "O potencial de ação ocorre com amplitude máxima ou não ocorre",
+      "Adaptação"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Condução saltatória'?",
+    "correta": "Propagação do PA de nódulo a nódulo na fibra mielinizada",
+    "texto": "Aumenta muito a velocidade de condução.",
+    "ameaca": "NEUROBIOFÍSICA: 'CONDUÇÃO SALTATÓRIA'",
+    "alternativas": [
+      "Condução contínua",
+      "Propagação eletrotônica apenas",
+      "Propagação do PA de nódulo a nódulo na fibra mielinizada",
+      "Difusão iônica"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Bainha de mielina'?",
+    "correta": "Isolante lipídico que acelera a condução nervosa",
+    "texto": "Produzida por células de Schwann (SNP) ou oligodendrócitos (SNC).",
+    "ameaca": "NEUROBIOFÍSICA: 'BAINHA DE MIELINA'",
+    "alternativas": [
+      "Axônio nu",
+      "Dendrito",
+      "Isolante lipídico que acelera a condução nervosa",
+      "Sinapse"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Capacitância de membrana'?",
+    "correta": "Capacidade da membrana de armazenar carga elétrica",
+    "texto": "A membrana atua como capacitor devido à bicamada lipídica isolante.",
+    "ameaca": "BIOELETRICIDADE: 'CAPACITÂNCIA DE MEMBRANA'",
+    "alternativas": [
+      "Resistência apenas",
+      "Condutância",
+      "Capacidade da membrana de armazenar carga elétrica",
+      "Indutância"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Resistência de membrana'?",
+    "correta": "Oposição da membrana à passagem de corrente iônica",
+    "texto": "Depende do número e estado dos canais iônicos abertos.",
+    "ameaca": "BIOELETRICIDADE: 'RESISTÊNCIA DE MEMBRANA'",
+    "alternativas": [
+      "Capacitância",
+      "Condutância máxima",
+      "Oposição da membrana à passagem de corrente iônica",
+      "Permeabilidade absoluta"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Equação de Nernst'?",
+    "correta": "Calcula o potencial de equilíbrio de um íon",
+    "texto": "E = (RT/zF)·ln([out]/[in]); base do potencial de repouso.",
+    "ameaca": "BIOELETRICIDADE: 'EQUAÇÃO DE NERNST'",
+    "alternativas": [
+      "Lei de Ohm",
+      "Equação de Goldman",
+      "Calcula o potencial de equilíbrio de um íon",
+      "Lei de Fick"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Equação de Goldman-Hodgkin-Katz'?",
+    "correta": "Calcula o potencial de membrana considerando vários íons",
+    "texto": "Pondera as permeabilidades de Na+, K+ e Cl-.",
+    "ameaca": "BIOELETRICIDADE: 'EQUAÇÃO DE GOLDMAN-HODGKIN-KATZ'",
+    "alternativas": [
+      "Equação de Nernst apenas",
+      "Lei de Ohm",
+      "Calcula o potencial de membrana considerando vários íons",
+      "Lei de Coulomb"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Difusão'?",
+    "correta": "Movimento líquido de partículas a favor do gradiente de concentração",
+    "texto": "Descrita pela lei de Fick; base de muitos transportes passivos.",
+    "ameaca": "TRANSPORTE: 'DIFUSÃO'",
+    "alternativas": [
+      "Osmose apenas",
+      "Transporte ativo",
+      "Movimento líquido de partículas a favor do gradiente de concentração",
+      "Endocitose"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei de Fick'?",
+    "correta": "O fluxo difusivo é proporcional ao gradiente de concentração",
+    "texto": "J = -D·(dC/dx); fundamental em biofísica de transporte.",
+    "ameaca": "TRANSPORTE: 'LEI DE FICK'",
+    "alternativas": [
+      "Lei de Ohm",
+      "Lei de Laplace",
+      "O fluxo difusivo é proporcional ao gradiente de concentração",
+      "Lei de Poiseuille"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Permeabilidade de membrana'?",
+    "correta": "Facilidade com que uma substância atravessa a membrana",
+    "texto": "Depende de lipossolubilidade, tamanho e presença de transportadores.",
+    "ameaca": "TRANSPORTE: 'PERMEABILIDADE DE MEMBRANA'",
+    "alternativas": [
+      "Capacitância",
+      "Resistência elétrica apenas",
+      "Facilidade com que uma substância atravessa a membrana",
+      "Osmolaridade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Tonicidade'?",
+    "correta": "Efeito osmótico relativo de uma solução sobre a célula",
+    "texto": "Solução isotônica não altera o volume celular; hipo e hipertônica alteram.",
+    "ameaca": "TRANSPORTE: 'TONICIDADE'",
+    "alternativas": [
+      "Osmolaridade apenas",
+      "Molaridade",
+      "Efeito osmótico relativo de uma solução sobre a célula",
+      "Densidade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Solução isotônica'?",
+    "correta": "Mesma pressão osmótica efetiva que o meio intracelular",
+    "texto": "Não provoca net flux de água; volume celular estável.",
+    "ameaca": "TRANSPORTE: 'SOLUÇÃO ISOTÔNICA'",
+    "alternativas": [
+      "Hipertônica",
+      "Hipotônica",
+      "Mesma pressão osmótica efetiva que o meio intracelular",
+      "Hiperosmolar sempre"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Solução hipertônica'?",
+    "correta": "Maior pressão osmótica efetiva; provoca saída de água da célula",
+    "texto": "A célula encolhe (crenação em hemácias).",
+    "ameaca": "TRANSPORTE: 'SOLUÇÃO HIPERTÔNICA'",
+    "alternativas": [
+      "Hipotônica",
+      "Isotônica",
+      "Maior pressão osmótica efetiva; provoca saída de água da célula",
+      "Sem efeito"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Solução hipotônica'?",
+    "correta": "Menor pressão osmótica efetiva; provoca entrada de água na célula",
+    "texto": "A célula incha e pode lisar.",
+    "ameaca": "TRANSPORTE: 'SOLUÇÃO HIPOTÔNICA'",
+    "alternativas": [
+      "Hipertônica",
+      "Isotônica",
+      "Menor pressão osmótica efetiva; provoca entrada de água na célula",
+      "Sem efeito"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Pressão hidrostática'?",
+    "correta": "Pressão exercida por fluido em repouso",
+    "texto": "No capilar, opõe-se em parte à pressão oncótica e determina filtração.",
+    "ameaca": "FLUIDOS: 'PRESSÃO HIDROSTÁTICA'",
+    "alternativas": [
+      "Pressão osmótica",
+      "Pressão de vapor",
+      "Pressão exercida por fluido em repouso",
+      "Tensão superficial"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Pressão oncótica (coloidosmótica)'?",
+    "correta": "Pressão osmótica devida às proteínas plasmáticas",
+    "texto": "Mantém líquido no interior dos vasos; baixa na hipoproteinemia causa edema.",
+    "ameaca": "FLUIDOS: 'PRESSÃO ONCÓTICA (COLOIDOSMÓTICA)'",
+    "alternativas": [
+      "Pressão hidrostática",
+      "Pressão arterial média",
+      "Pressão osmótica devida às proteínas plasmáticas",
+      "Pressão de pulso"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei de Laplace (vasos e alvéolos)'?",
+    "correta": "Tensão na parede relacionada a pressão e raio (T = P·r)",
+    "texto": "Explica por que alvéolos menores tenderiam a colapsar sem surfactante.",
+    "ameaca": "MECÂNICA: 'LEI DE LAPLACE (VASOS E ALVÉOLOS)'",
+    "alternativas": [
+      "Lei de Poiseuille",
+      "Lei de Ohm",
+      "Tensão na parede relacionada a pressão e raio (T = P·r)",
+      "Lei de Boyle"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Surfactante pulmonar'?",
+    "correta": "Reduz a tensão superficial nos alvéolos",
+    "texto": "Impede o colapso alveolar e equaliza a pressão entre alvéolos de tamanhos diferentes.",
+    "ameaca": "RESPIRAÇÃO: 'SURFACTANTE PULMONAR'",
+    "alternativas": [
+      "Muco",
+      "Hemoglobina",
+      "Reduz a tensão superficial nos alvéolos",
+      "Elastina apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Tensão superficial'?",
+    "correta": "Força que contrai a superfície de um líquido",
+    "texto": "Devida às forças coesivas entre moléculas na interface líquido-ar.",
+    "ameaca": "FLUIDOS: 'TENSÃO SUPERFICIAL'",
+    "alternativas": [
+      "Viscosidade",
+      "Densidade",
+      "Força que contrai a superfície de um líquido",
+      "Pressão hidrostática"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Viscosidade'?",
+    "correta": "Resistência interna de um fluido ao escoamento",
+    "texto": "Sangue tem viscosidade maior que a água; aumenta com hematócrito elevado.",
+    "ameaca": "FLUIDOS: 'VISCOSIDADE'",
+    "alternativas": [
+      "Densidade",
+      "Tensão superficial",
+      "Resistência interna de um fluido ao escoamento",
+      "Elasticidade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei de Poiseuille'?",
+    "correta": "Fluxo laminar proporcional à 4ª potência do raio",
+    "texto": "Q ∝ r⁴·ΔP / η·L; pequena variação de raio altera muito o fluxo sanguíneo.",
+    "ameaca": "HEMODINÂMICA: 'LEI DE POISEUILLE'",
+    "alternativas": [
+      "Lei de Laplace",
+      "Lei de Ohm",
+      "Fluxo laminar proporcional à 4ª potência do raio",
+      "Lei de Fick"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fluxo laminar'?",
+    "correta": "Escoamento em camadas paralelas sem turbulência",
+    "texto": "Predomina em vasos de pequeno calibre e baixas velocidades.",
+    "ameaca": "HEMODINÂMICA: 'FLUXO LAMINAR'",
+    "alternativas": [
+      "Fluxo turbulento",
+      "Fluxo estacionário apenas",
+      "Escoamento em camadas paralelas sem turbulência",
+      "Fluxo pulsátil apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fluxo turbulento'?",
+    "correta": "Escoamento irregular com formação de vórtices",
+    "texto": "Ocorre em altas velocidades ou estenoses; gera sopros audíveis.",
+    "ameaca": "HEMODINÂMICA: 'FLUXO TURBULENTO'",
+    "alternativas": [
+      "Fluxo laminar",
+      "Fluxo molecular",
+      "Escoamento irregular com formação de vórtices",
+      "Difusão"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Número de Reynolds'?",
+    "correta": "Adimensional que prediz transição laminar-turbulento",
+    "texto": "Re alto favorece turbulência; depende de velocidade, diâmetro, densidade e viscosidade.",
+    "ameaca": "HEMODINÂMICA: 'NÚMERO DE REYNOLDS'",
+    "alternativas": [
+      "Número de Mach",
+      "Número de Nusselt",
+      "Adimensional que prediz transição laminar-turbulento",
+      "Constante de Planck"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Resistência vascular'?",
+    "correta": "Oposição ao fluxo sanguíneo nos vasos",
+    "texto": "Determinada principalmente pelo raio arteriolar (lei de Poiseuille).",
+    "ameaca": "HEMODINÂMICA: 'RESISTÊNCIA VASCULAR'",
+    "alternativas": [
+      "Capacitância vascular",
+      "Elastância",
+      "Oposição ao fluxo sanguíneo nos vasos",
+      "Condutância máxima"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Complacência vascular'?",
+    "correta": "Variação de volume por variação de pressão",
+    "texto": "Veias são mais complacentes que artérias; importante no retorno venoso.",
+    "ameaca": "HEMODINÂMICA: 'COMPLACÊNCIA VASCULAR'",
+    "alternativas": [
+      "Resistência",
+      "Viscosidade",
+      "Variação de volume por variação de pressão",
+      "Tensão superficial"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Elastância'?",
+    "correta": "Inverso da complacência; rigidez do sistema",
+    "texto": "Pulmão e tórax têm elastância que determina o trabalho respiratório.",
+    "ameaca": "MECÂNICA: 'ELASTÂNCIA'",
+    "alternativas": [
+      "Complacência",
+      "Resistência",
+      "Inverso da complacência; rigidez do sistema",
+      "Viscosidade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei de Boyle'?",
+    "correta": "Em temperatura constante, P·V = constante",
+    "texto": "Aplica-se à mecânica respiratória: aumento de volume torácico diminui a pressão alveolar.",
+    "ameaca": "RESPIRAÇÃO: 'LEI DE BOYLE'",
+    "alternativas": [
+      "Lei de Charles",
+      "Lei de Dalton",
+      "Em temperatura constante, P·V = constante",
+      "Lei de Henry"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei de Dalton'?",
+    "correta": "Pressão total = soma das pressões parciais",
+    "texto": "Fundamental para entender as pressões parciais de O2 e CO2 nos alvéolos e sangue.",
+    "ameaca": "RESPIRAÇÃO: 'LEI DE DALTON'",
+    "alternativas": [
+      "Lei de Boyle",
+      "Lei de Henry",
+      "Pressão total = soma das pressões parciais",
+      "Lei de Graham"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei de Henry'?",
+    "correta": "Quantidade de gás dissolvido proporcional à pressão parcial",
+    "texto": "Explica a dissolução de O2 e CO2 no plasma e a doença descompressiva.",
+    "ameaca": "RESPIRAÇÃO: 'LEI DE HENRY'",
+    "alternativas": [
+      "Lei de Dalton",
+      "Lei de Boyle",
+      "Quantidade de gás dissolvido proporcional à pressão parcial",
+      "Lei de Fick"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Difusão de gases nos alvéolos'?",
+    "correta": "O2 e CO2 atravessam a barreira alvéolo-capilar por difusão",
+    "texto": "Dirigida pelos gradientes de pressão parcial (lei de Fick).",
+    "ameaca": "RESPIRAÇÃO: 'DIFUSÃO DE GASES NOS ALVÉOLOS'",
+    "alternativas": [
+      "Transporte ativo",
+      "Osmose",
+      "O2 e CO2 atravessam a barreira alvéolo-capilar por difusão",
+      "Filtração"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Hemoglobina e curva de dissociação'?",
+    "correta": "Relação sigmoide entre pO2 e saturação de Hb",
+    "texto": "Facilita carga de O2 no pulmão e descarga nos tecidos; deslocada por pH, CO2, temperatura e 2,3-BPG.",
+    "ameaca": "RESPIRAÇÃO: 'HEMOGLOBINA E CURVA DE DISSOCIAÇÃO'",
+    "alternativas": [
+      "Reta linear",
+      "Hipérbole simples",
+      "Relação sigmoide entre pO2 e saturação de Hb",
+      "Independente de pO2"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Efeito Bohr'?",
+    "correta": "Queda de pH ou aumento de CO2 desloca a curva de Hb para a direita",
+    "texto": "Facilita a liberação de O2 nos tecidos ativos.",
+    "ameaca": "RESPIRAÇÃO: 'EFEITO BOHR'",
+    "alternativas": [
+      "Efeito Haldane",
+      "Efeito Root",
+      "Queda de pH ou aumento de CO2 desloca a curva de Hb para a direita",
+      "Aumento de afinidade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Transporte de CO2 no sangue'?",
+    "correta": "Principalmente como bicarbonato; também ligado à Hb e dissolvido",
+    "texto": "A anidrase carbônica acelera a formação de HCO3- nas hemácias.",
+    "ameaca": "RESPIRAÇÃO: 'TRANSPORTE DE CO2 NO SANGUE'",
+    "alternativas": [
+      "Apenas dissolvido",
+      "Apenas ligado à Hb",
+      "Principalmente como bicarbonato; também ligado à Hb e dissolvido",
+      "Apenas como ácido carbônico livre"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'ECG (eletrocardiograma)'?",
+    "correta": "Registro da atividade elétrica do coração na superfície corporal",
+    "texto": "Ondas P, QRS e T refletem despolarização atrial, ventricular e repolarização ventricular.",
+    "ameaca": "BIOELETRICIDADE: 'ECG (ELETROCARDIOGRAMA)'",
+    "alternativas": [
+      "EEG",
+      "EMG",
+      "Registro da atividade elétrica do coração na superfície corporal",
+      "ERG"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'EEG (eletroencefalograma)'?",
+    "correta": "Registro da atividade elétrica cerebral",
+    "texto": "Usado no diagnóstico de epilepsia, sono e morte encefálica.",
+    "ameaca": "BIOELETRICIDADE: 'EEG (ELETROENCEFALOGRAMA)'",
+    "alternativas": [
+      "ECG",
+      "EMG",
+      "Registro da atividade elétrica cerebral",
+      "ENG"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'EMG (eletromiografia)'?",
+    "correta": "Registro da atividade elétrica muscular",
+    "texto": "Avalia a função de nervos e músculos periféricos.",
+    "ameaca": "BIOELETRICIDADE: 'EMG (ELETROMIOGRAFIA)'",
+    "alternativas": [
+      "ECG",
+      "EEG",
+      "Registro da atividade elétrica muscular",
+      "ECG de esforço"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Potencial de placa motora'?",
+    "correta": "Despolarização da membrana muscular na junção neuromuscular",
+    "texto": "Gerado pela acetilcolina; se atingir limiar, dispara potencial de ação muscular.",
+    "ameaca": "NEUROBIOFÍSICA: 'POTENCIAL DE PLACA MOTORA'",
+    "alternativas": [
+      "Potencial de ação neuronal",
+      "Potencial de repouso",
+      "Despolarização da membrana muscular na junção neuromuscular",
+      "Potencial pós-sináptico inibitório"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Acoplamento excitação-contração'?",
+    "correta": "Sequência que liga o PA muscular à contração",
+    "texto": "Envolve liberação de Ca2+ do retículo sarcoplasmático e ligação à troponina.",
+    "ameaca": "MECÂNICA MUSCULAR: 'ACOPLAMENTO EXCITAÇÃO-CONTRAÇÃO'",
+    "alternativas": [
+      "Apenas difusão de Na+",
+      "Apenas bomba de Ca",
+      "Sequência que liga o PA muscular à contração",
+      "Fosforilação de miosina apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Sarcômero'?",
+    "correta": "Unidade contrátil básica do músculo estriado",
+    "texto": "Limitado por discos Z; contém filamentos de actina e miosina.",
+    "ameaca": "MECÂNICA MUSCULAR: 'SARCÔMERO'",
+    "alternativas": [
+      "Miofibrila inteira",
+      "Fibra muscular",
+      "Unidade contrátil básica do músculo estriado",
+      "Fascículo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Teoria dos filamentos deslizantes'?",
+    "correta": "Contração por deslizamento de actina sobre miosina sem encurtamento dos filamentos",
+    "texto": "O sarcômero encurta; os filamentos mantêm seu comprimento.",
+    "ameaca": "MECÂNICA MUSCULAR: 'TEORIA DOS FILAMENTOS DESLIZANTES'",
+    "alternativas": [
+      "Encurtamento dos filamentos",
+      "Contração por rotação apenas",
+      "Contração por deslizamento de actina sobre miosina sem encurtamento dos filamentos",
+      "Polymerização de actina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ciclo das pontes cruzadas'?",
+    "correta": "Ligação, pivô e desligamento da cabeça de miosina na actina",
+    "texto": "Alimentado por ATP; gera a força contrátil.",
+    "ameaca": "MECÂNICA MUSCULAR: 'CICLO DAS PONTES CRUZADAS'",
+    "alternativas": [
+      "Apenas difusão de Ca",
+      "Apenas troponina",
+      "Ligação, pivô e desligamento da cabeça de miosina na actina",
+      "Fosforilação de tropomiosina"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Relação comprimento-tensão'?",
+    "correta": "Força máxima em comprimento ótimo do sarcômero",
+    "texto": "Sobreposição ideal de actina e miosina maximiza o número de pontes cruzadas.",
+    "ameaca": "MECÂNICA MUSCULAR: 'RELAÇÃO COMPRIMENTO-TENSÃO'",
+    "alternativas": [
+      "Força independente do comprimento",
+      "Força máxima em comprimento zero",
+      "Força máxima em comprimento ótimo do sarcômero",
+      "Força só em alongamento extremo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Relação força-velocidade'?",
+    "correta": "Quanto maior a carga, menor a velocidade de encurtamento",
+    "texto": "Descrita pela equação de Hill; potência máxima em carga intermediária.",
+    "ameaca": "MECÂNICA MUSCULAR: 'RELAÇÃO FORÇA-VELOCIDADE'",
+    "alternativas": [
+      "Velocidade independente da carga",
+      "Velocidade máxima com carga máxima",
+      "Quanto maior a carga, menor a velocidade de encurtamento",
+      "Força nula em velocidade nula"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Músculo isométrico'?",
+    "correta": "Contração sem alteração de comprimento",
+    "texto": "Gera tensão sem encurtamento externo (ex.: segurar peso estático).",
+    "ameaca": "MECÂNICA MUSCULAR: 'MÚSCULO ISOMÉTRICO'",
+    "alternativas": [
+      "Isotônico",
+      "Isocinético apenas",
+      "Contração sem alteração de comprimento",
+      "Alongamento"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Músculo isotônico'?",
+    "correta": "Contração com encurtamento sob carga aproximadamente constante",
+    "texto": "Ex.: levantar um peso livre.",
+    "ameaca": "MECÂNICA MUSCULAR: 'MÚSCULO ISOTÔNICO'",
+    "alternativas": [
+      "Isométrico",
+      "Isovolumétrico cardíaco apenas",
+      "Contração com encurtamento sob carga aproximadamente constante",
+      "Estático"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Trabalho muscular'?",
+    "correta": "Força × deslocamento (quando há encurtamento)",
+    "texto": "Na contração isométrica o trabalho externo é zero.",
+    "ameaca": "MECÂNICA MUSCULAR: 'TRABALHO MUSCULAR'",
+    "alternativas": [
+      "Apenas força",
+      "Apenas tensão",
+      "Força × deslocamento (quando há encurtamento)",
+      "Potência apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Potência muscular'?",
+    "correta": "Trabalho por unidade de tempo (ou força × velocidade)",
+    "texto": "Máxima em cargas intermediários de carga e velocidade.",
+    "ameaca": "MECÂNICA MUSCULAR: 'POTÊNCIA MUSCULAR'",
+    "alternativas": [
+      "Apenas força máxima",
+      "Apenas velocidade máxima",
+      "Trabalho por unidade de tempo (ou força × velocidade)",
+      "Energia total"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ultrassom diagnóstico'?",
+    "correta": "Usa ondas sonoras de alta frequência para formar imagens",
+    "texto": "Baseado na reflexão (eco) nas interfaces de diferentes impedâncias acústicas.",
+    "ameaca": "IMAGEM: 'ULTRASSOM DIAGNÓSTICO'",
+    "alternativas": [
+      "Raios X",
+      "RMN",
+      "Usa ondas sonoras de alta frequência para formar imagens",
+      "PET"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Efeito Doppler em ultrassom'?",
+    "correta": "Mede velocidade de fluxo sanguíneo pelo desvio de frequência",
+    "texto": "Usado em ecocardiografia e Doppler vascular.",
+    "ameaca": "IMAGEM: 'EFEITO DOPPLER EM ULTRASSOM'",
+    "alternativas": [
+      "Apenas morfologia",
+      "Apenas densidade",
+      "Mede velocidade de fluxo sanguíneo pelo desvio de frequência",
+      "Apenas temperatura"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Raios X'?",
+    "correta": "Radiação eletromagnética ionizante para radiografia",
+    "texto": "Atenuados de forma diferente por tecidos de densidades distintas.",
+    "ameaca": "IMAGEM: 'RAIOS X'",
+    "alternativas": [
+      "Ultrassom",
+      "RM",
+      "Radiação eletromagnética ionizante para radiografia",
+      "Luz visível"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Tomografia computadorizada (TC)'?",
+    "correta": "Imagens axiais por atenuação de raios X em múltiplos ângulos",
+    "texto": "Reconstrução matemática gera cortes transversais detalhados.",
+    "ameaca": "IMAGEM: 'TOMOGRAFIA COMPUTADORIZADA (TC)'",
+    "alternativas": [
+      "RM",
+      "Ultrassom",
+      "Imagens axiais por atenuação de raios X em múltiplos ângulos",
+      "PET apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ressonância magnética (RM)'?",
+    "correta": "Imagens baseadas no alinhamento de spins nucleares em campo magnético",
+    "texto": "Usa radiofrequência; excelente contraste de tecidos moles sem radiação ionizante.",
+    "ameaca": "IMAGEM: 'RESSONÂNCIA MAGNÉTICA (RM)'",
+    "alternativas": [
+      "TC",
+      "Raios X simples",
+      "Imagens baseadas no alinhamento de spins nucleares em campo magnético",
+      "Ultrassom"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'PET (tomografia por emissão de pósitrons)'?",
+    "correta": "Imagem funcional com radiotraçadores emissores de pósitrons",
+    "texto": "Mostra metabolismo (ex.: FDG) e ligação a receptores.",
+    "ameaca": "IMAGEM: 'PET (TOMOGRAFIA POR EMISSÃO DE PÓSITRONS)'",
+    "alternativas": [
+      "TC",
+      "RM estrutural",
+      "Imagem funcional com radiotraçadores emissores de pósitrons",
+      "Ultrassom"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Radiação ionizante'?",
+    "correta": "Possui energia suficiente para ionizar átomos",
+    "texto": "Inclui raios X, gama e partículas; pode danificar DNA.",
+    "ameaca": "RADIAÇÃO: 'RADIAÇÃO IONIZANTE'",
+    "alternativas": [
+      "Luz visível",
+      "Infravermelho",
+      "Possui energia suficiente para ionizar átomos",
+      "Ondas de rádio"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Dose absorvida (Gray)'?",
+    "correta": "Energia depositada por unidade de massa (J/kg)",
+    "texto": "Unidade SI da dose absorvida de radiação.",
+    "ameaca": "RADIAÇÃO: 'DOSE ABSORVIDA (GRAY)'",
+    "alternativas": [
+      "Sievert",
+      "Becquerel",
+      "Energia depositada por unidade de massa (J/kg)",
+      "Coulomb/kg"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Dose equivalente (Sievert)'?",
+    "correta": "Dose absorvida ponderada pelo tipo de radiação",
+    "texto": "Reflete o risco biológico relativo.",
+    "ameaca": "RADIAÇÃO: 'DOSE EQUIVALENTE (SIEVERT)'",
+    "alternativas": [
+      "Gray",
+      "Becquerel",
+      "Dose absorvida ponderada pelo tipo de radiação",
+      "Roentgen"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Atividade radioativa (Becquerel)'?",
+    "correta": "Número de desintegrações por segundo",
+    "texto": "1 Bq = 1 desintegração/s; substitui o Curie.",
+    "ameaca": "RADIAÇÃO: 'ATIVIDADE RADIOATIVA (BECQUEREL)'",
+    "alternativas": [
+      "Gray",
+      "Sievert",
+      "Número de desintegrações por segundo",
+      "Eletronvolt"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Meia-vida física'?",
+    "correta": "Tempo para a atividade de um radionuclídeo cair à metade",
+    "texto": "Característica de cada isótopo; independente do meio.",
+    "ameaca": "RADIAÇÃO: 'MEIA-VIDA FÍSICA'",
+    "alternativas": [
+      "Meia-vida biológica",
+      "Meia-vida efetiva apenas",
+      "Tempo para a atividade de um radionuclídeo cair à metade",
+      "Tempo de transit"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Espectroscopia de absorção'?",
+    "correta": "Identifica e quantifica substâncias pela absorção de luz",
+    "texto": "Cada cromóforo tem espectro característico.",
+    "ameaca": "ÓPTICA: 'ESPECTROSCOPIA DE ABSORÇÃO'",
+    "alternativas": [
+      "Emissão apenas",
+      "Difração",
+      "Identifica e quantifica substâncias pela absorção de luz",
+      "Refração apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Lei de Beer-Lambert'?",
+    "correta": "Absorbância proporcional à concentração e ao caminho óptico",
+    "texto": "A = ε·l·c; base da quantificação espectrofotométrica.",
+    "ameaca": "ÓPTICA: 'LEI DE BEER-LAMBERT'",
+    "alternativas": [
+      "Lei de Snell",
+      "Lei de Bragg",
+      "Absorbância proporcional à concentração e ao caminho óptico",
+      "Lei de Rayleigh"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fluorescência'?",
+    "correta": "Emissão de luz por molécula após absorção de fóton",
+    "texto": "Usada em microscopia e ensaios (GFP, fluoróforos).",
+    "ameaca": "ÓPTICA: 'FLUORESCÊNCIA'",
+    "alternativas": [
+      "Absorção apenas",
+      "Espalhamento",
+      "Emissão de luz por molécula após absorção de fóton",
+      "Difração"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fosforescência'?",
+    "correta": "Emissão retardada após absorção de luz",
+    "texto": "Envolve transição por estado tripleto; mais lenta que fluorescência.",
+    "ameaca": "ÓPTICA: 'FOSFORESCÊNCIA'",
+    "alternativas": [
+      "Fluorescência",
+      "Absorção",
+      "Emissão retardada após absorção de luz",
+      "Refração"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Refração'?",
+    "correta": "Desvio da luz ao mudar de meio",
+    "texto": "Índice de refração determina o ângulo (lei de Snell).",
+    "ameaca": "ÓPTICA: 'REFRAÇÃO'",
+    "alternativas": [
+      "Reflexão",
+      "Difração",
+      "Desvio da luz ao mudar de meio",
+      "Absorção"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Difração'?",
+    "correta": "Espalhamento de ondas ao passar por obstáculo ou fenda",
+    "texto": "Limita a resolução de microscópios ópticos.",
+    "ameaca": "ÓPTICA: 'DIFRAÇÃO'",
+    "alternativas": [
+      "Refração",
+      "Reflexão",
+      "Espalhamento de ondas ao passar por obstáculo ou fenda",
+      "Absorção"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Resolução de um microscópio'?",
+    "correta": "Menor distância em que dois pontos são distinguidos",
+    "texto": "Limitada pelo comprimento de onda e pela abertura numérica (critério de Abbe).",
+    "ameaca": "ÓPTICA: 'RESOLUÇÃO DE UM MICROSCÓPIO'",
+    "alternativas": [
+      "Aumento apenas",
+      "Contraste apenas",
+      "Menor distância em que dois pontos são distinguidos",
+      "Campo de visão"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Contraste de fase'?",
+    "correta": "Técnica que converte diferenças de fase em diferenças de amplitude",
+    "texto": "Permite ver células vivas transparentes sem corantes.",
+    "ameaca": "ÓPTICA: 'CONTRASTE DE FASE'",
+    "alternativas": [
+      "Campo claro apenas",
+      "Fluorescência",
+      "Técnica que converte diferenças de fase em diferenças de amplitude",
+      "DIC apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Microscopia confocal'?",
+    "correta": "Usa pinhole para eliminar luz fora de foco",
+    "texto": "Gera imagens ópticas seccionadas e 3D de alta nitidez.",
+    "ameaca": "ÓPTICA: 'MICROSCOPIA CONFOCAL'",
+    "alternativas": [
+      "Campo amplo",
+      "Elétrons",
+      "Usa pinhole para eliminar luz fora de foco",
+      "AFM"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Microscopia de força atômica (AFM)'?",
+    "correta": "Varre a superfície com sonda mecânica em escala nanométrica",
+    "texto": "Fornece topografia e propriedades mecânicas de moléculas e células.",
+    "ameaca": "MÉTODOS: 'MICROSCOPIA DE FORÇA ATÔMICA (AFM)'",
+    "alternativas": [
+      "SEM",
+      "TEM",
+      "Varre a superfície com sonda mecânica em escala nanométrica",
+      "Confocal"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Centrifugação diferencial'?",
+    "correta": "Separa organelas por tamanho e densidade sob aceleração",
+    "texto": "Usada para isolar núcleos, mitocôndrias, microssomos etc.",
+    "ameaca": "MÉTODOS: 'CENTRIFUGAÇÃO DIFERENCIAL'",
+    "alternativas": [
+      "Eletroforese",
+      "Cromatografia",
+      "Separa organelas por tamanho e densidade sob aceleração",
+      "Diálise"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ultracentrifugação'?",
+    "correta": "Centrifugação a altíssimas velocidades para macromoléculas",
+    "texto": "Permite sedimentação de proteínas, ácidos nucleicos e vírus.",
+    "ameaca": "MÉTODOS: 'ULTRACENTRIFUGAÇÃO'",
+    "alternativas": [
+      "Centrifugação de bancada",
+      "Filtração",
+      "Centrifugação a altíssimas velocidades para macromoléculas",
+      "Precipitação"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Diálise'?",
+    "correta": "Separação por difusão através de membrana semipermeável",
+    "texto": "Remove pequenos solutos, retendo macromoléculas.",
+    "ameaca": "MÉTODOS: 'DIÁLISE'",
+    "alternativas": [
+      "Osmose inversa apenas",
+      "Filtração em gel",
+      "Separação por difusão através de membrana semipermeável",
+      "Cromatografia de afinidade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Cromatografia'?",
+    "correta": "Separação baseada em partição entre fases móvel e estacionária",
+    "texto": "Vários tipos: troca iônica, afinidade, exclusão molecular, HPLC.",
+    "ameaca": "MÉTODOS: 'CROMATOGRAFIA'",
+    "alternativas": [
+      "Eletroforese",
+      "Centrifugação",
+      "Separação baseada em partição entre fases móvel e estacionária",
+      "Diálise"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Calorimetria'?",
+    "correta": "Mede trocas de calor em processos biológicos",
+    "texto": "Usada em metabolismo (calorimetria indireta) e em interações moleculares (ITC).",
+    "ameaca": "TERMODINÂMICA: 'CALORIMETRIA'",
+    "alternativas": [
+      "Espectroscopia",
+      "Eletroforese",
+      "Mede trocas de calor em processos biológicos",
+      "Microscopia"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Primeira lei da termodinâmica'?",
+    "correta": "Conservação da energia (ΔU = Q - W)",
+    "texto": "Energia não se cria nem se destrói; aplica-se ao metabolismo.",
+    "ameaca": "TERMODINÂMICA: 'PRIMEIRA LEI DA TERMODINÂMICA'",
+    "alternativas": [
+      "Segunda lei",
+      "Terceira lei",
+      "Conservação da energia (ΔU = Q - W)",
+      "Lei zero"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Segunda lei da termodinâmica'?",
+    "correta": "A entropia do universo aumenta nos processos espontâneos",
+    "texto": "Sistemas biológicos mantêm baixa entropia local às custas do aumento global.",
+    "ameaca": "TERMODINÂMICA: 'SEGUNDA LEI DA TERMODINÂMICA'",
+    "alternativas": [
+      "Primeira lei",
+      "Terceira lei",
+      "A entropia do universo aumenta nos processos espontâneos",
+      "Lei zero"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Entropia'?",
+    "correta": "Medida da desordem ou do número de microestados",
+    "texto": "Processos espontâneos tendem a aumentar a entropia total.",
+    "ameaca": "TERMODINÂMICA: 'ENTROPIA'",
+    "alternativas": [
+      "Entalpia apenas",
+      "Energia livre apenas",
+      "Medida da desordem ou do número de microestados",
+      "Temperatura"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Energia livre de Gibbs (G)'?",
+    "correta": "Critério de espontaneidade a T e P constantes (ΔG < 0)",
+    "texto": "ΔG = ΔH - TΔS; reações com ΔG negativo são espontâneas.",
+    "ameaca": "TERMODINÂMICA: 'ENERGIA LIVRE DE GIBBS (G)'",
+    "alternativas": [
+      "Energia interna",
+      "Entalpia apenas",
+      "Critério de espontaneidade a T e P constantes (ΔG < 0)",
+      "Entropia apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'ATP como moeda energética'?",
+    "correta": "Hidrólise de ATP tem ΔG negativo e acopla reações endergônicas",
+    "texto": "A célula usa o ATP para impulsionar processos não espontâneos.",
+    "ameaca": "TERMODINÂMICA: 'ATP COMO MOEDA ENERGÉTICA'",
+    "alternativas": [
+      "GTP apenas",
+      "NADH apenas",
+      "Hidrólise de ATP tem ΔG negativo e acopla reações endergônicas",
+      "Glicose diretamente"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Acoplamento energético'?",
+    "correta": "Reação exergônica impulsiona outra endergônica",
+    "texto": "Tipicamente via ATP ou gradientes iônicos.",
+    "ameaca": "TERMODINÂMICA: 'ACOPLAMENTO ENERGÉTICO'",
+    "alternativas": [
+      "Isolamento termodinâmico",
+      "Equilíbrio eterno",
+      "Reação exergônica impulsiona outra endergônica",
+      "Inibição competitiva"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Gradiente eletroquímico'?",
+    "correta": "Combinação de gradiente de concentração e potencial elétrico",
+    "texto": "Força motriz para transporte de íons através da membrana.",
+    "ameaca": "TRANSPORTE: 'GRADIENTE ELETROQUÍMICO'",
+    "alternativas": [
+      "Apenas concentração",
+      "Apenas voltagem",
+      "Combinação de gradiente de concentração e potencial elétrico",
+      "Pressão hidrostática"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Cotransporte (simporte)'?",
+    "correta": "Dois solutos no mesmo sentido, um a favor e outro contra o gradiente",
+    "texto": "Ex.: Na+-glicose no intestino.",
+    "ameaca": "TRANSPORTE: 'COTRANSPORTE (SIMPORTE)'",
+    "alternativas": [
+      "Antiporte",
+      "Uniporte",
+      "Dois solutos no mesmo sentido, um a favor e outro contra o gradiente",
+      "Canal passivo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Antiporte (exchanger)'?",
+    "correta": "Dois solutos em sentidos opostos",
+    "texto": "Ex.: trocador Na+/Ca2+ ou Na+/H+.",
+    "ameaca": "TRANSPORTE: 'ANTIPORTE (EXCHANGER)'",
+    "alternativas": [
+      "Simporte",
+      "Uniporte",
+      "Dois solutos em sentidos opostos",
+      "Bomba primária apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Uniporte'?",
+    "correta": "Transporte de um único soluto a favor do gradiente",
+    "texto": "Ex.: canais de glicose GLUT em certos tecidos.",
+    "ameaca": "TRANSPORTE: 'UNIPORTE'",
+    "alternativas": [
+      "Simporte",
+      "Antiporte",
+      "Transporte de um único soluto a favor do gradiente",
+      "Bomba ATP"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Transporte ativo primário'?",
+    "correta": "Usa energia direta de ATP (ou luz) para bombear contra o gradiente",
+    "texto": "Ex.: bomba Na+/K+, bomba de Ca2+, bomba de prótons.",
+    "ameaca": "TRANSPORTE: 'TRANSPORTE ATIVO PRIMÁRIO'",
+    "alternativas": [
+      "Secundário",
+      "Facilitado",
+      "Usa energia direta de ATP (ou luz) para bombear contra o gradiente",
+      "Difusão"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Transporte ativo secundário'?",
+    "correta": "Usa o gradiente de um íon (gerado por bomba primária) para transportar outro soluto",
+    "texto": "Não hidrolisa ATP diretamente no transportador.",
+    "ameaca": "TRANSPORTE: 'TRANSPORTE ATIVO SECUNDÁRIO'",
+    "alternativas": [
+      "Primário",
+      "Passivo",
+      "Usa o gradiente de um íon (gerado por bomba primária) para transportar outro soluto",
+      "Osmose"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Endocitose'?",
+    "correta": "Entrada de material por invaginação da membrana",
+    "texto": "Inclui pinocitose, fagocitose e endocitose mediada por receptor.",
+    "ameaca": "TRANSPORTE: 'ENDOCITOSE'",
+    "alternativas": [
+      "Exocitose",
+      "Difusão",
+      "Entrada de material por invaginação da membrana",
+      "Transporte ativo de íons"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Exocitose'?",
+    "correta": "Saída de material por fusão de vesículas com a membrana",
+    "texto": "Libera neurotransmissores, hormônios e enzimas.",
+    "ameaca": "TRANSPORTE: 'EXOCITOSE'",
+    "alternativas": [
+      "Endocitose",
+      "Difusão",
+      "Saída de material por fusão de vesículas com a membrana",
+      "Osmose"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fagocitose'?",
+    "correta": "Endocitose de grandes partículas sólidas",
+    "texto": "Realizada por macrófagos e neutrófilos.",
+    "ameaca": "TRANSPORTE: 'FAGOCITOSE'",
+    "alternativas": [
+      "Pinocitose",
+      "Exocitose",
+      "Endocitose de grandes partículas sólidas",
+      "Difusão facilitada"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Pinocitose'?",
+    "correta": "Endocitose de fluido extracelular e solutos",
+    "texto": "Ocorre de forma contínua em muitas células.",
+    "ameaca": "TRANSPORTE: 'PINOCITOSE'",
+    "alternativas": [
+      "Fagocitose",
+      "Exocitose",
+      "Endocitose de fluido extracelular e solutos",
+      "Transporte ativo"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Aquaporinas'?",
+    "correta": "Canais proteicos específicos para água",
+    "texto": "Aumentam drasticamente a permeabilidade à água em rins, eritrócitos etc.",
+    "ameaca": "TRANSPORTE: 'AQUAPORINAS'",
+    "alternativas": [
+      "Canais de Na+",
+      "Bombas de água",
+      "Canais proteicos específicos para água",
+      "Transportadores de glicose"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Osmolaridade'?",
+    "correta": "Concentração total de partículas osmoticamente ativas",
+    "texto": "Expressa em osmoles por litro; determina a pressão osmótica.",
+    "ameaca": "TRANSPORTE: 'OSMOLARIDADE'",
+    "alternativas": [
+      "Molaridade apenas",
+      "Molalidade apenas",
+      "Concentração total de partículas osmoticamente ativas",
+      "Densidade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ponto de congelamento e osmolaridade'?",
+    "correta": "Quanto maior a osmolaridade, menor o ponto de congelamento",
+    "texto": "Base de osmômetros de ponto de congelamento.",
+    "ameaca": "TRANSPORTE: 'PONTO DE CONGELAMENTO E OSMOLARIDADE'",
+    "alternativas": [
+      "Maior ponto de congelamento",
+      "Sem relação",
+      "Quanto maior a osmolaridade, menor o ponto de congelamento",
+      "Maior ponto de ebulição apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Bioimpedância'?",
+    "correta": "Medida da oposição do corpo à corrente elétrica alternada",
+    "texto": "Usada para estimar composição corporal (água, massa magra).",
+    "ameaca": "MÉTODOS: 'BIOIMPEDÂNCIA'",
+    "alternativas": [
+      "ECG",
+      "EEG",
+      "Medida da oposição do corpo à corrente elétrica alternada",
+      "EMG"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Condutividade elétrica de tecidos'?",
+    "correta": "Depende do conteúdo de água e eletrólitos",
+    "texto": "Tecidos ricos em água conduzem melhor; gordura e osso conduzem pior.",
+    "ameaca": "BIOELETRICIDADE: 'CONDUTIVIDADE ELÉTRICA DE TECIDOS'",
+    "alternativas": [
+      "Apenas temperatura",
+      "Apenas densidade",
+      "Depende do conteúdo de água e eletrólitos",
+      "Independente da composição"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Efeito fotoelétrico em imagem'?",
+    "correta": "Fóton ejetando elétron de átomo (importante em raios X de baixa energia)",
+    "texto": "Contribui para o contraste em radiografias de tecidos moles.",
+    "ameaca": "RADIAÇÃO: 'EFEITO FOTOELÉTRICO EM IMAGEM'",
+    "alternativas": [
+      "Compton apenas",
+      "Criação de par",
+      "Fóton ejetando elétron de átomo (importante em raios X de baixa energia)",
+      "Espalhamento coerente apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Espalhamento Compton'?",
+    "correta": "Fóton colide com elétron e perde energia (desvia)",
+    "texto": "Predomina em energias intermediárias de raios X; reduz contraste.",
+    "ameaca": "RADIAÇÃO: 'ESPALHAMENTO COMPTON'",
+    "alternativas": [
+      "Fotoelétrico",
+      "Criação de par",
+      "Fóton colide com elétron e perde energia (desvia)",
+      "Absorção total"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Criação de par'?",
+    "correta": "Fóton de alta energia converte-se em elétron + pósitron",
+    "texto": "Ocorre acima de 1,022 MeV; relevante em PET e radioterapia de alta energia.",
+    "ameaca": "RADIAÇÃO: 'CRIAÇÃO DE PAR'",
+    "alternativas": [
+      "Compton",
+      "Fotoelétrico",
+      "Fóton de alta energia converte-se em elétron + pósitron",
+      "Espalhamento Rayleigh"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Blindagem de radiação'?",
+    "correta": "Materiais densos (chumbo) atenuam raios X e gama",
+    "texto": "Espessura e número atômico determinam a eficácia da blindagem.",
+    "ameaca": "RADIAÇÃO: 'BLINDAGEM DE RADIAÇÃO'",
+    "alternativas": [
+      "Apenas plástico",
+      "Apenas água",
+      "Materiais densos (chumbo) atenuam raios X e gama",
+      "Apenas ar"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'ALARA'?",
+    "correta": "Princípio: dose tão baixa quanto razoavelmente exequível",
+    "texto": "Guia a proteção radiológica em medicina e pesquisa.",
+    "ameaca": "RADIAÇÃO: 'ALARA'",
+    "alternativas": [
+      "Dose máxima sempre",
+      "Sem limite",
+      "Princípio: dose tão baixa quanto razoavelmente exequível",
+      "Dose fixa protocolar"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Laser em medicina'?",
+    "correta": "Luz coerente, monocromática e colimada",
+    "texto": "Usado em cirurgia, oftalmologia, dermatologia e terapia fotodinâmica.",
+    "ameaca": "ÓPTICA: 'LASER EM MEDICINA'",
+    "alternativas": [
+      "Luz branca",
+      "Ultrassom",
+      "Luz coerente, monocromática e colimada",
+      "Raios X"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Fibra óptica'?",
+    "correta": "Conduz luz por reflexão total interna",
+    "texto": "Permite endoscopia e transmissão de sinais com baixa perda.",
+    "ameaca": "ÓPTICA: 'FIBRA ÓPTICA'",
+    "alternativas": [
+      "Cabo metálico",
+      "Guia de onda sonora",
+      "Conduz luz por reflexão total interna",
+      "Condutor elétrico"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Índice de refração'?",
+    "correta": "Razão entre velocidade da luz no vácuo e no meio",
+    "texto": "Determina desvios e reflexão total; varia com o comprimento de onda.",
+    "ameaca": "ÓPTICA: 'ÍNDICE DE REFRAÇÃO'",
+    "alternativas": [
+      "Densidade apenas",
+      "Absorção",
+      "Razão entre velocidade da luz no vácuo e no meio",
+      "Frequência"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Polarização da luz'?",
+    "correta": "Orientação preferencial do campo elétrico da onda",
+    "texto": "Usada em microscopia polarizante e em óculos de sol.",
+    "ameaca": "ÓPTICA: 'POLARIZAÇÃO DA LUZ'",
+    "alternativas": [
+      "Frequência",
+      "Amplitude apenas",
+      "Orientação preferencial do campo elétrico da onda",
+      "Fase apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Interferência'?",
+    "correta": "Superposição de ondas que pode reforçar ou cancelar",
+    "texto": "Base de técnicas como interferometria e contraste de fase.",
+    "ameaca": "ÓPTICA: 'INTERFERÊNCIA'",
+    "alternativas": [
+      "Difração apenas",
+      "Absorção",
+      "Superposição de ondas que pode reforçar ou cancelar",
+      "Refração"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Efeito piezoelétrico'?",
+    "correta": "Certos cristais geram carga sob pressão (e vice-versa)",
+    "texto": "Base dos transdutores de ultrassom.",
+    "ameaca": "MÉTODOS: 'EFEITO PIEZOELÉTRICO'",
+    "alternativas": [
+      "Efeito fotoelétrico",
+      "Efeito Compton",
+      "Certos cristais geram carga sob pressão (e vice-versa)",
+      "Efeito Joule"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Frequência de ultrassom diagnóstico'?",
+    "correta": "Tipicamente 2–15 MHz",
+    "texto": "Maior frequência: melhor resolução, menor penetração.",
+    "ameaca": "IMAGEM: 'FREQUÊNCIA DE ULTRASSOM DIAGNÓSTICO'",
+    "alternativas": [
+      "Hz audível",
+      "GHz de micro-ondas",
+      "Tipicamente 2–15 MHz",
+      "Apenas kHz"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Impedância acústica'?",
+    "correta": "Produto da densidade pela velocidade do som no meio",
+    "texto": "A reflexão do ultrassom ocorre em interfaces com diferentes impedâncias.",
+    "ameaca": "IMAGEM: 'IMPEDÂNCIA ACÚSTICA'",
+    "alternativas": [
+      "Resistência elétrica",
+      "Índice de refração",
+      "Produto da densidade pela velocidade do som no meio",
+      "Viscosidade"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Efeito Doppler'?",
+    "correta": "Mudança de frequência quando fonte ou observador se movem",
+    "texto": "Aplicado ao fluxo sanguíneo e à ecocardiografia Doppler.",
+    "ameaca": "FÍSICA ONDAS: 'EFEITO DOPPLER'",
+    "alternativas": [
+      "Efeito fotoelétrico",
+      "Efeito Compton",
+      "Mudança de frequência quando fonte ou observador se movem",
+      "Efeito Joule"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ressonância'?",
+    "correta": "Oscilação com amplitude máxima em frequência natural",
+    "texto": "Importante em RM (ressonância nuclear) e em sistemas mecânicos biológicos.",
+    "ameaca": "FÍSICA ONDAS: 'RESSONÂNCIA'",
+    "alternativas": [
+      "Amortecimento",
+      "Interferência",
+      "Oscilação com amplitude máxima em frequência natural",
+      "Difração"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Amortecimento'?",
+    "correta": "Perda de energia de um oscilador para o meio",
+    "texto": "Determina a largura de picos de ressonância e o decaimento de vibrações.",
+    "ameaca": "FÍSICA ONDAS: 'AMORTECIMENTO'",
+    "alternativas": [
+      "Ressonância",
+      "Amplificação",
+      "Perda de energia de um oscilador para o meio",
+      "Interferência construtiva"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ondas longitudinais'?",
+    "correta": "Oscilação na mesma direção de propagação (ex.: som)",
+    "texto": "O som em tecidos é onda longitudinal de pressão.",
+    "ameaca": "FÍSICA ONDAS: 'ONDAS LONGITUDINAIS'",
+    "alternativas": [
+      "Transversais",
+      "Eletromagnéticas apenas",
+      "Oscilação na mesma direção de propagação (ex.: som)",
+      "Estacionárias apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ondas transversais'?",
+    "correta": "Oscilação perpendicular à propagação (ex.: luz, ondas em corda)",
+    "texto": "Luz e muitas ondas eletromagnéticas são transversais.",
+    "ameaca": "FÍSICA ONDAS: 'ONDAS TRANSVERSAIS'",
+    "alternativas": [
+      "Longitudinais",
+      "Sonoras em fluido",
+      "Oscilação perpendicular à propagação (ex.: luz, ondas em corda)",
+      "De pressão apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Velocidade do som em tecidos moles'?",
+    "correta": "Aproximadamente 1540 m/s",
+    "texto": "Valor médio usado em equipamentos de ultrassom para converter tempo em distância.",
+    "ameaca": "IMAGEM: 'VELOCIDADE DO SOM EM TECIDOS MOLES'",
+    "alternativas": [
+      "340 m/s",
+      "3000 m/s",
+      "Aproximadamente 1540 m/s",
+      "3×10^8 m/s"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Atenuação do ultrassom'?",
+    "correta": "Perda de intensidade por absorção e espalhamento no meio",
+    "texto": "Aumenta com a frequência e com a profundidade.",
+    "ameaca": "IMAGEM: 'ATENUAÇÃO DO ULTRASSOM'",
+    "alternativas": [
+      "Ganho apenas",
+      "Amplificação",
+      "Perda de intensidade por absorção e espalhamento no meio",
+      "Reflexão total apenas"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Ganho (gain) em ultrassom'?",
+    "correta": "Amplificação eletrônica dos ecos recebidos",
+    "texto": "Compensa a atenuação; excesso gera ruído.",
+    "ameaca": "IMAGEM: 'GANHO (GAIN) EM ULTRASSOM'",
+    "alternativas": [
+      "Frequência",
+      "Potência emitida apenas",
+      "Amplificação eletrônica dos ecos recebidos",
+      "Profundidade fixa"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Artefato de reverberação'?",
+    "correta": "Ecos múltiplos entre interfaces fortes",
+    "texto": "Pode gerar imagens fantasmas em ultrassom.",
+    "ameaca": "IMAGEM: 'ARTEFATO DE REVERBERAÇÃO'",
+    "alternativas": [
+      "Sombra acústica apenas",
+      "Reforço acústico",
+      "Ecos múltiplos entre interfaces fortes",
+      "Alias no Doppler"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Sombra acústica'?",
+    "correta": "Região escura distal a estrutura muito refletora ou absorvente",
+    "texto": "Útil para identificar cálculos e ossos.",
+    "ameaca": "IMAGEM: 'SOMBRA ACÚSTICA'",
+    "alternativas": [
+      "Reforço acústico",
+      "Reverberação",
+      "Região escura distal a estrutura muito refletora ou absorvente",
+      "Espelhamento"
+    ]
+  },
+  {
+    "inimigo": "O que é / caracteriza 'Reforço acústico'?",
+    "correta": "Região mais brilhante distal a estrutura pouco atenuante (líquido)",
+    "texto": "Característico de cistos.",
+    "ameaca": "IMAGEM: 'REFORÇO ACÚSTICO'",
+    "alternativas": [
+      "Sombra",
+      "Reverberação",
+      "Região mais brilhante distal a estrutura pouco atenuante (líquido)",
+      "Alias"
+    ]
+  },
+  {
+    "inimigo": "Unidade de capacitancia no SI",
+    "correta": "Farad (F)",
+    "texto": "1 Farad = 1 Coulomb/Volt; membranas celulares tem capacitancia da ordem de uF/cm2.",
+    "ameaca": "UNIDADES: QUAL A UNIDADE DE CAPACITANCIA?",
+    "alternativas": [
+      "Ohm",
+      "Siemens",
+      "Farad (F)",
+      "Henry"
+    ]
+  },
+  {
+    "inimigo": "Unidade de resistencia eletrica no SI",
+    "correta": "Ohm",
+    "texto": "1 Ohm = 1 Volt/Ampere; a resistencia de membrana e medida em Ohm.cm2.",
+    "ameaca": "UNIDADES: QUAL A UNIDADE DE RESISTENCIA?",
+    "alternativas": [
+      "Farad",
+      "Siemens",
+      "Ohm",
+      "Coulomb"
+    ]
+  },
+  {
+    "inimigo": "Unidade de condutancia no SI",
+    "correta": "Siemens (S)",
+    "texto": "Condutancia e o inverso da resistencia; 1 S = 1/Ohm.",
+    "ameaca": "UNIDADES: QUAL A UNIDADE DE CONDUTANCIA?",
+    "alternativas": [
+      "Ohm",
+      "Farad",
+      "Siemens (S)",
+      "Volt"
+    ]
+  },
+  {
+    "inimigo": "Constante de tempo da membrana",
+    "correta": "Produto da resistencia pela capacitancia (tau = R*C)",
+    "texto": "Determina quao rapido o potencial responde a uma corrente injetada.",
+    "ameaca": "BIOELETRICIDADE: O QUE E A CONSTANTE DE TEMPO?",
+    "alternativas": [
+      "Apenas R",
+      "Apenas C",
+      "Produto da resistencia pela capacitancia (tau = R*C)",
+      "V/I"
+    ]
+  },
+  {
+    "inimigo": "Constante de espaco do cabo neuronal",
+    "correta": "Distancia em que o potencial eletrotonico cai a 1/e",
+    "texto": "Depende das resistencias de membrana e axoplasma; maior em fibras mielinizadas.",
+    "ameaca": "NEUROBIOFISICA: O QUE E A CONSTANTE DE ESPACO?",
+    "alternativas": [
+      "Tempo de conducao",
+      "Amplitude do PA",
+      "Distancia em que o potencial eletrotonico cai a 1/e",
+      "Diametro do axonio apenas"
+    ]
+  },
+  {
+    "inimigo": "Modelo do cabo neuronal",
+    "correta": "Trata o axonio como cabo eletrico com R, C e corrente axial",
+    "texto": "Explica a conducao eletrotonica e a dependencia da velocidade com o diametro.",
+    "ameaca": "NEUROBIOFISICA: O QUE E O MODELO DO CABO?",
+    "alternativas": [
+      "Apenas circuito RC simples",
+      "Apenas lei de Ohm",
+      "Trata o axonio como cabo eletrico com R, C e corrente axial",
+      "Modelo quantico"
+    ]
+  },
+  {
+    "inimigo": "Velocidade de conducao em fibra mielinizada vs amielinica",
+    "correta": "Muito maior na mielinizada (conducao saltatoria)",
+    "texto": "A mielina aumenta a resistencia transversal e diminui a capacitancia, acelerando a conducao.",
+    "ameaca": "NEUROBIOFISICA: COMO A MIELINA AFETA A VELOCIDADE?",
+    "alternativas": [
+      "Diminui a velocidade",
+      "Nao altera",
+      "Muito maior na mielinizada (conducao saltatoria)",
+      "So aumenta a amplitude"
+    ]
+  },
+  {
+    "inimigo": "Nodulo de Ranvier",
+    "correta": "Regiao sem mielina onde se concentram canais de Na+ voltagem-dependentes",
+    "texto": "E o local de regeneracao do potencial de acao na conducao saltatoria.",
+    "ameaca": "NEUROBIOFISICA: O QUE E O NODULO DE RANVIER?",
+    "alternativas": [
+      "Segmento mielinizado",
+      "Sinapse",
+      "Regiao sem mielina onde se concentram canais de Na+ voltagem-dependentes",
+      "Corpo celular"
+    ]
+  },
+  {
+    "inimigo": "Corrente capacitiva",
+    "correta": "Corrente que carrega/descarrega a capacitancia de membrana",
+    "texto": "Nao atravessa canais; altera a carga armazenada na membrana (I = C*dV/dt).",
+    "ameaca": "BIOELETRICIDADE: O QUE E CORRENTE CAPACITIVA?",
+    "alternativas": [
+      "Corrente ionica atraves de canais",
+      "Corrente de fuga apenas",
+      "Corrente que carrega/descarrega a capacitancia de membrana",
+      "Corrente de bomba"
+    ]
+  },
+  {
+    "inimigo": "Corrente ionica",
+    "correta": "Fluxo de ions atraves de canais ou bombas",
+    "texto": "Determina as mudancas de potencial durante o potencial de acao e sinapses.",
+    "ameaca": "BIOELETRICIDADE: O QUE E CORRENTE IONICA?",
+    "alternativas": [
+      "Corrente capacitiva",
+      "Corrente de deslocamento no vacuo",
+      "Fluxo de ions atraves de canais ou bombas",
+      "Corrente eletronica em metal"
+    ]
+  },
+  {
+    "inimigo": "Retificacao em canais ionicos",
+    "correta": "Condutancia diferente para correntes de entrada e de saida",
+    "texto": "Canais retificadores de entrada ou de saida moldam a excitabilidade celular.",
+    "ameaca": "NEUROBIOFISICA: O QUE E RETIFICACAO DE CANAL?",
+    "alternativas": [
+      "Abertura por ligante",
+      "Inativacao apenas",
+      "Condutancia diferente para correntes de entrada e de saida",
+      "Bloqueio por toxina apenas"
+    ]
+  },
+  {
+    "inimigo": "Inativacao de canal de sodio",
+    "correta": "Fechamento rapido apos abertura, impedindo nova abertura imediata",
+    "texto": "Responsavel pelo periodo refratario absoluto e pela forma do PA.",
+    "ameaca": "NEUROBIOFISICA: O QUE E INATIVACAO DO CANAL DE Na+?",
+    "alternativas": [
+      "Desativacao lenta de K+",
+      "Bloqueio por toxina",
+      "Fechamento rapido apos abertura, impedindo nova abertura imediata",
+      "Abertura por hiperpolarizacao"
+    ]
+  },
+  {
+    "inimigo": "Patch-clamp",
+    "correta": "Tecnica que registra correntes de canais ionicos unitarios ou de celula inteira",
+    "texto": "Permite estudar a cinetica e a condutancia de canais individuais.",
+    "ameaca": "METODOS: O QUE E PATCH-CLAMP?",
+    "alternativas": [
+      "Microscopia eletronica",
+      "Eletroforese",
+      "Tecnica que registra correntes de canais ionicos unitarios ou de celula inteira",
+      "Espectrofotometria"
+    ]
+  },
+  {
+    "inimigo": "Voltage-clamp",
+    "correta": "Tecnica que fixa o potencial de membrana e mede a corrente necessaria",
+    "texto": "Permite isolar e estudar as correntes ionicas em funcao da voltagem.",
+    "ameaca": "METODOS: O QUE E VOLTAGE-CLAMP?",
+    "alternativas": [
+      "Corrente fixa (current-clamp)",
+      "Patch apenas",
+      "Tecnica que fixa o potencial de membrana e mede a corrente necessaria",
+      "EEG"
+    ]
+  },
+  {
+    "inimigo": "Current-clamp",
+    "correta": "Injeta corrente e registra o potencial de membrana resultante",
+    "texto": "Usado para estudar potenciais de acao e respostas eletrotonicas.",
+    "ameaca": "METODOS: O QUE E CURRENT-CLAMP?",
+    "alternativas": [
+      "Voltage-clamp",
+      "Patch-clamp apenas",
+      "Injeta corrente e registra o potencial de membrana resultante",
+      "ECG"
+    ]
+  },
+  {
+    "inimigo": "Potencial de equilibrio do potassio (EK)",
+    "correta": "Cerca de -90 mV na maioria dos neuronios",
+    "texto": "Calculado pela equacao de Nernst para K+; proximo do potencial de repouso.",
+    "ameaca": "BIOELETRICIDADE: QUAL O VALOR TIPICO DE EK?",
+    "alternativas": [
+      "+60 mV",
+      "0 mV",
+      "Cerca de -90 mV na maioria dos neuronios",
+      "+30 mV"
+    ]
+  },
+  {
+    "inimigo": "Potencial de equilibrio do sodio (ENa)",
+    "correta": "Cerca de +60 mV",
+    "texto": "Calculado pela equacao de Nernst para Na+; proximo do pico do potencial de acao.",
+    "ameaca": "BIOELETRICIDADE: QUAL O VALOR TIPICO DE ENa?",
+    "alternativas": [
+      "-90 mV",
+      "-70 mV",
+      "Cerca de +60 mV",
+      "0 mV"
+    ]
+  },
+  {
+    "inimigo": "Permeabilidade relativa no potencial de repouso",
+    "correta": "Muito maior para K+ do que para Na+",
+    "texto": "Por isso o potencial de repouso fica proximo de EK.",
+    "ameaca": "BIOELETRICIDADE: QUAL ION DOMINA O POTENCIAL DE REPOUSO?",
+    "alternativas": [
+      "Na+ dominante",
+      "Cl- dominante",
+      "Muito maior para K+ do que para Na+",
+      "Ca2+ dominante"
+    ]
+  },
+  {
+    "inimigo": "Permeabilidade no pico do potencial de acao",
+    "correta": "Muito maior para Na+ (canais de Na+ abertos)",
+    "texto": "O potencial se aproxima de ENa durante o pico.",
+    "ameaca": "BIOELETRICIDADE: QUAL ION DOMINA O PICO DO PA?",
+    "alternativas": [
+      "K+",
+      "Cl-",
+      "Muito maior para Na+ (canais de Na+ abertos)",
+      "Ca2+ apenas"
+    ]
+  },
+  {
+    "inimigo": "Microscopia eletronica de transmissao (TEM)",
+    "correta": "Imagem formada por eletrons transmitidos atraves da amostra",
+    "texto": "Amostra ultraleve; eletrons atravessam e formam a imagem de alta resolucao.",
+    "ameaca": "METODOS: O QUE E TEM?",
+    "alternativas": [
+      "SEM",
+      "AFM",
+      "Imagem formada por eletrons transmitidos atraves da amostra",
+      "Confocal"
+    ]
+  },
+  {
+    "inimigo": "Microscopia eletronica de varredura (SEM)",
+    "correta": "Imagem da superficie por eletrons secundarios",
+    "texto": "Fornece imagens 3D da superficie da amostra.",
+    "ameaca": "METODOS: O QUE E SEM?",
+    "alternativas": [
+      "TEM",
+      "AFM",
+      "Imagem da superficie por eletrons secundarios",
+      "Campo claro"
+    ]
+  },
+  {
+    "inimigo": "Resolucao tipica da microscopia optica",
+    "correta": "Cerca de 0,2 micrometros (limite de difracao)",
+    "texto": "Limitada pelo comprimento de onda da luz visivel e pela abertura numerica.",
+    "ameaca": "OPTICA: QUAL A RESOLUCAO LIMITE DA MICROSCOPIA OPTICA?",
+    "alternativas": [
+      "1 nm",
+      "10 nm",
+      "Cerca de 0,2 micrometros (limite de difracao)",
+      "1 mm"
+    ]
+  },
+  {
+    "inimigo": "Resolucao da microscopia eletronica",
+    "correta": "Na ordem de nanometros ou subnanometros",
+    "texto": "O comprimento de onda dos eletrons e muito menor que o da luz.",
+    "ameaca": "OPTICA: QUAL A RESOLUCAO DA MICROSCOPIA ELETRONICA?",
+    "alternativas": [
+      "0,2 um",
+      "1 mm",
+      "Na ordem de nanometros ou subnanometros",
+      "Igual a optica"
+    ]
+  },
+  {
+    "inimigo": "Abertura numerica (AN)",
+    "correta": "Medida da capacidade de coletar luz e resolver detalhes (n*sen theta)",
+    "texto": "Maior AN melhora a resolucao e o brilho da imagem.",
+    "ameaca": "OPTICA: O QUE E ABERTURA NUMERICA?",
+    "alternativas": [
+      "Aumento apenas",
+      "Distancia focal",
+      "Medida da capacidade de coletar luz e resolver detalhes (n*sen theta)",
+      "Campo de visao"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Rayleigh / Abbe",
+    "correta": "Define o limite de resolucao por difracao",
+    "texto": "d = 0,61*lambda / AN (Rayleigh) ou similar para Abbe.",
+    "ameaca": "OPTICA: O QUE DEFINE O LIMITE DE RESOLUCAO OPTICA?",
+    "alternativas": [
+      "Aumento maximo",
+      "Contraste",
+      "Define o limite de resolucao por difracao",
+      "Tempo de exposicao"
+    ]
+  },
+  {
+    "inimigo": "Foton",
+    "correta": "Quantum de energia eletromagnetica (E = h*f)",
+    "texto": "A luz e absorvida e emitida em quanta; base da espectroscopia e da visao.",
+    "ameaca": "OPTICA: O QUE E UM FOTON?",
+    "alternativas": [
+      "Eletron",
+      "Proton",
+      "Quantum de energia eletromagnetica (E = h*f)",
+      "Fonon"
+    ]
+  },
+  {
+    "inimigo": "Transducao visual",
+    "correta": "Absorcao de foton pela rodopsina inicia a cascata visual",
+    "texto": "Um foton isomeriza o retinal, ativando a transducina e fechando canais de Na+.",
+    "ameaca": "SENSORIAL: COMO A LUZ ACIONA A VISAO?",
+    "alternativas": [
+      "Apenas calor",
+      "Apenas pressao",
+      "Absorcao de foton pela rodopsina inicia a cascata visual",
+      "Corrente eletrica direta"
+    ]
+  },
+  {
+    "inimigo": "Celulas fotorreceptoras",
+    "correta": "Cones (cor, alta luminosidade) e bastonetes (baixa luminosidade)",
+    "texto": "Bastonetes sao mais sensiveis; cones permitem visao cromatica.",
+    "ameaca": "SENSORIAL: QUAIS CELULAS DETECTAM LUZ NA RETINA?",
+    "alternativas": [
+      "Apenas ganglionares",
+      "Apenas bipolares",
+      "Cones (cor, alta luminosidade) e bastonetes (baixa luminosidade)",
+      "Apenas amacrinas"
+    ]
+  },
+  {
+    "inimigo": "Transducao auditiva",
+    "correta": "Vibracao da membrana basilar curva estereocilios e abre canais mecano-sensiveis",
+    "texto": "A entrada de K+ despolariza as celulas ciliadas, liberando neurotransmissor.",
+    "ameaca": "SENSORIAL: COMO O SOM E TRANSDUZIDO NA COCLEA?",
+    "alternativas": [
+      "Apenas pressao no timpano",
+      "Apenas ossiculos",
+      "Vibracao da membrana basilar curva estereocilios e abre canais mecano-sensiveis",
+      "Apenas nervo auditivo"
+    ]
+  },
+  {
+    "inimigo": "Organizacao tonotopica da coclea",
+    "correta": "Frequencias altas na base e baixas no apice da membrana basilar",
+    "texto": "A mecanica da membrana basilar cria um mapa de frequencias.",
+    "ameaca": "SENSORIAL: COMO A COCLEA CODIFICA FREQUENCIA?",
+    "alternativas": [
+      "Apenas intensidade",
+      "Aleatorio",
+      "Frequencias altas na base e baixas no apice da membrana basilar",
+      "Apenas fase"
+    ]
+  },
+  {
+    "inimigo": "Principio de Arquimedes",
+    "correta": "Empuxo igual ao peso do fluido deslocado",
+    "texto": "Explica flutuabilidade e e usado em medidas de densidade corporal.",
+    "ameaca": "MECANICA DE FLUIDOS: O QUE E O EMPUXO?",
+    "alternativas": [
+      "Pressao hidrostatica apenas",
+      "Viscosidade",
+      "Empuxo igual ao peso do fluido deslocado",
+      "Tensao superficial"
+    ]
+  },
+  {
+    "inimigo": "Densidade",
+    "correta": "Massa por unidade de volume",
+    "texto": "Importante em sedimentacao, flutuabilidade e impedancia acustica.",
+    "ameaca": "FISICA: O QUE E DENSIDADE?",
+    "alternativas": [
+      "Massa apenas",
+      "Volume apenas",
+      "Massa por unidade de volume",
+      "Peso"
+    ]
+  },
+  {
+    "inimigo": "Pressao atmosferica ao nivel do mar",
+    "correta": "Aproximadamente 760 mmHg ou 101,3 kPa",
+    "texto": "Referencia para pressoes fisiologicas (ex.: pO2 alveolar).",
+    "ameaca": "FISICA: QUAL A PRESSAO ATMOSFERICA PADRAO?",
+    "alternativas": [
+      "100 mmHg",
+      "760 cmH2O",
+      "Aproximadamente 760 mmHg ou 101,3 kPa",
+      "1 Pa"
+    ]
+  },
+  {
+    "inimigo": "Unidade comum de pressao em fisiologia",
+    "correta": "mmHg (milimetros de mercurio)",
+    "texto": "Usada para pressao arterial, gasosa e liquorica.",
+    "ameaca": "UNIDADES: QUAL UNIDADE DE PRESSAO E COMUM EM FISIOLOGIA?",
+    "alternativas": [
+      "Pascal apenas",
+      "Bar",
+      "mmHg (milimetros de mercurio)",
+      "Atmosphere apenas"
+    ]
+  },
+  {
+    "inimigo": "Complacencia pulmonar",
+    "correta": "Variacao de volume pulmonar por variacao de pressao transpulmonar",
+    "texto": "Alta complacencia = pulmao mais distensivel; baixa em fibrose.",
+    "ameaca": "RESPIRACAO: O QUE E COMPLACENCIA PULMONAR?",
+    "alternativas": [
+      "Resistencia",
+      "Elastancia apenas",
+      "Variacao de volume pulmonar por variacao de pressao transpulmonar",
+      "Fluxo"
+    ]
+  },
+  {
+    "inimigo": "Resistencia das vias aereas",
+    "correta": "Oposicao ao fluxo aereo (deltaP/fluxo)",
+    "texto": "Predomina nas vias de medio calibre; aumenta na asma e DPOC.",
+    "ameaca": "RESPIRACAO: O QUE E RESISTENCIA DAS VIAS AEREAS?",
+    "alternativas": [
+      "Complacencia",
+      "Elastancia",
+      "Oposicao ao fluxo aereo (deltaP/fluxo)",
+      "Volume residual"
+    ]
+  },
+  {
+    "inimigo": "Lei de continuidade do fluxo",
+    "correta": "A*v = constante (regime permanente e incompressivel)",
+    "texto": "Onde a area diminui, a velocidade aumenta (ex.: estenose).",
+    "ameaca": "HEMODINAMICA: O QUE DIZ A LEI DE CONTINUIDADE?",
+    "alternativas": [
+      "P*V = const",
+      "A*v = constante (regime permanente e incompressivel)",
+      "F = ma",
+      "V = IR"
+    ]
+  },
+  {
+    "inimigo": "Teorema de Bernoulli aplicado ao sangue",
+    "correta": "Aumento de velocidade associa-se a queda de pressao lateral",
+    "texto": "Explica parte da queda de pressao em estenoses e o efeito Venturi.",
+    "ameaca": "HEMODINAMICA: O QUE DIZ BERNOULLI?",
+    "alternativas": [
+      "Pressao aumenta com velocidade",
+      "Fluxo independente de area",
+      "Aumento de velocidade associa-se a queda de pressao lateral",
+      "Energia nao se conserva"
+    ]
+  },
+  {
+    "inimigo": "Hematocrito e viscosidade",
+    "correta": "Quanto maior o hematocrito, maior a viscosidade sanguinea",
+    "texto": "Policitemia aumenta a resistencia ao fluxo; anemia a diminui.",
+    "ameaca": "HEMODINAMICA: COMO O HEMATOCRITO AFETA A VISCOSIDADE?",
+    "alternativas": [
+      "Nao afeta",
+      "Inversamente",
+      "Quanto maior o hematocrito, maior a viscosidade sanguinea",
+      "So afeta densidade"
+    ]
+  },
+  {
+    "inimigo": "Sangue como fluido nao newtoniano",
+    "correta": "Viscosidade depende da taxa de cisalhamento",
+    "texto": "Em baixas taxas de cisalhamento a viscosidade aparente aumenta (agregacao de hemacias).",
+    "ameaca": "HEMODINAMICA: POR QUE O SANGUE NAO E NEWTONIANO?",
+    "alternativas": [
+      "Densidade variavel",
+      "Compressivel",
+      "Viscosidade depende da taxa de cisalhamento",
+      "Sempre turbulento"
+    ]
+  },
+  {
+    "inimigo": "Taxa de cisalhamento (shear rate)",
+    "correta": "Gradiente de velocidade perpendicular ao fluxo",
+    "texto": "Alta perto da parede vascular; afeta a viscosidade aparente e a funcao endotelial.",
+    "ameaca": "HEMODINAMICA: O QUE E TAXA DE CISALHAMENTO?",
+    "alternativas": [
+      "Pressao",
+      "Fluxo total",
+      "Gradiente de velocidade perpendicular ao fluxo",
+      "Diametro"
+    ]
+  },
+  {
+    "inimigo": "Tensao de cisalhamento (shear stress)",
+    "correta": "Forca tangencial por unidade de area na parede do vaso",
+    "texto": "Importante no remodelamento vascular e na ativacao endotelial.",
+    "ameaca": "HEMODINAMICA: O QUE E TENSAO DE CISALHAMENTO?",
+    "alternativas": [
+      "Pressao transmural",
+      "Tensao circunferencial apenas",
+      "Forca tangencial por unidade de area na parede do vaso",
+      "Empuxo"
+    ]
+  },
+  {
+    "inimigo": "Tensao circunferencial (wall tension)",
+    "correta": "Tensao na parede do vaso dada por Laplace (T = P*r/h)",
+    "texto": "Aneurismas (maior raio) suportam maior tensao e risco de ruptura.",
+    "ameaca": "HEMODINAMICA: O QUE E TENSAO CIRCUNFERENCIAL?",
+    "alternativas": [
+      "Shear stress",
+      "Pressao",
+      "Tensao na parede do vaso dada por Laplace (T = P*r/h)",
+      "Viscosidade"
+    ]
+  },
+  {
+    "inimigo": "Efeito Windkessel",
+    "correta": "Arterias elasticas armazenam volume na sistole e o devolvem na diastole",
+    "texto": "Converte fluxo pulsatil em fluxo mais continuo na periferia.",
+    "ameaca": "HEMODINAMICA: O QUE E O EFEITO WINDKESSEL?",
+    "alternativas": [
+      "Apenas resistencia periferica",
+      "Apenas viscosidade",
+      "Arterias elasticas armazenam volume na sistole e o devolvem na diastole",
+      "Apenas valvula aortica"
+    ]
+  },
+  {
+    "inimigo": "Pressao de pulso",
+    "correta": "Diferenca entre pressao sistolica e diastolica",
+    "texto": "Reflete o volume de ejecao e a complacencia arterial.",
+    "ameaca": "HEMODINAMICA: O QUE E PRESSAO DE PULSO?",
+    "alternativas": [
+      "Pressao media",
+      "Pressao diastolica",
+      "Diferenca entre pressao sistolica e diastolica",
+      "Pressao venosa"
+    ]
+  },
+  {
+    "inimigo": "Pressao arterial media (PAM)",
+    "correta": "Aproximadamente diastolica + (sistolica-diastolica)/3",
+    "texto": "E a pressao efetiva de perfusao; PAM = DC x RPT.",
+    "ameaca": "HEMODINAMICA: COMO SE ESTIMA A PAM?",
+    "alternativas": [
+      "(Sistolica+diastolica)/2",
+      "Apenas sistolica",
+      "Aproximadamente diastolica + (sistolica-diastolica)/3",
+      "Apenas diastolica"
+    ]
+  },
+  {
+    "inimigo": "Debito cardiaco",
+    "correta": "Volume de sangue ejetado pelo coracao por minuto (FC x VS)",
+    "texto": "Tipicamente cerca de 5 L/min em repouso no adulto.",
+    "ameaca": "HEMODINAMICA: O QUE E DEBITO CARDIACO?",
+    "alternativas": [
+      "Apenas frequencia",
+      "Apenas volume sistolico",
+      "Volume de sangue ejetado pelo coracao por minuto (FC x VS)",
+      "Pressao arterial"
+    ]
+  },
+  {
+    "inimigo": "Volume sistolico",
+    "correta": "Volume ejetado por ventriculo a cada batimento",
+    "texto": "Diferenca entre volume diastolico final e sistolico final.",
+    "ameaca": "HEMODINAMICA: O QUE E VOLUME SISTOLICO?",
+    "alternativas": [
+      "Debito cardiaco",
+      "Volume diastolico final",
+      "Volume ejetado por ventriculo a cada batimento",
+      "Fracao de ejecao apenas"
+    ]
+  },
+  {
+    "inimigo": "Fracao de ejecao",
+    "correta": "Percentual do volume diastolico final ejetado na sistole",
+    "texto": "FE = VS/VDF; reduzida na insuficiencia cardiaca sistolica.",
+    "ameaca": "HEMODINAMICA: O QUE E FRACAO DE EJECAO?",
+    "alternativas": [
+      "Volume sistolico absoluto",
+      "Debito cardiaco",
+      "Percentual do volume diastolico final ejetado na sistole",
+      "Frequencia cardiaca"
+    ]
+  },
+  {
+    "inimigo": "Pre-carga",
+    "correta": "Grau de estiramento do miocardio antes da contracao (relacionado ao VDF)",
+    "texto": "Lei de Frank-Starling: maior pre-carga (ate certo ponto) aumenta a forca de contracao.",
+    "ameaca": "HEMODINAMICA: O QUE E PRE-CARGA?",
+    "alternativas": [
+      "Pos-carga",
+      "Resistencia periferica",
+      "Grau de estiramento do miocardio antes da contracao (relacionado ao VDF)",
+      "Frequencia"
+    ]
+  },
+  {
+    "inimigo": "Pos-carga",
+    "correta": "Carga contra a qual o ventriculo ejeta (relacionada a pressao aortica/RPT)",
+    "texto": "Pos-carga elevada dificulta a ejecao e pode reduzir o volume sistolico.",
+    "ameaca": "HEMODINAMICA: O QUE E POS-CARGA?",
+    "alternativas": [
+      "Pre-carga",
+      "Volume diastolico",
+      "Carga contra a qual o ventriculo ejeta (relacionada a pressao aortica/RPT)",
+      "Contractilidade apenas"
+    ]
+  },
+  {
+    "inimigo": "Lei de Frank-Starling",
+    "correta": "O coracao ejeta o que recebe: maior VDF aumenta a forca de contracao",
+    "texto": "Mecanismo intrinseco que equilibra os debitos dos dois ventriculos.",
+    "ameaca": "HEMODINAMICA: O QUE DIZ FRANK-STARLING?",
+    "alternativas": [
+      "Frequencia determina tudo",
+      "Pos-carga nao importa",
+      "O coracao ejeta o que recebe: maior VDF aumenta a forca de contracao",
+      "Contractilidade fixa"
+    ]
+  },
+  {
+    "inimigo": "Contractilidade miocardica",
+    "correta": "Capacidade intrinseca de gerar forca independente de pre e pos-carga",
+    "texto": "Modulada por calcio, sistema nervoso simpatico e farmacos inotropicos.",
+    "ameaca": "HEMODINAMICA: O QUE E CONTRACTILIDADE?",
+    "alternativas": [
+      "Apenas pre-carga",
+      "Apenas frequencia",
+      "Capacidade intrinseca de gerar forca independente de pre e pos-carga",
+      "Apenas complacencia"
+    ]
+  },
+  {
+    "inimigo": "Contracao isovolumetrica",
+    "correta": "Contracao com volume ventricular constante (valvulas fechadas)",
+    "texto": "Na contracao isovolumetrica a pressao sobe ate abrir a valva aortica/pulmonar.",
+    "ameaca": "HEMODINAMICA: O QUE E CONTRACAO ISOVOLUMETRICA?",
+    "alternativas": [
+      "Ejecao",
+      "Enchimento",
+      "Contracao com volume ventricular constante (valvulas fechadas)",
+      "Diastase"
+    ]
+  },
+  {
+    "inimigo": "Diastole",
+    "correta": "Fase de relaxamento e enchimento ventricular",
+    "texto": "Inclui relaxamento isovolumetrico, enchimento rapido, diastase e sistole atrial.",
+    "ameaca": "HEMODINAMICA: O QUE E DIASTOLE?",
+    "alternativas": [
+      "Ejecao",
+      "Contracao isovolumetrica apenas",
+      "Fase de relaxamento e enchimento ventricular",
+      "Sistole"
+    ]
+  },
+  {
+    "inimigo": "Sistole",
+    "correta": "Fase de contracao e ejecao ventricular",
+    "texto": "Inclui contracao isovolumetrica e ejecao (rapida e reduzida).",
+    "ameaca": "HEMODINAMICA: O QUE E SISTOLE?",
+    "alternativas": [
+      "Enchimento",
+      "Relaxamento",
+      "Fase de contracao e ejecao ventricular",
+      "Diastase"
+    ]
+  },
+  {
+    "inimigo": "Trabalho respiratorio",
+    "correta": "Energia necessaria para vencer elastancia e resistencia das vias aereas",
+    "texto": "Aumenta em doencas restritivas e obstrutivas.",
+    "ameaca": "RESPIRACAO: O QUE COMPOE O TRABALHO RESPIRATORIO?",
+    "alternativas": [
+      "Apenas volume corrente",
+      "Apenas frequencia",
+      "Energia necessaria para vencer elastancia e resistencia das vias aereas",
+      "Apenas complacencia"
+    ]
+  },
+  {
+    "inimigo": "Conversao aproximada 1 mmHg em cmH2O",
+    "correta": "Cerca de 1,36 cmH2O",
+    "texto": "Importante em ventilacao mecanica e pressoes respiratorias.",
+    "ameaca": "UNIDADES: 1 mmHg EQUIVALE A QUANTOS cmH2O?",
+    "alternativas": [
+      "1 cmH2O",
+      "10 cmH2O",
+      "Cerca de 1,36 cmH2O",
+      "0,1 cmH2O"
+    ]
+  },
+  {
+    "inimigo": "Ponto de igual pressao nas vias aereas",
+    "correta": "Local onde a pressao intraluminal iguala a pressao intrapleural",
+    "texto": "Distal a esse ponto pode ocorrer colapso dinamico na expiracao forcada.",
+    "ameaca": "RESPIRACAO: O QUE E O PONTO DE IGUAL PRESSAO?",
+    "alternativas": [
+      "Pressao alveolar zero",
+      "Pressao atmosferica",
+      "Local onde a pressao intraluminal iguala a pressao intrapleural",
+      "Pressao de pico"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🧪 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA BIOFÍSICO] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🔬`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A questão sobre '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE BIOFÍSICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE BIOFÍSICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

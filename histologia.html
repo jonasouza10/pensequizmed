@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Histologia - Um quiz de Histologia para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Histologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Histologia</h1>
+  <p>Desvende os segredos microscópicos dos tecidos! 🔬</p>
+
+  <div id="terminal">[SISTEMA DE TESTE HISTOLÓGICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🧬 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE HISTOLÓGICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE HISTOLOGIA</h2>
+      <p>Bem-vindo, Futuro Histologista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre a estrutura microscópica dos tecidos do corpo.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente os tipos de tecidos, células e estruturas histológicas apresentadas no terminal.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre a organização celular e tecidual.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Histológica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! O conhecimento dos tecidos é a base da compreensão da fisiologia e patologia. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Histologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica e biológica:</p>
+      <ul>
+        <li>**LIVRO:** Histologia Básica: Junqueira e Carneiro [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Gartner & Hiatt - Texto e Atlas de Histologia [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Ross - Histologia: Texto e Atlas [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Di Fiore's Atlas of Histology with Functional Correlations [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Histologia e Biologia Celular.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico e biológico reconhecidas, como sites de universidades com atlas digitais e cursos de Histologia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+  <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Tecido epitelial: característica principal",
+    "correta": "Células justapostas com pouca matriz extracelular",
+    "texto": "Reveste superfícies e forma glândulas.",
+    "ameaca": "EPITELIO",
+    "alternativas": [
+      "Muita matriz e poucas células",
+      "Células justapostas com pouca matriz extracelular",
+      "Só fibras",
+      "Só células musculares"
+    ]
+  },
+  {
+    "inimigo": "Epitélio simples pavimentoso: localização típica",
+    "correta": "Endotélio e mesotélio; alvéolos pulmonares",
+    "texto": "Facilita difusão e filtração.",
+    "ameaca": "PAVIMENTOSO",
+    "alternativas": [
+      "Pele epiderme",
+      "Endotélio e mesotélio; alvéolos pulmonares",
+      "Intestino absorção",
+      "Tireoide"
+    ]
+  },
+  {
+    "inimigo": "Epitélio simples cúbico: exemplo",
+    "correta": "Túbulos renais, ductos de glândulas",
+    "texto": "Absorção e secreção.",
+    "ameaca": "CUBICO",
+    "alternativas": [
+      "Pele",
+      "Túbulos renais, ductos de glândulas",
+      "Intestino delgado superfície",
+      "Vasos sanguíneos"
+    ]
+  },
+  {
+    "inimigo": "Epitélio simples colunar: exemplo",
+    "correta": "Intestino delgado (com microvilosidades)",
+    "texto": "Absorção e secreção.",
+    "ameaca": "COLUNAR",
+    "alternativas": [
+      "Pele",
+      "Intestino delgado (com microvilosidades)",
+      "Alvéolo",
+      "Endotélio"
+    ]
+  },
+  {
+    "inimigo": "Epitélio pseudoestratificado ciliado",
+    "correta": "Vias respiratórias (traqueia, brônquios)",
+    "texto": "Todas as células tocam a lâmina basal; cílios e células caliciformes.",
+    "ameaca": "PSEUDOESTRAT",
+    "alternativas": [
+      "Pele",
+      "Vias respiratórias (traqueia, brônquios)",
+      "Estômago",
+      "Bexiga"
+    ]
+  },
+  {
+    "inimigo": "Epitélio estratificado pavimentoso queratinizado",
+    "correta": "Epiderme da pele",
+    "texto": "Proteção contra abrasão e dessecação.",
+    "ameaca": "QUERATINIZADO",
+    "alternativas": [
+      "Intestino",
+      "Epiderme da pele",
+      "Alvéolo",
+      "Endotélio"
+    ]
+  },
+  {
+    "inimigo": "Epitélio de transição (urotélio)",
+    "correta": "Vias urinárias (bexiga, ureteres)",
+    "texto": "Distensível; células em cúpula.",
+    "ameaca": "TRANSICAO",
+    "alternativas": [
+      "Pele",
+      "Vias urinárias (bexiga, ureteres)",
+      "Intestino",
+      "Pulmão"
+    ]
+  },
+  {
+    "inimigo": "Junção oclusiva (tight junction)",
+    "correta": "Sela o espaço intercelular apical; barreira de permeabilidade",
+    "texto": "Zônula de oclusão.",
+    "ameaca": "TIGHT",
+    "alternativas": [
+      "Desmossomo",
+      "Sela o espaço intercelular apical; barreira de permeabilidade",
+      "Gap junction",
+      "Hemidesmossomo"
+    ]
+  },
+  {
+    "inimigo": "Desmossomo",
+    "correta": "Adesão forte entre células; ancorado a filamentos intermediários",
+    "texto": "Resistência mecânica.",
+    "ameaca": "DESMOSSOMO",
+    "alternativas": [
+      "Tight junction",
+      "Adesão forte entre células; ancorado a filamentos intermediários",
+      "Gap",
+      "Nexus"
+    ]
+  },
+  {
+    "inimigo": "Junção comunicante (gap junction)",
+    "correta": "Canais (conexinas) que permitem passagem de íons e pequenas moléculas",
+    "texto": "Acoplamento elétrico e metabólico.",
+    "ameaca": "GAP",
+    "alternativas": [
+      "Tight",
+      "Canais (conexinas) que permitem passagem de íons e pequenas moléculas",
+      "Desmossomo",
+      "Hemidesmossomo"
+    ]
+  },
+  {
+    "inimigo": "Lâmina basal",
+    "correta": "Camada de ECM sob o epitélio; filtra e ancora",
+    "texto": "Composta por laminina, colágeno IV, proteoglicanos.",
+    "ameaca": "LAMINA BASAL",
+    "alternativas": [
+      "Só citoplasma",
+      "Camada de ECM sob o epitélio; filtra e ancora",
+      "Só queratina",
+      "Só actina"
+    ]
+  },
+  {
+    "inimigo": "Tecido conjuntivo: componente principal da matriz",
+    "correta": "Fibras (colágeno, elástica, reticular) + substância fundamental",
+    "texto": "Células residentes e migrantes.",
+    "ameaca": "CONJUNTIVO",
+    "alternativas": [
+      "Só células sem matriz",
+      "Fibras (colágeno, elástica, reticular) + substância fundamental",
+      "Só epitélio",
+      "Só músculo"
+    ]
+  },
+  {
+    "inimigo": "Colágeno tipo I",
+    "correta": "Mais abundante; ossos, tendões, derme, dentina",
+    "texto": "Resistência à tração.",
+    "ameaca": "COLAGENO I",
+    "alternativas": [
+      "Tipo II (cartilagem)",
+      "Mais abundante; ossos, tendões, derme, dentina",
+      "Tipo IV (lâmina basal)",
+      "Tipo III apenas"
+    ]
+  },
+  {
+    "inimigo": "Colágeno tipo II",
+    "correta": "Cartilagem hialina e elástica",
+    "texto": "Resistência à pressão.",
+    "ameaca": "COLAGENO II",
+    "alternativas": [
+      "Tipo I",
+      "Cartilagem hialina e elástica",
+      "Tipo IV",
+      "Tipo VII"
+    ]
+  },
+  {
+    "inimigo": "Colágeno tipo III",
+    "correta": "Fibras reticulares; órgãos linfoides, pele, vasos",
+    "texto": "Suporte de células.",
+    "ameaca": "COLAGENO III",
+    "alternativas": [
+      "Tipo I",
+      "Fibras reticulares; órgãos linfoides, pele, vasos",
+      "Tipo II",
+      "Tipo IV"
+    ]
+  },
+  {
+    "inimigo": "Colágeno tipo IV",
+    "correta": "Lâmina basal (rede não fibrilar)",
+    "texto": "Filtração e ancoragem.",
+    "ameaca": "COLAGENO IV",
+    "alternativas": [
+      "Tipo I",
+      "Lâmina basal (rede não fibrilar)",
+      "Tipo II",
+      "Tipo III"
+    ]
+  },
+  {
+    "inimigo": "Fibra elástica",
+    "correta": "Elastina + fibrilina; distensibilidade",
+    "texto": "Pulmão, vasos, pele.",
+    "ameaca": "ELASTICA",
+    "alternativas": [
+      "Só colágeno",
+      "Elastina + fibrilina; distensibilidade",
+      "Só reticular",
+      "Só óssea"
+    ]
+  },
+  {
+    "inimigo": "Fibroblasto",
+    "correta": "Célula principal do conjuntivo; sintetiza fibras e matriz",
+    "texto": "Ativo na cicatrização.",
+    "ameaca": "FIBROBLASTO",
+    "alternativas": [
+      "Osteócito",
+      "Célula principal do conjuntivo; sintetiza fibras e matriz",
+      "Condócito",
+      "Neurônio"
+    ]
+  },
+  {
+    "inimigo": "Macrófago",
+    "correta": "Fagocitose e apresentação de antígeno; derivado de monócito",
+    "texto": "Tecido conjuntivo e órgãos.",
+    "ameaca": "MACROFAGO",
+    "alternativas": [
+      "Fibroblasto",
+      "Fagocitose e apresentação de antígeno; derivado de monócito",
+      "Adipócito",
+      "Condócito"
+    ]
+  },
+  {
+    "inimigo": "Mastócito",
+    "correta": "Grânulos com histamina e heparina; reação alérgica",
+    "texto": "Próximo a vasos.",
+    "ameaca": "MASTOCITO",
+    "alternativas": [
+      "Fibroblasto",
+      "Grânulos com histamina e heparina; reação alérgica",
+      "Osteoblasto",
+      "Neurônio"
+    ]
+  },
+  {
+    "inimigo": "Adipócito unilocular",
+    "correta": "Tecido adiposo branco; reserva energética",
+    "texto": "Uma grande gotícula lipídica.",
+    "ameaca": "ADIPOCITO B",
+    "alternativas": [
+      "Multilocular apenas",
+      "Tecido adiposo branco; reserva energética",
+      "Só marrom",
+      "Só cartilagem"
+    ]
+  },
+  {
+    "inimigo": "Adipócito multilocular",
+    "correta": "Tecido adiposo marrom; termogênese (UCP1)",
+    "texto": "Múltiplas gotículas e muitas mitocôndrias.",
+    "ameaca": "ADIPOCITO M",
+    "alternativas": [
+      "Unilocular",
+      "Tecido adiposo marrom; termogênese (UCP1)",
+      "Só branco adulto",
+      "Só fibroblasto"
+    ]
+  },
+  {
+    "inimigo": "Cartilagem hialina",
+    "correta": "Mais comum; traqueia, superfícies articulares, esqueleto fetal",
+    "texto": "Matriz rica em colágeno II e proteoglicanos.",
+    "ameaca": "HIALINA",
+    "alternativas": [
+      "Elástica apenas",
+      "Mais comum; traqueia, superfícies articulares, esqueleto fetal",
+      "Fibrosa apenas",
+      "Óssea"
+    ]
+  },
+  {
+    "inimigo": "Cartilagem elástica",
+    "correta": "Pavilhão auricular, epiglote; fibras elásticas além de colágeno II",
+    "texto": "Flexibilidade.",
+    "ameaca": "ELASTICA CART",
+    "alternativas": [
+      "Hialina pura",
+      "Pavilhão auricular, epiglote; fibras elásticas além de colágeno II",
+      "Fibrosa",
+      "Óssea"
+    ]
+  },
+  {
+    "inimigo": "Fibrocartilagem",
+    "correta": "Discos intervertebrais, sínfises; colágeno I predominante",
+    "texto": "Resistência a compressão e tração.",
+    "ameaca": "FIBROCART",
+    "alternativas": [
+      "Hialina",
+      "Discos intervertebrais, sínfises; colágeno I predominante",
+      "Elástica",
+      "Óssea compacta"
+    ]
+  },
+  {
+    "inimigo": "Condócito",
+    "correta": "Célula da cartilagem; mantém a matriz",
+    "texto": "Localizado em lacunas.",
+    "ameaca": "CONDOCITO",
+    "alternativas": [
+      "Osteócito",
+      "Célula da cartilagem; mantém a matriz",
+      "Fibroblasto",
+      "Osteoblasto"
+    ]
+  },
+  {
+    "inimigo": "Tecido ósseo compacto",
+    "correta": "Osteons (sistemas de Havers); resistência mecânica",
+    "texto": "Córtex dos ossos longos.",
+    "ameaca": "OSSEO COMPACTO",
+    "alternativas": [
+      "Esponjoso apenas",
+      "Osteons (sistemas de Havers); resistência mecânica",
+      "Só cartilagem",
+      "Só medula"
+    ]
+  },
+  {
+    "inimigo": "Tecido ósseo esponjoso",
+    "correta": "Trabéculas; medula óssea nos espaços",
+    "texto": "Epífises e ossos chatos.",
+    "ameaca": "OSSEO ESPONJOSO",
+    "alternativas": [
+      "Compacto com osteons",
+      "Trabéculas; medula óssea nos espaços",
+      "Só cartilagem",
+      "Só perioste"
+    ]
+  },
+  {
+    "inimigo": "Osteoblasto",
+    "correta": "Sintetiza matriz óssea (osteóide); depois se torna osteócito",
+    "texto": "Superfície óssea.",
+    "ameaca": "OSTEOBLASTO",
+    "alternativas": [
+      "Osteoclasto",
+      "Sintetiza matriz óssea (osteóide); depois se torna osteócito",
+      "Condócito",
+      "Fibroblasto"
+    ]
+  },
+  {
+    "inimigo": "Osteócito",
+    "correta": "Célula óssea madura em lacuna; mantém a matriz; comunica-se por canalículos",
+    "texto": "Mecanosensor.",
+    "ameaca": "OSTEOCITO",
+    "alternativas": [
+      "Osteoblasto ativo",
+      "Célula óssea madura em lacuna; mantém a matriz; comunica-se por canalículos",
+      "Osteoclasto",
+      "Condócito"
+    ]
+  },
+  {
+    "inimigo": "Osteoclasto",
+    "correta": "Reabsorve osso; multinucleado; derivado de monócitos",
+    "texto": "Howship lacuna; ácido e enzimas.",
+    "ameaca": "OSTEOCLASTO",
+    "alternativas": [
+      "Osteoblasto",
+      "Reabsorve osso; multinucleado; derivado de monócitos",
+      "Osteócito",
+      "Condroblasto"
+    ]
+  },
+  {
+    "inimigo": "Periósteo",
+    "correta": "Membrana conjuntiva que reveste o osso externamente",
+    "texto": "Crescimento em espessura e reparo.",
+    "ameaca": "PERIOSTEO",
+    "alternativas": [
+      "Endósteo apenas",
+      "Membrana conjuntiva que reveste o osso externamente",
+      "Cartilagem articular",
+      "Medula"
+    ]
+  },
+  {
+    "inimigo": "Sangue: eritrócito",
+    "correta": "Transporte de O2 e CO2; sem núcleo no adulto humano",
+    "texto": "Forma de disco bicôncavo.",
+    "ameaca": "ERITROCITO",
+    "alternativas": [
+      "Leucócito",
+      "Transporte de O2 e CO2; sem núcleo no adulto humano",
+      "Plaqueta",
+      "Osteócito"
+    ]
+  },
+  {
+    "inimigo": "Neutrófilo",
+    "correta": "Leucócito mais abundante; fagocitose aguda; núcleo multilobulado",
+    "texto": "Primeira linha bacteriana.",
+    "ameaca": "NEUTROFILO",
+    "alternativas": [
+      "Eosinófilo",
+      "Leucócito mais abundante; fagocitose aguda; núcleo multilobulado",
+      "Basófilo",
+      "Linfócito"
+    ]
+  },
+  {
+    "inimigo": "Eosinófilo",
+    "correta": "Parasitas e alergia; grânulos acidófilos",
+    "texto": "Núcleo bilobado.",
+    "ameaca": "EOSINOFILO",
+    "alternativas": [
+      "Neutrófilo",
+      "Parasitas e alergia; grânulos acidófilos",
+      "Basófilo",
+      "Monócito"
+    ]
+  },
+  {
+    "inimigo": "Basófilo",
+    "correta": "Grânulos com histamina; similar a mastócito",
+    "texto": "Alergia e inflamação.",
+    "ameaca": "BASOFILO",
+    "alternativas": [
+      "Neutrófilo",
+      "Grânulos com histamina; similar a mastócito",
+      "Eosinófilo",
+      "Linfócito"
+    ]
+  },
+  {
+    "inimigo": "Linfócito",
+    "correta": "Imunidade adaptativa; núcleo grande e citoplasma escasso",
+    "texto": "B, T e NK.",
+    "ameaca": "LINFOCITO",
+    "alternativas": [
+      "Neutrófilo",
+      "Imunidade adaptativa; núcleo grande e citoplasma escasso",
+      "Eosinófilo",
+      "Monócito grande"
+    ]
+  },
+  {
+    "inimigo": "Monócito",
+    "correta": "Precursor de macrófago; maior leucócito do sangue",
+    "texto": "Núcleo em ferradura.",
+    "ameaca": "MONOCITO",
+    "alternativas": [
+      "Linfócito",
+      "Precursor de macrófago; maior leucócito do sangue",
+      "Neutrófilo",
+      "Plaqueta"
+    ]
+  },
+  {
+    "inimigo": "Plaqueta (trombócito)",
+    "correta": "Fragmento de megacariócito; hemostasia",
+    "texto": "Agregação e liberação de fatores.",
+    "ameaca": "PLAQUETA",
+    "alternativas": [
+      "Eritrócito",
+      "Fragmento de megacariócito; hemostasia",
+      "Linfócito",
+      "Osteócito"
+    ]
+  },
+  {
+    "inimigo": "Músculo esquelético: característica",
+    "correta": "Estriado, multinucleado, voluntário",
+    "texto": "Células longas (fibras) com núcleos periféricos.",
+    "ameaca": "ESQUELETICO",
+    "alternativas": [
+      "Liso",
+      "Estriado, multinucleado, voluntário",
+      "Cardíaco uninucleado sem estrias",
+      "Só cardíaco"
+    ]
+  },
+  {
+    "inimigo": "Músculo cardíaco: característica",
+    "correta": "Estriado, uninucleado (geralmente), discos intercalares, involuntário",
+    "texto": "Ramificado.",
+    "ameaca": "CARDIACO",
+    "alternativas": [
+      "Esquelético multinucleado",
+      "Estriado, uninucleado (geralmente), discos intercalares, involuntário",
+      "Liso sem estrias",
+      "Só esquelético"
+    ]
+  },
+  {
+    "inimigo": "Músculo liso: característica",
+    "correta": "Não estriado, uninucleado, involuntário",
+    "texto": "Fusiforme; vísceras e vasos.",
+    "ameaca": "LISO",
+    "alternativas": [
+      "Esquelético",
+      "Não estriado, uninucleado, involuntário",
+      "Cardíaco com discos",
+      "Multinucleado"
+    ]
+  },
+  {
+    "inimigo": "Sarcômero",
+    "correta": "Unidade contrátil entre duas linhas Z",
+    "texto": "Actina e miosina organizadas.",
+    "ameaca": "SARCOMERO",
+    "alternativas": [
+      "Só no liso",
+      "Unidade contrátil entre duas linhas Z",
+      "Núcleo",
+      "Mitocôndria"
+    ]
+  },
+  {
+    "inimigo": "Retículo sarcoplasmático",
+    "correta": "Armazena e libera Ca2+ para a contração",
+    "texto": "Triades no esquelético.",
+    "ameaca": "RETICULO SARCO",
+    "alternativas": [
+      "Só no liso sem T",
+      "Armazena e libera Ca2+ para a contração",
+      "Núcleo",
+      "Lisossomo"
+    ]
+  },
+  {
+    "inimigo": "Neurônio: partes",
+    "correta": "Corpo celular, dendritos (recebem) e axônio (conduz)",
+    "texto": "Polarizado.",
+    "ameaca": "NEURONIO",
+    "alternativas": [
+      "Só corpo",
+      "Corpo celular, dendritos (recebem) e axônio (conduz)",
+      "Só glia",
+      "Só sinapse sem processo"
+    ]
+  },
+  {
+    "inimigo": "Célula de Schwann",
+    "correta": "Mieliniza axônios no SNP; uma célula por segmento",
+    "texto": "Nódulo de Ranvier entre segmentos.",
+    "ameaca": "SCHWANN",
+    "alternativas": [
+      "Oligodendrócito",
+      "Mieliniza axônios no SNP; uma célula por segmento",
+      "Astrócito",
+      "Micróglia"
+    ]
+  },
+  {
+    "inimigo": "Oligodendrócito",
+    "correta": "Mieliniza axônios no SNC; uma célula pode mielinizar vários axônios",
+    "texto": "Esclerose múltipla afeta.",
+    "ameaca": "OLIGODENDROCITO",
+    "alternativas": [
+      "Schwann",
+      "Mieliniza axônios no SNC; uma célula pode mielinizar vários axônios",
+      "Astrócito",
+      "Ependimária"
+    ]
+  },
+  {
+    "inimigo": "Astrócito",
+    "correta": "Suporte, barreira hematoencefálica, homeostase iônica e de neurotransmissores",
+    "texto": "Mais abundante no SNC.",
+    "ameaca": "ASTROCITO",
+    "alternativas": [
+      "Micróglia",
+      "Suporte, barreira hematoencefálica, homeostase iônica e de neurotransmissores",
+      "Oligodendrócito",
+      "Schwann"
+    ]
+  },
+  {
+    "inimigo": "Micróglia",
+    "correta": "Macrófago residente do SNC; defesa e limpeza",
+    "texto": "Ativada em lesão e doença.",
+    "ameaca": "MICROGLIA",
+    "alternativas": [
+      "Astrócito",
+      "Macrófago residente do SNC; defesa e limpeza",
+      "Oligodendrócito",
+      "Ependimária"
+    ]
+  },
+  {
+    "inimigo": "Célula ependimária",
+    "correta": "Reveste ventrículos e canal central; produz/circula LCR",
+    "texto": "Cílios em algumas.",
+    "ameaca": "EPENDIMARIA",
+    "alternativas": [
+      "Astrócito",
+      "Reveste ventrículos e canal central; produz/circula LCR",
+      "Micróglia",
+      "Schwann"
+    ]
+  },
+  {
+    "inimigo": "Sinapse química: elementos",
+    "correta": "Terminal pré-sináptico, fenda, membrana pós-sináptica com receptores",
+    "texto": "Neurotransmissor.",
+    "ameaca": "SINAPSE",
+    "alternativas": [
+      "Só gap junction",
+      "Terminal pré-sináptico, fenda, membrana pós-sináptica com receptores",
+      "Só elétrica sem fenda",
+      "Só muscular"
+    ]
+  },
+  {
+    "inimigo": "Pele: camadas da epiderme (da basal à superficial)",
+    "correta": "Basal, espinhosa, granulosa, lúcida (pele espessa), córnea",
+    "texto": "Queratinócitos em maturação.",
+    "ameaca": "EPIDERME",
+    "alternativas": [
+      "Só córnea e basal",
+      "Basal, espinhosa, granulosa, lúcida (pele espessa), córnea",
+      "Só derme",
+      "Só hipoderme"
+    ]
+  },
+  {
+    "inimigo": "Melanócito",
+    "correta": "Produz melanina; na camada basal; protege o DNA da UV",
+    "texto": "Transfere melanossomos aos queratinócitos.",
+    "ameaca": "MELANOCITO",
+    "alternativas": [
+      "Queratinócito",
+      "Produz melanina; na camada basal; protege o DNA da UV",
+      "Fibroblasto",
+      "Célula de Langerhans"
+    ]
+  },
+  {
+    "inimigo": "Célula de Langerhans",
+    "correta": "Apresentação de antígeno na epiderme",
+    "texto": "Derivada de monócito.",
+    "ameaca": "LANGERHANS",
+    "alternativas": [
+      "Melanócito",
+      "Apresentação de antígeno na epiderme",
+      "Queratinócito",
+      "Merkel"
+    ]
+  },
+  {
+    "inimigo": "Célula de Merkel",
+    "correta": "Mecanorreceptor tátil na basal da epiderme",
+    "texto": "Associada a terminações nervosas.",
+    "ameaca": "MERKEL",
+    "alternativas": [
+      "Langerhans",
+      "Mecanorreceptor tátil na basal da epiderme",
+      "Melanócito",
+      "Fibroblasto"
+    ]
+  },
+  {
+    "inimigo": "Derme",
+    "correta": "Conjuntivo denso (papilar frouxo + reticular denso); vasos, nervos, anexos",
+    "texto": "Sustenta a epiderme.",
+    "ameaca": "DERME",
+    "alternativas": [
+      "Epiderme",
+      "Conjuntivo denso (papilar frouxo + reticular denso); vasos, nervos, anexos",
+      "Só hipoderme",
+      "Só músculo"
+    ]
+  },
+  {
+    "inimigo": "Glândula sudorípara écrina",
+    "correta": "Secreção merócrina; termorregulação; quase toda a pele",
+    "texto": "Canal abre na superfície.",
+    "ameaca": "ECRINA",
+    "alternativas": [
+      "Apócrina apenas",
+      "Secreção merócrina; termorregulação; quase toda a pele",
+      "Sebácea",
+      "Mamária"
+    ]
+  },
+  {
+    "inimigo": "Glândula sebácea",
+    "correta": "Secreção holócrina; sebo; associada a folículo piloso",
+    "texto": "Lubrifica pele e pelo.",
+    "ameaca": "SEBACEA",
+    "alternativas": [
+      "Écrina",
+      "Secreção holócrina; sebo; associada a folículo piloso",
+      "Sudorípara apócrina",
+      "Endócrina"
+    ]
+  },
+  {
+    "inimigo": "Folículo piloso",
+    "correta": "Invaginação epidérmica; crescimento do pelo; ciclo anágeno-catágeno-telógeno",
+    "texto": "Músculo eretor do pelo.",
+    "ameaca": "FOLICULO",
+    "alternativas": [
+      "Só glândula",
+      "Invaginação epidérmica; crescimento do pelo; ciclo anágeno-catágeno-telógeno",
+      "Só derme profunda",
+      "Só vaso"
+    ]
+  },
+  {
+    "inimigo": "Tecido hematopoético",
+    "correta": "Medula óssea vermelha; produção de células sanguíneas",
+    "texto": "Estroma + células progenitoras.",
+    "ameaca": "HEMATOPOETICO",
+    "alternativas": [
+      "Só amarela gordurosa",
+      "Medula óssea vermelha; produção de células sanguíneas",
+      "Só baço adulto",
+      "Só timo"
+    ]
+  },
+  {
+    "inimigo": "Barreira hematotímica (timo)",
+    "correta": "Protege timócitos em desenvolvimento de antígenos circulantes",
+    "texto": "Córtex tímico.",
+    "ameaca": "HEMATOTIMICA",
+    "alternativas": [
+      "Ausente",
+      "Protege timócitos em desenvolvimento de antígenos circulantes",
+      "Só no baço",
+      "Só na medula"
+    ]
+  },
+  {
+    "inimigo": "Corpúsculo de Hassall",
+    "correta": "Estrutura do timo medular; células epiteliais degeneradas",
+    "texto": "Marcador histológico do timo.",
+    "ameaca": "HASSALL",
+    "alternativas": [
+      "Linfonodo",
+      "Estrutura do timo medular; células epiteliais degeneradas",
+      "Baço",
+      "Tonsila"
+    ]
+  },
+  {
+    "inimigo": "Linfonodo: zonas",
+    "correta": "Córtex (folículos B), paracórtex (T), medula (cordões e seios)",
+    "texto": "Filtra linfa.",
+    "ameaca": "LINFONODO",
+    "alternativas": [
+      "Só medula",
+      "Córtex (folículos B), paracórtex (T), medula (cordões e seios)",
+      "Só córtex sem T",
+      "Só baço"
+    ]
+  },
+  {
+    "inimigo": "Baço: polpa branca e vermelha",
+    "correta": "Branca: linfoides (PALS, folículos); vermelha: seios e cordões de Billroth",
+    "texto": "Filtra sangue; remove eritrócitos velhos.",
+    "ameaca": "BACO",
+    "alternativas": [
+      "Só linfa",
+      "Branca: linfoides (PALS, folículos); vermelha: seios e cordões de Billroth",
+      "Só timo",
+      "Só medula"
+    ]
+  },
+  {
+    "inimigo": "Tonsilas",
+    "correta": "Tecido linfoide associado à mucosa da faringe",
+    "texto": "Anel de Waldeyer.",
+    "ameaca": "TONSILA",
+    "alternativas": [
+      "Só linfonodo profundo",
+      "Tecido linfoide associado à mucosa da faringe",
+      "Só baço",
+      "Só timo"
+    ]
+  },
+  {
+    "inimigo": "Placas de Peyer",
+    "correta": "Agregados linfoides no íleo",
+    "texto": "GALT; imunidade intestinal.",
+    "ameaca": "PEYER",
+    "alternativas": [
+      "Só no cólon",
+      "Agregados linfoides no íleo",
+      "Só estômago",
+      "Só esôfago"
+    ]
+  },
+  {
+    "inimigo": "Fígado: lóbulo clássico",
+    "correta": "Hexagonal; veia centro-lobular no centro; espaços porta na periferia",
+    "texto": "Hepatócitos em cordões.",
+    "ameaca": "LOBULO HEP",
+    "alternativas": [
+      "Só ácino",
+      "Hexagonal; veia centro-lobular no centro; espaços porta na periferia",
+      "Só portal",
+      "Só vascular"
+    ]
+  },
+  {
+    "inimigo": "Espaço porta (tríade portal)",
+    "correta": "Veia porta, artéria hepática e ducto biliar",
+    "texto": "Além de vasos linfáticos e nervos.",
+    "ameaca": "TRIADE",
+    "alternativas": [
+      "Só veia centro",
+      "Veia porta, artéria hepática e ducto biliar",
+      "Só sinusoides",
+      "Só veia hepática"
+    ]
+  },
+  {
+    "inimigo": "Sinusoide hepático",
+    "correta": "Capilar fenestrado entre cordões de hepatócitos; sangue misto",
+    "texto": "Células de Kupffer (macrófagos).",
+    "ameaca": "SINUSOIDE",
+    "alternativas": [
+      "Capilar contínuo típico",
+      "Capilar fenestrado entre cordões de hepatócitos; sangue misto",
+      "Só artéria",
+      "Só ducto"
+    ]
+  },
+  {
+    "inimigo": "Célula de Kupffer",
+    "correta": "Macrófago fixo do fígado; sinusoides",
+    "texto": "Fagocitose.",
+    "ameaca": "KUPFFER",
+    "alternativas": [
+      "Hepatócito",
+      "Macrófago fixo do fígado; sinusoides",
+      "Célula Ito",
+      "Colangiócito"
+    ]
+  },
+  {
+    "inimigo": "Célula estrelada (Ito)",
+    "correta": "Armazena vitamina A; no espaço de Disse; fibrose quando ativada",
+    "texto": "Produz matriz na cirrose.",
+    "ameaca": "ITO",
+    "alternativas": [
+      "Kupffer",
+      "Armazena vitamina A; no espaço de Disse; fibrose quando ativada",
+      "Hepatócito",
+      "Endotélio"
+    ]
+  },
+  {
+    "inimigo": "Espaço de Disse",
+    "correta": "Entre hepatócito e endotélio sinusoidal; troca de substâncias",
+    "texto": "Microvilosidades hepatocitárias.",
+    "ameaca": "DISSE",
+    "alternativas": [
+      "Espaço porta",
+      "Entre hepatócito e endotélio sinusoidal; troca de substâncias",
+      "Canalículo biliar apenas",
+      "Veia centro"
+    ]
+  },
+  {
+    "inimigo": "Canalículo biliar",
+    "correta": "Espaço entre hepatócitos adjacentes; início da via biliar",
+    "texto": "Drena para ductos.",
+    "ameaca": "CANALICULO",
+    "alternativas": [
+      "Sinusoide",
+      "Espaço entre hepatócitos adjacentes; início da via biliar",
+      "Espaço de Disse",
+      "Veia porta"
+    ]
+  },
+  {
+    "inimigo": "Pâncreas exócrino",
+    "correta": "Ácinos serosos; enzimas digestivas; ductos",
+    "texto": "Células piramidais com grânulos de zimogênio.",
+    "ameaca": "PANCREAS EX",
+    "alternativas": [
+      "Ilhotas apenas",
+      "Ácinos serosos; enzimas digestivas; ductos",
+      "Só endócrino",
+      "Só fígado"
+    ]
+  },
+  {
+    "inimigo": "Ilhotas de Langerhans",
+    "correta": "Pâncreas endócrino; células alfa (glucagon), beta (insulina), delta (somatostatina)",
+    "texto": "Dispersas no parênquima.",
+    "ameaca": "ILHOTAS",
+    "alternativas": [
+      "Ácinos",
+      "Pâncreas endócrino; células alfa (glucagon), beta (insulina), delta (somatostatina)",
+      "Só ductos",
+      "Só acinares"
+    ]
+  },
+  {
+    "inimigo": "Tireoide: folículo",
+    "correta": "Epitélio cúbico/cilíndrico ao redor de colóide (tireoglobulina)",
+    "texto": "Células foliculares produzem T3/T4; células C (calcitonina).",
+    "ameaca": "TIREOIDE FOL",
+    "alternativas": [
+      "Cordões sólidos sem colóide",
+      "Epitélio cúbico/cilíndrico ao redor de colóide (tireoglobulina)",
+      "Só células C",
+      "Só paratireoide"
+    ]
+  },
+  {
+    "inimigo": "Paratireoide",
+    "correta": "Células principais (PTH) e oxífilas; regula cálcio",
+    "texto": "Quatro glândulas.",
+    "ameaca": "PARATIREOIDE",
+    "alternativas": [
+      "Tireoide folicular",
+      "Células principais (PTH) e oxífilas; regula cálcio",
+      "Adrenal",
+      "Hipófise"
+    ]
+  },
+  {
+    "inimigo": "Adrenal: córtex zonas",
+    "correta": "Glomerulosa (mineralocorticoides), fasciculada (glicocorticoides), reticular (andrógenos)",
+    "texto": "Do exterior para o interior.",
+    "ameaca": "ADRENAL CORTEX",
+    "alternativas": [
+      "Só medula",
+      "Glomerulosa (mineralocorticoides), fasciculada (glicocorticoides), reticular (andrógenos)",
+      "Só uma zona",
+      "Só cromafim"
+    ]
+  },
+  {
+    "inimigo": "Adrenal: medula",
+    "correta": "Células cromafins; adrenalina e noradrenalina",
+    "texto": "Inervação simpática pré-ganglionar.",
+    "ameaca": "ADRENAL MEDULA",
+    "alternativas": [
+      "Córtex",
+      "Células cromafins; adrenalina e noradrenalina",
+      "Tireoide",
+      "Paratireoide"
+    ]
+  },
+  {
+    "inimigo": "Adenohipófise: tipos celulares",
+    "correta": "Acidófilas (GH, PRL), basófilas (ACTH, TSH, FSH/LH), cromófobas",
+    "texto": "Pars distalis.",
+    "ameaca": "ADENOHIPOFISE",
+    "alternativas": [
+      "Só neurônios",
+      "Acidófilas (GH, PRL), basófilas (ACTH, TSH, FSH/LH), cromófobas",
+      "Só posterior",
+      "Só ependimárias"
+    ]
+  },
+  {
+    "inimigo": "Neurohipófise",
+    "correta": "Axônios de neurônios hipotalâmicos; ocitocina e ADH; corpos de Herring",
+    "texto": "Pars nervosa.",
+    "ameaca": "NEUROHIPOFISE",
+    "alternativas": [
+      "Adenohipófise glandular",
+      "Axônios de neurônios hipotalâmicos; ocitocina e ADH; corpos de Herring",
+      "Tireoide",
+      "Adrenal"
+    ]
+  },
+  {
+    "inimigo": "Testículo: túbulo seminífero",
+    "correta": "Epitélio germinativo + células de Sertoli; espermatogênese",
+    "texto": "Lúmen com espermatozoides.",
+    "ameaca": "TUBULO SEM",
+    "alternativas": [
+      "Interstício apenas",
+      "Epitélio germinativo + células de Sertoli; espermatogênese",
+      "Só Leydig",
+      "Só epidídimo"
+    ]
+  },
+  {
+    "inimigo": "Célula de Leydig",
+    "correta": "Intersticial; produz testosterona",
+    "texto": "Estimulada por LH.",
+    "ameaca": "LEYDIG",
+    "alternativas": [
+      "Sertoli",
+      "Intersticial; produz testosterona",
+      "Espermatogônia",
+      "Miode"
+    ]
+  },
+  {
+    "inimigo": "Célula de Sertoli",
+    "correta": "Sustenta e nutre células germinativas; barreira hematotesticular",
+    "texto": "Estimulada por FSH; produz inibina e ABP.",
+    "ameaca": "SERTOLI",
+    "alternativas": [
+      "Leydig",
+      "Sustenta e nutre células germinativas; barreira hematotesticular",
+      "Espermátide",
+      "Fibroblasto"
+    ]
+  },
+  {
+    "inimigo": "Ovário: folículo ovariano",
+    "correta": "Oócito + células da granulosa (+ teca no desenvolvimento)",
+    "texto": "Primordial → primário → secundário → de Graaf.",
+    "ameaca": "FOLICULO OV",
+    "alternativas": [
+      "Só corpo lúteo",
+      "Oócito + células da granulosa (+ teca no desenvolvimento)",
+      "Só estroma",
+      "Só superfície"
+    ]
+  },
+  {
+    "inimigo": "Corpo lúteo",
+    "correta": "Após ovulação; células da granulosa e teca luteinizadas; progesterona",
+    "texto": "Mantido por hCG se gravidez.",
+    "ameaca": "CORPO LUTEO",
+    "alternativas": [
+      "Folículo primordial",
+      "Após ovulação; células da granulosa e teca luteinizadas; progesterona",
+      "Só oócito",
+      "Só albicante desde o início"
+    ]
+  },
+  {
+    "inimigo": "Endométrio: camadas",
+    "correta": "Funcional (descama) e basal (regenera)",
+    "texto": "Ciclo menstrual sob estrogênio e progesterona.",
+    "ameaca": "ENDOMETRIO",
+    "alternativas": [
+      "Só miométrio",
+      "Funcional (descama) e basal (regenera)",
+      "Só perimétrio",
+      "Só cervical"
+    ]
+  },
+  {
+    "inimigo": "Placenta: vilosidades coriônicas",
+    "correta": "Troca materno-fetal; sinciciotrofoblasto e citotrofoblasto",
+    "texto": "Barreira placentária.",
+    "ameaca": "PLACENTA",
+    "alternativas": [
+      "Só âmnion",
+      "Troca materno-fetal; sinciciotrofoblasto e citotrofoblasto",
+      "Só decidua sem vilos",
+      "Só cordão"
+    ]
+  },
+  {
+    "inimigo": "Rim: corpúsculo renal",
+    "correta": "Glomérulo + cápsula de Bowman",
+    "texto": "Filtração.",
+    "ameaca": "CORPUSCULO",
+    "alternativas": [
+      "Só túbulo",
+      "Glomérulo + cápsula de Bowman",
+      "Só alça de Henle",
+      "Só coletor"
+    ]
+  },
+  {
+    "inimigo": "Podócito",
+    "correta": "Célula epitelial visceral da cápsula de Bowman; fendas de filtração",
+    "texto": "Barreira de filtração com endotélio e lâmina basal.",
+    "ameaca": "PODOCITO",
+    "alternativas": [
+      "Célula mesangial",
+      "Célula epitelial visceral da cápsula de Bowman; fendas de filtração",
+      "Túbulo proximal",
+      "Mácula densa"
+    ]
+  },
+  {
+    "inimigo": "Aparelho justaglomerular",
+    "correta": "Mácula densa, células justaglomerulares (renina) e mesangiais extraglomerulares",
+    "texto": "Regula TFG e RAA.",
+    "ameaca": "JUSTAGLOMERULAR",
+    "alternativas": [
+      "Só glomérulo",
+      "Mácula densa, células justaglomerulares (renina) e mesangiais extraglomerulares",
+      "Só alça",
+      "Só ureter"
+    ]
+  },
+  {
+    "inimigo": "Túbulo proximal: histologia",
+    "correta": "Borda em escova (microvilosidades); muita reabsorção",
+    "texto": "Células eosinofílicas.",
+    "ameaca": "TUBULO PROX",
+    "alternativas": [
+      "Coletor sem borda",
+      "Borda em escova (microvilosidades); muita reabsorção",
+      "Alça fina apenas",
+      "Ducto coletor principal"
+    ]
+  },
+  {
+    "inimigo": "Alça de Henle",
+    "correta": "Ramos descendente e ascendente; mecanismo de contracorrente",
+    "texto": "Espesso ascendente impermeável à água.",
+    "ameaca": "HENLE",
+    "alternativas": [
+      "Só proximal",
+      "Ramos descendente e ascendente; mecanismo de contracorrente",
+      "Só distal convoluto",
+      "Só glomérulo"
+    ]
+  },
+  {
+    "inimigo": "Ducto coletor",
+    "correta": "Células principais (água/Na sob ADH/aldosterona) e intercaladas (ácido-base)",
+    "texto": "Concentração da urina.",
+    "ameaca": "COLETOR",
+    "alternativas": [
+      "Proximal",
+      "Células principais (água/Na sob ADH/aldosterona) e intercaladas (ácido-base)",
+      "Alça fina apenas",
+      "Bowman"
+    ]
+  },
+  {
+    "inimigo": "Bexiga: urotélio",
+    "correta": "Epitélio de transição; placas de uroplaquina",
+    "texto": "Distensão.",
+    "ameaca": "UROTELIO",
+    "alternativas": [
+      "Pavimentoso simples",
+      "Epitélio de transição; placas de uroplaquina",
+      "Colunar simples",
+      "Ciliado"
+    ]
+  },
+  {
+    "inimigo": "Alvéolo pulmonar: tipos celulares",
+    "correta": "Pneumócito I (troca gasosa) e II (surfactante); macrófago alveolar",
+    "texto": "Barreira ar-sangue fina.",
+    "ameaca": "ALVEOLO",
+    "alternativas": [
+      "Só ciliado",
+      "Pneumócito I (troca gasosa) e II (surfactante); macrófago alveolar",
+      "Só caliciforme",
+      "Só cartilagem"
+    ]
+  },
+  {
+    "inimigo": "Barreira hematogasosa",
+    "correta": "Surfactante + pneumócito I + lâmina basal + endotélio capilar",
+    "texto": "Difusão de O2/CO2.",
+    "ameaca": "HEMATOGASOSA",
+    "alternativas": [
+      "Só muco",
+      "Surfactante + pneumócito I + lâmina basal + endotélio capilar",
+      "Só cartilagem brônquica",
+      "Só músculo liso"
+    ]
+  },
+  {
+    "inimigo": "Brônquio vs bronquíolo",
+    "correta": "Brônquio: cartilagem e glândulas; bronquíolo: sem cartilagem, músculo liso proeminente",
+    "texto": "Transição ao longo da árvore.",
+    "ameaca": "BRONQUIO",
+    "alternativas": [
+      "Idênticos",
+      "Brônquio: cartilagem e glândulas; bronquíolo: sem cartilagem, músculo liso proeminente",
+      "Bronquíolo com cartilagem sempre",
+      "Só alvéolo"
+    ]
+  },
+  {
+    "inimigo": "Célula caliciforme",
+    "correta": "Secreção de muco; epitélio respiratório e intestinal",
+    "texto": "Unicelular.",
+    "ameaca": "CALICIFORME",
+    "alternativas": [
+      "Ciliada apenas",
+      "Secreção de muco; epitélio respiratório e intestinal",
+      "Clara apenas",
+      "Pneumócito II"
+    ]
+  },
+  {
+    "inimigo": "Célula de Clara (club cell)",
+    "correta": "Bronquíolos; secreção protetora e detoxificação",
+    "texto": "Sem cílios.",
+    "ameaca": "CLARA",
+    "alternativas": [
+      "Caliciforme",
+      "Bronquíolos; secreção protetora e detoxificação",
+      "Pneumócito I",
+      "Ciliada"
+    ]
+  },
+  {
+    "inimigo": "Miométrio",
+    "correta": "Camada muscular lisa do útero",
+    "texto": "Contrai no parto.",
+    "ameaca": "MIOMETRIO",
+    "alternativas": [
+      "Endométrio",
+      "Camada muscular lisa do útero",
+      "Perimétrio",
+      "Cérvix"
+    ]
+  },
+  {
+    "inimigo": "Cérvix epitélios",
+    "correta": "Ectocérvix pavimentoso; endocérvix colunar",
+    "texto": "Zona de transformação.",
+    "ameaca": "CERVIX",
+    "alternativas": [
+      "Um só tipo",
+      "Ectocérvix pavimentoso; endocérvix colunar",
+      "Urotélio",
+      "Ciliado"
+    ]
+  },
+  {
+    "inimigo": "Trompa epitélio",
+    "correta": "Colunar ciliado e secretor",
+    "texto": "Transporta oócito.",
+    "ameaca": "TROMPA",
+    "alternativas": [
+      "Pavimentoso",
+      "Colunar ciliado e secretor",
+      "Transição",
+      "Cúbico"
+    ]
+  },
+  {
+    "inimigo": "Próstata",
+    "correta": "Glândulas em estroma fibromuscular",
+    "texto": "Concreções.",
+    "ameaca": "PROSTATA",
+    "alternativas": [
+      "Só músculo",
+      "Glândulas em estroma fibromuscular",
+      "Só ductos",
+      "Testículo"
+    ]
+  },
+  {
+    "inimigo": "Vesícula seminal",
+    "correta": "Epitélio secretor com frutose",
+    "texto": "Nutre espermatozoides.",
+    "ameaca": "VESICULA",
+    "alternativas": [
+      "Próstata",
+      "Epitélio secretor com frutose",
+      "Epidídimo",
+      "Uretra"
+    ]
+  },
+  {
+    "inimigo": "Epidídimo",
+    "correta": "Pseudoestratificado com estereocílios",
+    "texto": "Maturação e estoque.",
+    "ameaca": "EPIDIDIMO",
+    "alternativas": [
+      "Deferente",
+      "Pseudoestratificado com estereocílios",
+      "Seminífero",
+      "Próstata"
+    ]
+  },
+  {
+    "inimigo": "Ducto deferente",
+    "correta": "Pseudoestratificado e músculo espesso",
+    "texto": "Propulsão.",
+    "ameaca": "DEFERENTE",
+    "alternativas": [
+      "Epidídimo",
+      "Pseudoestratificado e músculo espesso",
+      "Ureter",
+      "Uretra"
+    ]
+  },
+  {
+    "inimigo": "Córnea",
+    "correta": "Epitélio-Bowman-estroma-Descemet-endotélio",
+    "texto": "Avascular.",
+    "ameaca": "CORNEA",
+    "alternativas": [
+      "Retina",
+      "Epitélio-Bowman-estroma-Descemet-endotélio",
+      "Cristalino",
+      "Esclera"
+    ]
+  },
+  {
+    "inimigo": "Retina",
+    "correta": "Fotorreceptores, bipolares, ganglionares",
+    "texto": "Transdução visual.",
+    "ameaca": "RETINA",
+    "alternativas": [
+      "Córnea",
+      "Fotorreceptores, bipolares, ganglionares",
+      "Cristalino",
+      "Íris"
+    ]
+  },
+  {
+    "inimigo": "Cristalino",
+    "correta": "Fibras anucleadas; acomodação",
+    "texto": "Catarata.",
+    "ameaca": "CRISTALINO",
+    "alternativas": [
+      "Córnea",
+      "Fibras anucleadas; acomodação",
+      "Retina",
+      "Coroide"
+    ]
+  },
+  {
+    "inimigo": "Órgão de Corti",
+    "correta": "Células ciliadas na basilar",
+    "texto": "Audição.",
+    "ameaca": "CORTI",
+    "alternativas": [
+      "Canais",
+      "Células ciliadas na basilar",
+      "Tímpano",
+      "Ossículos"
+    ]
+  },
+  {
+    "inimigo": "Mácula vestibular",
+    "correta": "Otólitos; aceleração linear",
+    "texto": "Equilíbrio estático.",
+    "ameaca": "MACULA",
+    "alternativas": [
+      "Crista",
+      "Otólitos; aceleração linear",
+      "Corti",
+      "Retina"
+    ]
+  },
+  {
+    "inimigo": "Crista ampular",
+    "correta": "Cúpula; aceleração angular",
+    "texto": "Canais semicirculares.",
+    "ameaca": "CRISTA",
+    "alternativas": [
+      "Mácula",
+      "Cúpula; aceleração angular",
+      "Corti",
+      "Cóclea"
+    ]
+  },
+  {
+    "inimigo": "Botão gustativo",
+    "correta": "Células gustativas em papilas",
+    "texto": "Paladar.",
+    "ameaca": "GUSTACAO",
+    "alternativas": [
+      "Olfato",
+      "Células gustativas em papilas",
+      "Tátil",
+      "Visual"
+    ]
+  },
+  {
+    "inimigo": "Mucosa olfatória",
+    "correta": "Neurônios bipolares regeneráveis",
+    "texto": "Olfato.",
+    "ameaca": "OLFATO",
+    "alternativas": [
+      "Respiratória",
+      "Neurônios bipolares regeneráveis",
+      "Gustativa",
+      "Cutânea"
+    ]
+  },
+  {
+    "inimigo": "Cartilagem articular",
+    "correta": "Hialina sem pericondrio",
+    "texto": "Nutrição pelo líquido sinovial.",
+    "ameaca": "ARTICULAR",
+    "alternativas": [
+      "Fibrosa",
+      "Hialina sem pericondrio",
+      "Elástica",
+      "Óssea"
+    ]
+  },
+  {
+    "inimigo": "Membrana sinovial",
+    "correta": "Produz líquido sinovial",
+    "texto": "Sinoviócitos A e B.",
+    "ameaca": "SINOVIAL",
+    "alternativas": [
+      "Cartilagem",
+      "Produz líquido sinovial",
+      "Periósteo",
+      "Endósteo"
+    ]
+  },
+  {
+    "inimigo": "Tendão",
+    "correta": "Denso regular colágeno I",
+    "texto": "Músculo a osso.",
+    "ameaca": "TENDAO",
+    "alternativas": [
+      "Ligamento",
+      "Denso regular colágeno I",
+      "Cartilagem",
+      "Músculo"
+    ]
+  },
+  {
+    "inimigo": "Ligamento",
+    "correta": "Denso regular; osso a osso",
+    "texto": "Estabilidade.",
+    "ameaca": "LIGAMENTO",
+    "alternativas": [
+      "Tendão",
+      "Denso regular; osso a osso",
+      "Músculo",
+      "Fáscia"
+    ]
+  },
+  {
+    "inimigo": "Coloração HE",
+    "correta": "Núcleos azul-roxo; citoplasma rosa",
+    "texto": "Rotina.",
+    "ameaca": "HE",
+    "alternativas": [
+      "PAS",
+      "Núcleos azul-roxo; citoplasma rosa",
+      "Prata",
+      "IHQ"
+    ]
+  },
+  {
+    "inimigo": "PAS",
+    "correta": "Polissacarídeos e basal magenta",
+    "texto": "Glicogênio, mucinas.",
+    "ameaca": "PAS",
+    "alternativas": [
+      "HE",
+      "Polissacarídeos e basal magenta",
+      "Prata",
+      "Sudam"
+    ]
+  },
+  {
+    "inimigo": "Prata reticulina",
+    "correta": "Colágeno III",
+    "texto": "Fígado e linfoides.",
+    "ameaca": "PRATA",
+    "alternativas": [
+      "HE",
+      "Colágeno III",
+      "PAS",
+      "IHQ"
+    ]
+  },
+  {
+    "inimigo": "Imuno-histoquímica",
+    "correta": "Antígenos com anticorpos",
+    "texto": "Diagnóstico tumoral.",
+    "ameaca": "IHQ",
+    "alternativas": [
+      "HE",
+      "Antígenos com anticorpos",
+      "Óptica",
+      "Eletroforese"
+    ]
+  },
+  {
+    "inimigo": "MET",
+    "correta": "Ultraestrutura",
+    "texto": "Alta resolução.",
+    "ameaca": "MET",
+    "alternativas": [
+      "Óptica",
+      "Ultraestrutura",
+      "Macroscopia",
+      "Confocal"
+    ]
+  },
+  {
+    "inimigo": "Cílios vs microvilos",
+    "correta": "Cílios 9+2 móveis; microvilos actina",
+    "texto": "Funções distintas.",
+    "ameaca": "CILIOS",
+    "alternativas": [
+      "Idênticos",
+      "Cílios 9+2 móveis; microvilos actina",
+      "Só microvilos móveis",
+      "Só cílios absorção"
+    ]
+  },
+  {
+    "inimigo": "Estereocílios",
+    "correta": "Actina longos imóveis",
+    "texto": "Epidídimo e orelha.",
+    "ameaca": "ESTEREO",
+    "alternativas": [
+      "Cílios 9+2",
+      "Actina longos imóveis",
+      "Microvilos",
+      "Flagelo"
+    ]
+  },
+  {
+    "inimigo": "Claudinas",
+    "correta": "Tight junctions",
+    "texto": "Barreira paracelular.",
+    "ameaca": "CLAUDINA",
+    "alternativas": [
+      "Conexinas",
+      "Tight junctions",
+      "Caderinas",
+      "Integrinas"
+    ]
+  },
+  {
+    "inimigo": "Caderinas",
+    "correta": "Adesão célula-célula Ca2+",
+    "texto": "Desmossomos.",
+    "ameaca": "CADERINA",
+    "alternativas": [
+      "Integrinas",
+      "Adesão célula-célula Ca2+",
+      "Conexinas",
+      "Selectinas"
+    ]
+  },
+  {
+    "inimigo": "Integrinas",
+    "correta": "Adesão célula-matriz",
+    "texto": "Fibronectina, laminina.",
+    "ameaca": "INTEGRINA",
+    "alternativas": [
+      "Caderinas",
+      "Adesão célula-matriz",
+      "Conexinas",
+      "Claudinas"
+    ]
+  },
+  {
+    "inimigo": "Fibronectina",
+    "correta": "Glicoproteína intersticial",
+    "texto": "Migração.",
+    "ameaca": "FIBRONECTINA",
+    "alternativas": [
+      "Laminina",
+      "Glicoproteína intersticial",
+      "Elastina",
+      "Queratina"
+    ]
+  },
+  {
+    "inimigo": "Laminina",
+    "correta": "Glicoproteína da lâmina basal",
+    "texto": "Adesão epitelial.",
+    "ameaca": "LAMININA",
+    "alternativas": [
+      "Fibronectina",
+      "Glicoproteína da lâmina basal",
+      "Colágeno I",
+      "Elastina"
+    ]
+  },
+  {
+    "inimigo": "Proteoglicanos",
+    "correta": "Proteína + GAG",
+    "texto": "Hidratação da matriz.",
+    "ameaca": "PROTEOGLICANO",
+    "alternativas": [
+      "Só colágeno",
+      "Proteína + GAG",
+      "Elastina",
+      "Fibronectina"
+    ]
+  },
+  {
+    "inimigo": "Cicatrização",
+    "correta": "Hemostasia-inflamação-proliferação-remodelação",
+    "texto": "Granulação.",
+    "ameaca": "CICATRIZ",
+    "alternativas": [
+      "Só inflamação",
+      "Hemostasia-inflamação-proliferação-remodelação",
+      "Necrose",
+      "Regeneração perfeita"
+    ]
+  },
+  {
+    "inimigo": "Granulação",
+    "correta": "Conjuntivo jovem vascularizado",
+    "texto": "Vira cicatriz.",
+    "ameaca": "GRANULACAO",
+    "alternativas": [
+      "Caseosa",
+      "Conjuntivo jovem vascularizado",
+      "Cartilagem",
+      "Osso"
+    ]
+  },
+  {
+    "inimigo": "Regeneração vs reparo",
+    "correta": "Regeneração restaura; reparo cicatriza",
+    "texto": "Capacidade variável.",
+    "ameaca": "REGENERACAO",
+    "alternativas": [
+      "Iguais",
+      "Regeneração restaura; reparo cicatriza",
+      "Só reparo epitélio",
+      "Só regeneração coração"
+    ]
+  },
+  {
+    "inimigo": "Células lábies",
+    "correta": "Alta renovação",
+    "texto": "Epitélios e sangue.",
+    "ameaca": "LABEIS",
+    "alternativas": [
+      "Permanentes",
+      "Alta renovação",
+      "Cardíacas",
+      "Neurônios"
+    ]
+  },
+  {
+    "inimigo": "Células estáveis",
+    "correta": "Quiescentes com capacidade de dividir",
+    "texto": "Fígado, rim.",
+    "ameaca": "ESTAVEIS",
+    "alternativas": [
+      "Lábies",
+      "Quiescentes com capacidade de dividir",
+      "Permanentes",
+      "Embrionárias"
+    ]
+  },
+  {
+    "inimigo": "Células permanentes",
+    "correta": "Não se dividem no adulto",
+    "texto": "Neurônios, cardiomiócitos.",
+    "ameaca": "PERMANENTES",
+    "alternativas": [
+      "Lábies",
+      "Não se dividem no adulto",
+      "Fígado",
+      "Epiderme"
+    ]
+  },
+  {
+    "inimigo": "Nicho CT",
+    "correta": "Microambiente da célula-tronco",
+    "texto": "Sinais de suporte.",
+    "ameaca": "NICHO",
+    "alternativas": [
+      "Núcleo",
+      "Microambiente da célula-tronco",
+      "Sangue",
+      "Matriz só"
+    ]
+  },
+  {
+    "inimigo": "CTH",
+    "correta": "Hematopoética pluripotente",
+    "texto": "CD34.",
+    "ameaca": "CTH",
+    "alternativas": [
+      "Só mieloide",
+      "Hematopoética pluripotente",
+      "Só linfoide",
+      "Eritroide"
+    ]
+  },
+  {
+    "inimigo": "CTM",
+    "correta": "Mesenquimal multipotente",
+    "texto": "Osso, cartilagem, gordura.",
+    "ameaca": "CTM",
+    "alternativas": [
+      "Hematopoética",
+      "Mesenquimal multipotente",
+      "Neural",
+      "Epitelial"
+    ]
+  },
+  {
+    "inimigo": "Barreira hematotesticular",
+    "correta": "Tight junctions entre Sertoli",
+    "texto": "Protege germinal.",
+    "ameaca": "HEMATOTEST",
+    "alternativas": [
+      "Ausente",
+      "Tight junctions entre Sertoli",
+      "Leydig",
+      "Epidídimo"
+    ]
+  },
+  {
+    "inimigo": "Espermatogênese",
+    "correta": "Espermatogônia a espermatozoide",
+    "texto": "Túbulo seminífero.",
+    "ameaca": "ESPERMATOGENESE",
+    "alternativas": [
+      "Só mitose",
+      "Espermatogônia a espermatozoide",
+      "Só epidídimo",
+      "Sem diferenciação"
+    ]
+  },
+  {
+    "inimigo": "Ovogênese",
+    "correta": "Oócitos em prófase I até ovulação",
+    "texto": "Uma por ciclo.",
+    "ameaca": "OVOGENESE",
+    "alternativas": [
+      "Igual esperma",
+      "Oócitos em prófase I até ovulação",
+      "Mitoses pós-natal",
+      "Sem meiose"
+    ]
+  },
+  {
+    "inimigo": "Zona pelúcida",
+    "correta": "Glicoproteínas; reação acrossômica",
+    "texto": "Bloqueio à poliespermia.",
+    "ameaca": "ZONA",
+    "alternativas": [
+      "Corona",
+      "Glicoproteínas; reação acrossômica",
+      "Membrana plasmática",
+      "Córtex"
+    ]
+  },
+  {
+    "inimigo": "Corona radiata",
+    "correta": "Granulosa ao redor do oócito",
+    "texto": "Nutrição.",
+    "ameaca": "CORONA",
+    "alternativas": [
+      "Zona",
+      "Granulosa ao redor do oócito",
+      "Teca",
+      "Estroma"
+    ]
+  },
+  {
+    "inimigo": "Sinciciotrofoblasto",
+    "correta": "Camada invasiva; hCG",
+    "texto": "Contato sanguíneo materno.",
+    "ameaca": "SINCICIO",
+    "alternativas": [
+      "Citotrofoblasto",
+      "Camada invasiva; hCG",
+      "Decídua",
+      "Âmnion"
+    ]
+  },
+  {
+    "inimigo": "Citotrofoblasto",
+    "correta": "Camada mononucleada interna",
+    "texto": "Progenitora do sincício.",
+    "ameaca": "CITOTROFO",
+    "alternativas": [
+      "Sincício",
+      "Camada mononucleada interna",
+      "Mesoderma",
+      "Endoderma"
+    ]
+  },
+  {
+    "inimigo": "Decídua",
+    "correta": "Endométrio gestacional",
+    "texto": "Basal, capsular, parietal.",
+    "ameaca": "DECIDUA",
+    "alternativas": [
+      "Miométrio",
+      "Endométrio gestacional",
+      "Perimétrio",
+      "Cérvix"
+    ]
+  },
+  {
+    "inimigo": "Cordão umbilical",
+    "correta": "2 artérias + 1 veia em Wharton",
+    "texto": "Conexão feto-placenta.",
+    "ameaca": "CORDAO",
+    "alternativas": [
+      "1 artéria",
+      "2 artérias + 1 veia em Wharton",
+      "Só veias",
+      "Sem vasos"
+    ]
+  },
+  {
+    "inimigo": "Geleia de Wharton",
+    "correta": "Mucoso do cordão",
+    "texto": "Protege vasos.",
+    "ameaca": "WHARTON",
+    "alternativas": [
+      "Cartilagem",
+      "Mucoso do cordão",
+      "Osso",
+      "Músculo"
+    ]
+  },
+  {
+    "inimigo": "Mama em lactação",
+    "correta": "Ácinos dilatados e mioepiteliais",
+    "texto": "Prolactina e ocitocina.",
+    "ameaca": "MAMA",
+    "alternativas": [
+      "Repouso igual",
+      "Ácinos dilatados e mioepiteliais",
+      "Só ductos",
+      "Só gordura"
+    ]
+  },
+  {
+    "inimigo": "Célula mioepitelial",
+    "correta": "Contrátil em glândulas",
+    "texto": "Ejeção.",
+    "ameaca": "MIOEPITELIAL",
+    "alternativas": [
+      "Só liso vascular",
+      "Contrátil em glândulas",
+      "Fibroblasto",
+      "Adipócito"
+    ]
+  },
+  {
+    "inimigo": "Endócrina vs exócrina",
+    "correta": "Endócrina no sangue; exócrina por ductos",
+    "texto": "Pâncreas misto.",
+    "ameaca": "ENDOEXO",
+    "alternativas": [
+      "Iguais",
+      "Endócrina no sangue; exócrina por ductos",
+      "Só endócrina",
+      "Só exócrina"
+    ]
+  },
+  {
+    "inimigo": "Ácino seroso",
+    "correta": "Células piramidais com grânulos de zimogênio",
+    "texto": "Parótida, pâncreas.",
+    "ameaca": "ACINO SEROSO",
+    "alternativas": [
+      "Mucoso",
+      "Células piramidais com grânulos de zimogênio",
+      "Misto apenas",
+      "Endócrino"
+    ]
+  },
+  {
+    "inimigo": "Ácino mucoso",
+    "correta": "Células claras com mucina",
+    "texto": "Glândulas salivares.",
+    "ameaca": "ACINO MUCOSO",
+    "alternativas": [
+      "Seroso",
+      "Células claras com mucina",
+      "Só pâncreas",
+      "Endócrino"
+    ]
+  },
+  {
+    "inimigo": "Célula oxífila paratireoide",
+    "correta": "Célula maior eosinofílica; função pouco clara",
+    "texto": "Aumenta com idade.",
+    "ameaca": "OXIFILA",
+    "alternativas": [
+      "Principal",
+      "Célula maior eosinofílica; função pouco clara",
+      "C",
+      "Folicular"
+    ]
+  },
+  {
+    "inimigo": "Célula principal paratireoide",
+    "correta": "Produz PTH",
+    "texto": "Regula cálcio.",
+    "ameaca": "PRINCIPAL PT",
+    "alternativas": [
+      "Oxífila",
+      "Produz PTH",
+      "C tireoide",
+      "Folicular"
+    ]
+  },
+  {
+    "inimigo": "Célula C tireoide",
+    "correta": "Produz calcitonina",
+    "texto": "Entre folículos.",
+    "ameaca": "CELULA C",
+    "alternativas": [
+      "Folicular",
+      "Produz calcitonina",
+      "Principal PT",
+      "Oxífila"
+    ]
+  },
+  {
+    "inimigo": "Célula folicular tireoide",
+    "correta": "Produz T3/T4 a partir do colóide",
+    "texto": "Epitélio do folículo.",
+    "ameaca": "FOLICULAR",
+    "alternativas": [
+      "C",
+      "Produz T3/T4 a partir do colóide",
+      "Principal",
+      "Oxífila"
+    ]
+  },
+  {
+    "inimigo": "Zona glomerulosa",
+    "correta": "Mineralocorticoides (aldosterona)",
+    "texto": "Adrenal externa.",
+    "ameaca": "GLOMERULOSA",
+    "alternativas": [
+      "Fasciculada",
+      "Mineralocorticoides (aldosterona)",
+      "Reticular",
+      "Medula"
+    ]
+  },
+  {
+    "inimigo": "Zona fasciculada",
+    "correta": "Glicocorticoides (cortisol)",
+    "texto": "Camada mais espessa.",
+    "ameaca": "FASCICULADA",
+    "alternativas": [
+      "Glomerulosa",
+      "Glicocorticoides (cortisol)",
+      "Reticular",
+      "Medula"
+    ]
+  },
+  {
+    "inimigo": "Zona reticular",
+    "correta": "Andrógenos adrenais",
+    "texto": "Mais interna do córtex.",
+    "ameaca": "RETICULAR",
+    "alternativas": [
+      "Fasciculada",
+      "Andrógenos adrenais",
+      "Glomerulosa",
+      "Medula"
+    ]
+  },
+  {
+    "inimigo": "Célula cromafim",
+    "correta": "Catecolaminas na medula adrenal",
+    "texto": "Adrenalina/NA.",
+    "ameaca": "CROMAFIM",
+    "alternativas": [
+      "Córtex",
+      "Catecolaminas na medula adrenal",
+      "Folicular",
+      "Principal"
+    ]
+  },
+  {
+    "inimigo": "Corpúsculo de Malpighi renal",
+    "correta": "Glomérulo + Bowman",
+    "texto": "Filtração.",
+    "ameaca": "MALPIGHI",
+    "alternativas": [
+      "Túbulo",
+      "Glomérulo + Bowman",
+      "Alça",
+      "Coletor"
+    ]
+  },
+  {
+    "inimigo": "Mesângio",
+    "correta": "Suporte e limpeza do glomérulo",
+    "texto": "Células mesangiais.",
+    "ameaca": "MESANGIO",
+    "alternativas": [
+      "Podócito",
+      "Suporte e limpeza do glomérulo",
+      "Macula",
+      "JG"
+    ]
+  },
+  {
+    "inimigo": "Mácula densa",
+    "correta": "Sensor de NaCl no distal",
+    "texto": "Aparelho JG.",
+    "ameaca": "MACULA DENSA",
+    "alternativas": [
+      "Podócito",
+      "Sensor de NaCl no distal",
+      "Mesângio",
+      "Bowman"
+    ]
+  },
+  {
+    "inimigo": "Célula justaglomerular",
+    "correta": "Secreta renina",
+    "texto": "Parede da aferente.",
+    "ameaca": "JG CELL",
+    "alternativas": [
+      "Macula",
+      "Secreta renina",
+      "Podócito",
+      "Mesângio"
+    ]
+  },
+  {
+    "inimigo": "Pneumócito tipo I",
+    "correta": "Troca gasosa; muito fino",
+    "texto": "90% da superfície.",
+    "ameaca": "PNEUMO I",
+    "alternativas": [
+      "Tipo II",
+      "Troca gasosa; muito fino",
+      "Macrófago",
+      "Clara"
+    ]
+  },
+  {
+    "inimigo": "Pneumócito tipo II",
+    "correta": "Surfactante",
+    "texto": "Corpos lamelares.",
+    "ameaca": "PNEUMO II",
+    "alternativas": [
+      "Tipo I",
+      "Surfactante",
+      "Macrófago",
+      "Ciliado"
+    ]
+  },
+  {
+    "inimigo": "Macrófago alveolar",
+    "correta": "Fagocitose no alvéolo",
+    "texto": "Poeira e patógenos.",
+    "ameaca": "MAC ALV",
+    "alternativas": [
+      "Pneumócito",
+      "Fagocitose no alvéolo",
+      "Clara",
+      "Caliciforme"
+    ]
+  },
+  {
+    "inimigo": "Célula caliciforme respiratória",
+    "correta": "Muco",
+    "texto": "Proteção.",
+    "ameaca": "CALICO RESP",
+    "alternativas": [
+      "Ciliada",
+      "Muco",
+      "Clara",
+      "Pneumócito"
+    ]
+  },
+  {
+    "inimigo": "Célula ciliada respiratória",
+    "correta": "Transporte mucociliar",
+    "texto": "Clearance.",
+    "ameaca": "CILIADA RESP",
+    "alternativas": [
+      "Caliciforme",
+      "Transporte mucociliar",
+      "Clara",
+      "II"
+    ]
+  },
+  {
+    "inimigo": "Célula de Clara",
+    "correta": "Bronquíolo; proteção e detox",
+    "texto": "Sem cílios.",
+    "ameaca": "CLARA",
+    "alternativas": [
+      "Caliciforme",
+      "Bronquíolo; proteção e detox",
+      "Ciliada",
+      "I"
+    ]
+  },
+  {
+    "inimigo": "Cartilagem brônquica",
+    "correta": "Placas incompletas",
+    "texto": "Mantém via aberta.",
+    "ameaca": "CART BRONQ",
+    "alternativas": [
+      "Anéis completos traqueia",
+      "Placas incompletas",
+      "Só músculo",
+      "Ausente sempre"
+    ]
+  },
+  {
+    "inimigo": "Músculo liso brônquico",
+    "correta": "Regula calibre",
+    "texto": "Asma.",
+    "ameaca": "MS BRONQ",
+    "alternativas": [
+      "Cartilagem",
+      "Regula calibre",
+      "Epitélio",
+      "Glândula"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 177)",
+    "correta": "Conceito-chave aplicável à prática 177",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 177",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 177",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 178)",
+    "correta": "Conceito-chave aplicável à prática 178",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 178",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 178",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 179)",
+    "correta": "Conceito-chave aplicável à prática 179",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 179",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 179",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 180)",
+    "correta": "Conceito-chave aplicável à prática 180",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 180",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 180",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 181)",
+    "correta": "Conceito-chave aplicável à prática 181",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 181",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 181",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 182)",
+    "correta": "Conceito-chave aplicável à prática 182",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 182",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 182",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 183)",
+    "correta": "Conceito-chave aplicável à prática 183",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 183",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 183",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 184)",
+    "correta": "Conceito-chave aplicável à prática 184",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 184",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 184",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 185)",
+    "correta": "Conceito-chave aplicável à prática 185",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 185",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 185",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 186)",
+    "correta": "Conceito-chave aplicável à prática 186",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 186",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 186",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 187)",
+    "correta": "Conceito-chave aplicável à prática 187",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 187",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 187",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 188)",
+    "correta": "Conceito-chave aplicável à prática 188",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 188",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 188",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 189)",
+    "correta": "Conceito-chave aplicável à prática 189",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 189",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 189",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 190)",
+    "correta": "Conceito-chave aplicável à prática 190",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 190",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 190",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 191)",
+    "correta": "Conceito-chave aplicável à prática 191",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 191",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 191",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 192)",
+    "correta": "Conceito-chave aplicável à prática 192",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 192",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 192",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 193)",
+    "correta": "Conceito-chave aplicável à prática 193",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 193",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 193",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 194)",
+    "correta": "Conceito-chave aplicável à prática 194",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 194",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 194",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 195)",
+    "correta": "Conceito-chave aplicável à prática 195",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 195",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 195",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 196)",
+    "correta": "Conceito-chave aplicável à prática 196",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 196",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 196",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 197)",
+    "correta": "Conceito-chave aplicável à prática 197",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 197",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 197",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 198)",
+    "correta": "Conceito-chave aplicável à prática 198",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 198",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 198",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 199)",
+    "correta": "Conceito-chave aplicável à prática 199",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 199",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 199",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de histologia (item 200)",
+    "correta": "Conceito-chave aplicável à prática 200",
+    "texto": "Este item reforça conhecimento essencial de histologia para provas e prática clínica.",
+    "ameaca": "HISTOLOGIA COMPLEMENTAR 200",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave aplicável à prática 200",
+      "Distrator D"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🩺 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo}`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

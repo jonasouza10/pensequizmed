@@ -1,0 +1,2254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Challenge: Salve o Ritmo — Edição Avançada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        .stability-bar { transition: width 0.4s ease-in-out, background-color 0.4s ease-in-out; }
+        .feedback-box { max-height: 220px; overflow-y: auto; scroll-behavior: smooth; border-radius: 0.5rem; }
+        .timer-critical { color: #f87171; font-weight: bold; animation: pulse 0.8s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+        canvas { border: 2px solid #4a5568; border-radius: 0.5rem; display: block; background: #0f172a; }
+        .ecg-container { position: relative; }
+        .bpm-badge {
+            position: absolute; top: 8px; right: 12px;
+            background: rgba(0,0,0,0.7); color: #4ade80;
+            font-family: monospace; font-size: 1.1rem; font-weight: bold;
+            padding: 4px 10px; border-radius: 6px; border: 1px solid #22c55e;
+            z-index: 10; pointer-events: none;
+        }
+        /* Estilo do traçado em papel ECG clássico */
+        .ecg-paper-wrapper {
+            background: #fff5f5;
+            border: 2px solid #c53030;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(197, 48, 48, 0.08);
+        }
+        #ecg-paper-canvas {
+            display: block;
+            width: 100%;
+            background: #fff8f8;
+        }
+        .paper-label {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            color: #9b2c2c;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.35rem; }
+            button, select { font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen font-sans flex items-center justify-center">
+    <div class="container mx-auto p-3 sm:p-4 max-w-5xl bg-gray-950 rounded-xl shadow-2xl my-4 border border-gray-800">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-center mb-6 text-red-500 tracking-tight">
+            Pensequiz ECG : Challenge
+            <span class="block text-sm font-normal text-gray-400 mt-1">Simulador Avançado de Arritmias • ACLS 2020</span>
+        </h1>
+
+        <!-- Game Over -->
+        <div id="game-over" class="hidden bg-red-950/80 p-5 rounded-xl shadow-lg mb-5 border border-red-800">
+            <p id="game-over-message" class="text-xl sm:text-2xl font-bold text-center mb-3"></p>
+            <div id="game-over-details" class="mt-3 text-sm leading-relaxed text-gray-200"></div>
+            <button id="new-case" class="mt-5 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-500 transition-all duration-200 block mx-auto shadow-lg">
+                ▶ Iniciar Novo Caso
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <!-- Coluna Esquerda: Paciente + ECG -->
+            <div class="bg-gray-900 p-4 sm:p-5 rounded-xl shadow-md border border-gray-700">
+                <h2 class="text-xl font-bold mb-2 text-red-400">Paciente <span id="paciente-id" class="text-gray-400 font-mono"></span></h2>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-3">
+                    <p><strong>Idade:</strong> <span id="idade" class="text-gray-300"></span></p>
+                    <p><strong>Sexo:</strong> <span id="sexo" class="text-gray-300"></span></p>
+                    <p class="col-span-2"><strong>Sintomas:</strong> <span id="sintomas" class="text-gray-300"></span></p>
+                    <p class="col-span-2"><strong>História:</strong> <span id="historia" class="text-gray-400 text-xs"></span></p>
+                </div>
+
+                <div class="mt-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="text-lg font-bold text-red-400">Monitor ECG</h3>
+                        <span id="ritmo-label" class="text-xs text-gray-500 font-mono">—</span>
+                    </div>
+                    <div class="ecg-container relative">
+                        <div id="ecg-canvas" class="w-full"></div>
+                        <div class="bpm-badge" id="bpm-display">-- bpm</div>
+                    </div>
+                </div>
+
+                <!-- Traçado estilo Papel ECG (não mexe no monitor ao vivo) -->
+                <div class="mt-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="text-sm font-bold text-red-400">Traçado em Papel ECG</h3>
+                        <button id="btn-gerar-papel" class="text-xs px-2 py-1 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded text-red-200 transition-colors">
+                            📄 Gerar / Atualizar Papel
+                        </button>
+                    </div>
+                    <div class="ecg-paper-wrapper">
+                        <canvas id="ecg-paper-canvas" height="180"></canvas>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between mt-1 paper-label px-1 gap-0.5">
+                        <span>25 mm/s &nbsp;|&nbsp; 10 mm/mV &nbsp;|&nbsp; <span class="text-blue-600">PR</span> <span class="text-amber-600">QRS</span> <span class="text-violet-600">QT/QTc</span></span>
+                        <span id="paper-info" class="text-right">—</span>
+                    </div>
+                    <!-- Análise completa de intervalos ECG -->
+                    <div id="painel-intervalos" class="mt-2 text-xs rounded-lg border border-gray-700 bg-gray-800/80 p-2.5 hidden">
+                        <div class="font-bold text-red-400 mb-2">Análise de Intervalos ECG</div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="text-gray-400 border-b border-gray-700">
+                                        <th class="py-1 pr-2 font-medium">Intervalo</th>
+                                        <th class="py-1 pr-2 font-medium">Valor</th>
+                                        <th class="py-1 pr-2 font-medium">Ref. normal</th>
+                                        <th class="py-1 font-medium">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-intervalos">
+                                    <!-- preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="interpretacao-intervalos" class="mt-2 pt-2 border-t border-gray-700 text-gray-400 leading-snug"></div>
+                    </div>
+
+                    <!-- Painel de critérios de alargamento do QRS + exemplos visuais -->
+                    <div id="painel-alargamento" class="mt-2 text-xs rounded-lg border border-gray-700 bg-gray-800/80 p-2.5 hidden">
+                        <div class="font-bold text-red-400 mb-1">Critérios de Alargamento do QRS</div>
+                        <div id="alargamento-status" class="mb-1"></div>
+                        <div id="alargamento-significado" class="text-gray-400 leading-snug"></div>
+                        <div class="mt-1.5 pt-1.5 border-t border-gray-700 text-gray-500">
+                            <strong>Limiar ACLS/AHA:</strong> QRS ≥ 120 ms = alargado (wide complex). 
+                            Em taquicardia de QRS largo → tratar como TV até prova em contrário.
+                        </div>
+
+                        <!-- Exemplos visuais dos critérios -->
+                        <div class="mt-3 pt-2 border-t border-gray-700">
+                            <div class="font-bold text-gray-300 mb-2 flex items-center justify-between">
+                                <span>Exemplos Visuais dos Critérios</span>
+                                <button id="btn-toggle-exemplos" class="text-[10px] px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded border border-gray-600 text-gray-300">Recolher</button>
+                            </div>
+                            <div id="exemplos-visuais-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <!-- preenchido via JS -->
+                            </div>
+                            <p class="mt-2 text-[10px] text-gray-500 leading-tight">
+                                Esquemas em 25 mm/s. Linha vermelha tracejada = limiar de 120 ms (≈3 mm pequenos).
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Exemplos de arritmias comuns -->
+                    <div id="painel-arritmias" class="mt-2 text-xs rounded-lg border border-gray-700 bg-gray-800/80 p-2.5 hidden">
+                        <div class="font-bold text-gray-300 mb-2 flex items-center justify-between">
+                            <span class="text-red-400">Exemplos de Arritmias Comuns</span>
+                            <button id="btn-toggle-arritmias" class="text-[10px] px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded border border-gray-600 text-gray-300">Recolher</button>
+                        </div>
+                        <div id="arritmias-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <!-- preenchido via JS -->
+                        </div>
+                        <p class="mt-2 text-[10px] text-gray-500 leading-tight">
+                            Traçados esquemáticos das principais arritmias do jogo (referência educacional ACLS).
+                        </p>
+                    </div>
+
+                    <!-- Interpretação de ECG Pediátrico -->
+                    <div id="painel-pediatrico" class="mt-2 text-xs rounded-lg border border-gray-700 bg-gray-800/80 p-2.5 hidden">
+                        <div class="font-bold text-gray-300 mb-2 flex items-center justify-between">
+                            <span class="text-red-400">Interpretação de ECG Pediátrico</span>
+                            <button id="btn-toggle-pediatrico" class="text-[10px] px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded border border-gray-600 text-gray-300">Recolher</button>
+                        </div>
+
+                        <div id="pediatrico-conteudo">
+                            <p class="text-gray-400 mb-2 leading-snug">
+                                O ECG da criança <strong class="text-gray-300">não é um ECG de adulto em miniatura</strong>.
+                                Frequência, intervalos e eixos mudam com a idade — especialmente nos primeiros anos de vida.
+                            </p>
+
+                            <!-- Tabela de valores normais por idade -->
+                            <div class="overflow-x-auto mb-3">
+                                <table class="w-full text-left border-collapse text-[10px]">
+                                    <thead>
+                                        <tr class="text-gray-400 border-b border-gray-700">
+                                            <th class="py-1 pr-2">Faixa etária</th>
+                                            <th class="py-1 pr-2">FC (bpm)</th>
+                                            <th class="py-1 pr-2">PR (ms)</th>
+                                            <th class="py-1 pr-2">QRS (ms)</th>
+                                            <th class="py-1">QTc (ms)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabela-pediatrico">
+                                        <!-- preenchido via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Diferenças-chave -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                                <div class="bg-gray-900/70 border border-gray-700 rounded p-2">
+                                    <div class="font-semibold text-sky-300 mb-1">Diferenças vs adulto</div>
+                                    <ul class="text-gray-400 space-y-0.5 list-disc list-inside leading-snug">
+                                        <li>FC basal mais alta (recém-nascido 120–160)</li>
+                                        <li>PR e QRS mais curtos</li>
+                                        <li>Predomínio de VD no RN/lactente (eixo direito)</li>
+                                        <li>Ondas T invertidas em precordiais direitas (normal até ~adolescência)</li>
+                                        <li>Voltagens mais altas (parede torácica fina)</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-gray-900/70 border border-gray-700 rounded p-2">
+                                    <div class="font-semibold text-amber-300 mb-1">Armadilhas frequentes</div>
+                                    <ul class="text-gray-400 space-y-0.5 list-disc list-inside leading-snug">
+                                        <li>Chamar de “taquicardia” uma FC normal para a idade</li>
+                                        <li>Interpretar eixo direito do RN como patológico</li>
+                                        <li>Usar limites adultos de PR/QRS/QTc</li>
+                                        <li>Confundir T invertida em V1–V3 com isquemia</li>
+                                        <li>Não ajustar QTc à FC elevada da criança</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-900/70 border border-gray-700 rounded p-2 mb-2">
+                                <div class="font-semibold text-emerald-300 mb-1">Abordagem prática (passo a passo)</div>
+                                <ol class="text-gray-400 space-y-0.5 list-decimal list-inside leading-snug">
+                                    <li>Confirmar idade e usar tabela de referência pediátrica</li>
+                                    <li>Calcular FC e comparar com a faixa normal da idade</li>
+                                    <li>Medir PR, QRS e QTc com limites pediátricos</li>
+                                    <li>Avaliar eixo e progressão de R nas precordiais (VD→VE com a idade)</li>
+                                    <li>Integrar clínica: estabilidade, sintomas, cardiopatia congênita conhecida</li>
+                                </ol>
+                            </div>
+
+                            <p class="text-[10px] text-gray-500 leading-tight">
+                                Valores aproximados baseados em tabelas pediátricas de referência (Davignon e correlatos).
+                                Sempre correlacionar com a clínica e, se necessário, laudo especializado.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="font-semibold text-red-400">Estabilidade Hemodinâmica</span>
+                        <span id="stability-value" class="font-bold">70%</span>
+                    </div>
+                    <div class="w-full bg-gray-800 h-4 rounded-full overflow-hidden border border-gray-600">
+                        <div id="stability-bar" class="h-full rounded-full bg-green-500 stability-bar" style="width: 70%"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-between items-center text-base font-semibold">
+                    <p>⏱ <span id="timer" class="text-yellow-400">3:00</span></p>
+                    <p>🏆 <span id="score" class="text-emerald-400">0</span> pts</p>
+                </div>
+            </div>
+
+            <!-- Coluna Direita: Ações -->
+            <div class="bg-gray-900 p-4 sm:p-5 rounded-xl shadow-md border border-gray-700">
+                <h2 class="text-xl font-bold mb-3 text-red-400">Ações Clínicas</h2>
+                
+                <div class="mb-4">
+                    <label for="ritmo" class="block text-sm font-medium text-gray-300 mb-1">1. Identificar o Ritmo:</label>
+                    <select id="ritmo" class="w-full p-2.5 bg-gray-800 rounded-lg text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <option value="">— Selecione o ritmo —</option>
+                    </select>
+                    <button id="confirmar-ritmo" class="mt-2 w-full p-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-500 transition-colors shadow-md text-sm">
+                        Confirmar Identificação (−5s)
+                    </button>
+                    <button id="detectar-ritmo" class="mt-2 w-full p-2.5 bg-purple-700 text-white font-bold rounded-lg hover:bg-purple-600 transition-colors shadow-md text-sm">
+                        🔍 Detectar Ritmo Automaticamente (IA)
+                    </button>
+                    <p id="detecao-resultado" class="mt-2 text-xs text-gray-400 hidden"></p>
+                </div>
+
+                <h3 class="text-lg font-bold mb-2 text-red-400">2. Tratamentos Disponíveis</h3>
+                <div id="tratamentos-list" class="grid grid-cols-1 gap-1.5 mb-4">
+                </div>
+
+                <button id="finalizar-procedimento" disabled
+                    class="w-full p-3 bg-red-700 text-white font-bold rounded-lg hover:bg-red-600 transition-colors shadow-md opacity-50 cursor-not-allowed text-sm">
+                    ⏹ Finalizar Procedimento
+                </button>
+            </div>
+
+            <!-- Feedback -->
+            <div class="bg-gray-900 p-4 sm:p-5 rounded-xl shadow-md border border-gray-700 lg:col-span-2">
+                <h2 class="text-lg font-bold mb-2 text-red-400">Feedback Clínico & Referências</h2>
+                <div id="feedback-box" class="feedback-box border border-gray-700 p-3 bg-gray-800/80 text-sm rounded-lg text-gray-200 min-h-[80px]">
+                    <p class="text-gray-400">Aguardando início do caso...</p>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-gray-600 mt-4">
+            Baseado em AHA ACLS Provider Manual 2020 • Simulação educacional • Não substitui treinamento oficial
+        </p>
+    </div>
+
+<script>
+/* ========================================================================
+   ECG CHALLENGE — SIMULADOR AVANÇADO DE ARRITMIAS
+   Melhorias: mais ritmos, waveforms realistas (Gaussian PQRST), grid ECG,
+   BPM dinâmico, mais tratamentos, casos variados, estabilidade influenciando ruído
+   ======================================================================== */
+
+const dadosBase = {
+    ritmos: [
+        {
+            nome: "Ritmo Sinusal",
+            bpmBase: 75,
+            irregular: false,
+            caracteristicas: "Regular, onda P antes de cada QRS, PR 120-200 ms, QRS estreito (<120 ms), 60-100 bpm.",
+            sintomas: ["Assintomático", "Palpitações leves", "Leve desconforto torácico"],
+            historia: ["Check-up de rotina", "Pré-operatório", "Monitorização pós-cirúrgica"],
+            tratamentosCorretos: ["Observação"],
+            tratamentosIncorretos: {
+                "Atropina": "Não indicada em ritmo sinusal normal. Pode causar taquicardia indesejada.",
+                "Adenosina": "Não tem indicação em ritmo sinusal. Pode causar pausa sinusal transitória.",
+                "Amiodarona": "Antiarrítmico desnecessário. Risco de efeitos colaterais.",
+                "Choque Elétrico": "Ritmo não chocável. Pode induzir arritmias graves.",
+                "Adrenalina": "Aumenta consumo de O₂ miocárdico sem benefício."
+            },
+            racionalCorretos: {
+                "Observação": "Ritmo sinusal normal em paciente estável não requer intervenção farmacológica ou elétrica."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Rhythm Recognition", paginas: "105-120" },
+            tipo: "sinusal"
+        },
+        {
+            nome: "Bradicardia Sinusal",
+            bpmBase: 42,
+            irregular: false,
+            caracteristicas: "Regular, onda P presente, PR normal, QRS estreito, frequência < 60 bpm.",
+            sintomas: ["Tontura", "Fadiga", "Síncope", "Hipotensão", "Confusão"],
+            historia: ["Uso de betabloqueador", "Hipotireoidismo", "Atleta", "IAM inferior"],
+            tratamentosCorretos: ["Atropina", "Observação"],
+            tratamentosIncorretos: {
+                "Adenosina": "Contraindicada. Pode piorar a bradicardia.",
+                "Amiodarona": "Pode agravar a bradicardia e causar bloqueio AV.",
+                "Choque Elétrico": "Não indicado (não é taquicardia instável).",
+                "Adrenalina": "Reservada para bradicardia sintomática grave refratária à atropina (infusão)."
+            },
+            racionalCorretos: {
+                "Atropina": "Primeira linha para bradicardia sintomática (0,5 mg IV, repetir até 3 mg). Aumenta a frequência sinusal.",
+                "Observação": "Se assintomático e estável hemodinamicamente, apenas monitorização."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Bradycardia", paginas: "151-160" },
+            tipo: "sinusal"
+        },
+        {
+            nome: "Taquicardia Sinusal",
+            bpmBase: 128,
+            irregular: false,
+            caracteristicas: "Regular, onda P presente e idêntica, PR normal, QRS estreito, frequência > 100 bpm.",
+            sintomas: ["Palpitações", "Dispneia", "Ansiedade", "Dor torácica leve"],
+            historia: ["Sepse", "Hipovolemia", "Dor", "Hipertireoidismo", "Embolia pulmonar"],
+            tratamentosCorretos: ["Observação"],
+            tratamentosIncorretos: {
+                "Atropina": "Aumentaria ainda mais a frequência. Contraindicada.",
+                "Adenosina": "Pode causar pausa, mas não trata a causa. Não é primeira linha.",
+                "Amiodarona": "Desnecessária. A taquicardia sinusal é resposta fisiológica.",
+                "Choque Elétrico": "Não indicado. Não é taquicardia de reentrada.",
+                "Adrenalina": "Pioraria a taquicardia."
+            },
+            racionalCorretos: {
+                "Observação": "Tratar a causa subjacente (febre, dor, hipovolemia, etc.). Não tratar o ritmo isoladamente."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Tachyarrhythmias", paginas: "121-130" },
+            tipo: "sinusal"
+        },
+        {
+            nome: "Fibrilação Atrial",
+            bpmBase: 110,
+            irregular: true,
+            caracteristicas: "Ritmo irregularmente irregular, ausência de ondas P, ondas f fibrilatórias, QRS estreito.",
+            sintomas: ["Palpitações fortes", "Tontura", "Dispneia", "Fadiga", "Dor torácica"],
+            historia: ["HAS", "ICC", "Valvopatia", "Pós-cirurgia cardíaca", "Hipertireoidismo"],
+            tratamentosCorretos: ["Amiodarona", "Choque Elétrico"],
+            tratamentosIncorretos: {
+                "Observação": "Risco de tromboembolismo e deterioração. Requer controle de frequência/ritmo.",
+                "Atropina": "Não tem papel na FA.",
+                "Adenosina": "Pode ajudar no diagnóstico diferencial, mas não trata a FA.",
+                "Adrenalina": "Pode aumentar a resposta ventricular e piorar a estabilidade."
+            },
+            racionalCorretos: {
+                "Amiodarona": "Útil para controle de frequência e possível conversão em pacientes estáveis.",
+                "Choque Elétrico": "Cardioversão elétrica sincronizada é terapia de escolha se instável (hipotensão, isquemia, alteração de consciência)."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Tachyarrhythmias", paginas: "121-130" },
+            tipo: "atrial"
+        },
+        {
+            nome: "Flutter Atrial",
+            bpmBase: 150,
+            irregular: false,
+            caracteristicas: "Ondas F em dente de serra (tipicamente 300/min), condução 2:1 ou 4:1, QRS estreito, regular.",
+            sintomas: ["Palpitações", "Dispneia", "Fadiga", "Tontura"],
+            historia: ["Cardiopatia estrutural", "Pós-cirurgia", "DPOC", "HAS"],
+            tratamentosCorretos: ["Amiodarona", "Choque Elétrico"],
+            tratamentosIncorretos: {
+                "Observação": "Risco de deterioração e tromboembolismo. Geralmente requer intervenção.",
+                "Atropina": "Sem indicação.",
+                "Adenosina": "Pode revelar as ondas F (diagnóstico), mas não trata.",
+                "Adrenalina": "Pode piorar a condução e a frequência ventricular."
+            },
+            racionalCorretos: {
+                "Amiodarona": "Pode ajudar no controle de frequência e conversão.",
+                "Choque Elétrico": "Cardioversão elétrica sincronizada altamente eficaz no flutter (baixa energia)."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Tachyarrhythmias", paginas: "121-130" },
+            tipo: "flutter"
+        },
+        {
+            nome: "Taquicardia Ventricular",
+            bpmBase: 180,
+            irregular: false,
+            caracteristicas: "Ritmo ventricular rápido (150-250 bpm), QRS largos e bizarros, geralmente regular. Pode ter ou não pulso.",
+            sintomas: ["Dor torácica aguda", "Síncope", "Hipotensão grave", "Dispneia", "Alteração de consciência"],
+            historia: ["IAM prévio", "Cardiomiopatia", "QT longo", "Distúrbio eletrolítico"],
+            tratamentosCorretos: ["Amiodarona", "Choque Elétrico"],
+            tratamentosIncorretos: {
+                "Observação": "Alto risco de degenerar para FV. Intervenção imediata necessária.",
+                "Atropina": "Sem papel na TV.",
+                "Adenosina": "Pode ser usada em TV monomórfica estável de QRS largo para diagnóstico diferencial (se regular e monomórfica).",
+                "Adrenalina": "Não é primeira linha para TV com pulso."
+            },
+            racionalCorretos: {
+                "Amiodarona": "Antiarrítmico de escolha para TV com pulso estável ou refratária.",
+                "Choque Elétrico": "Cardioversão sincronizada se instável; desfibrilação se sem pulso."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Tachyarrhythmias", paginas: "121-130" },
+            tipo: "ventricular"
+        },
+        {
+            nome: "Fibrilação Ventricular",
+            bpmBase: 0,
+            irregular: true,
+            caracteristicas: "Atividade elétrica ventricular caótica e desorganizada, sem QRS discernível, sem pulso. Ritmo de PCR.",
+            sintomas: ["Parada cardíaca súbita", "Inconsciência imediata", "Ausência de pulso e respiração"],
+            historia: ["IAM agudo", "Distúrbio eletrolítico grave", "QT longo", "Trauma elétrico"],
+            tratamentosCorretos: ["Choque Elétrico", "Adrenalina"],
+            tratamentosIncorretos: {
+                "Observação": "Emergência letal. Desfibrilação imediata é mandatória.",
+                "Atropina": "Não indicada em FV.",
+                "Adenosina": "Sem papel.",
+                "Amiodarona": "Administrada após choques e RCP, não como terapia primária."
+            },
+            racionalCorretos: {
+                "Choque Elétrico": "Desfibrilação imediata é a intervenção mais eficaz (prioridade zero).",
+                "Adrenalina": "1 mg IV a cada 3-5 min durante RCP, após o primeiro choque."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Cardiac Arrest", paginas: "131-150" },
+            tipo: "vf"
+        },
+        {
+            nome: "Assistolia",
+            bpmBase: 0,
+            irregular: false,
+            caracteristicas: "Linha reta (flatline), ausência total de atividade elétrica ventricular, sem pulso. Ritmo de PCR.",
+            sintomas: ["Parada cardíaca súbita", "Inconsciência", "Ausência de pulso"],
+            historia: ["PCR prolongada", "Hipóxia grave", "Hipercalemia", "Hipotermia", "Trauma"],
+            tratamentosCorretos: ["Adrenalina"],
+            tratamentosIncorretos: {
+                "Choque Elétrico": "Não indicado. Não há atividade elétrica para desfibrilar.",
+                "Amiodarona": "Sem eficácia em assistolia.",
+                "Atropina": "Removida das diretrizes ACLS desde 2010 para assistolia/AESP.",
+                "Observação": "PCR — iniciar RCP imediatamente + vasopressor."
+            },
+            racionalCorretos: {
+                "Adrenalina": "Vasopressor essencial para aumentar perfusão coronariana e cerebral durante a RCP."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Cardiac Arrest", paginas: "131-150" },
+            tipo: "asistolia"
+        },
+        {
+            nome: "Bloqueio AV de 1º Grau",
+            bpmBase: 68,
+            irregular: false,
+            caracteristicas: "PR prolongado (>200 ms) e constante, onda P seguida de QRS, ritmo regular.",
+            sintomas: ["Geralmente assintomático", "Palpitações ocasionais"],
+            historia: ["Uso de betabloqueador/cálcio-bloqueador", "IAM inferior", "Miocardite"],
+            tratamentosCorretos: ["Observação"],
+            tratamentosIncorretos: {
+                "Atropina": "Raramente necessária se assintomático.",
+                "Adenosina": "Pode aumentar o PR temporariamente.",
+                "Amiodarona": "Pode piorar a condução AV.",
+                "Choque Elétrico": "Sem indicação.",
+                "Adrenalina": "Sem indicação."
+            },
+            racionalCorretos: {
+                "Observação": "Na maioria dos casos é benigno. Monitorizar e revisar medicações causadoras."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Bradycardia", paginas: "151-160" },
+            tipo: "avb1"
+        },
+        {
+            nome: "Bloqueio AV de 3º Grau",
+            bpmBase: 38,
+            irregular: false,
+            caracteristicas: "Dissociação AV completa. Ondas P e complexos QRS independentes. Escape ventricular largo e lento.",
+            sintomas: ["Tontura grave", "Síncope (Stokes-Adams)", "Hipotensão", "Fadiga extrema", "Confusão"],
+            historia: ["IAM (especialmente anterior)", "Doença do sistema de condução", "Intoxicação digitálica", "Pós-cirurgia cardíaca"],
+            tratamentosCorretos: ["Atropina", "Adrenalina"],
+            tratamentosIncorretos: {
+                "Observação": "Paciente instável. Risco alto de deterioração. Requer suporte imediato e marcapasso.",
+                "Adenosina": "Contraindicada.",
+                "Amiodarona": "Pode piorar o bloqueio.",
+                "Choque Elétrico": "Não é o tratamento primário (considerar se TV/FV associada)."
+            },
+            racionalCorretos: {
+                "Atropina": "Pode melhorar a condução AV ou a frequência de escape em alguns casos (especialmente bloqueio nodal).",
+                "Adrenalina": "Útil como ponte para marcapasso em pacientes instáveis (infusão)."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Bradycardia", paginas: "151-160" },
+            tipo: "avb3"
+        },
+        {
+            nome: "Torsades de Pointes",
+            bpmBase: 220,
+            irregular: true,
+            caracteristicas: "TV polimórfica com QRS que 'torcem' em torno da linha de base. Associada a QT longo. Pode degenerar para FV.",
+            sintomas: ["Síncope recorrente", "Palpitações", "Parada cardíaca", "Convulsões"],
+            historia: ["QT longo congênito ou adquirido", "Hipocalemia/hipomagnesemia", "Fármacos (antiarrítmicos, antipsicóticos)", "Bradicardia"],
+            tratamentosCorretos: ["Choque Elétrico", "Adrenalina"],
+            tratamentosIncorretos: {
+                "Observação": "Risco iminente de FV. Intervenção urgente.",
+                "Atropina": "Pode ser útil se bradicardia subjacente, mas não é primeira linha na crise.",
+                "Adenosina": "Sem papel.",
+                "Amiodarona": "Pode prolongar ainda mais o QT. Evitar."
+            },
+            racionalCorretos: {
+                "Choque Elétrico": "Desfibrilação se sem pulso; cardioversão se com pulso e instável. Magnésio é o tratamento específico (não listado aqui).",
+                "Adrenalina": "Usada se em PCR."
+            },
+            referencia: { autor: "AHA", titulo: "ACLS Provider Manual", edicao: "2020", capitulo: "Tachyarrhythmias / Cardiac Arrest", paginas: "121-150" },
+            tipo: "tdp"
+        }
+    ],
+
+    tratamentos: [
+        { nome: "Observação", tempo: 5, desc: "Monitorização e observação clínica" },
+        { nome: "Atropina", tempo: 8, desc: "0,5 mg IV (bradicardia)" },
+        { nome: "Adenosina", tempo: 6, desc: "6-12 mg IV rápido (TPSV)" },
+        { nome: "Amiodarona", tempo: 12, desc: "150-300 mg IV (antiarrítmico)" },
+        { nome: "Choque Elétrico", tempo: 10, desc: "Cardioversão / Desfibrilação" },
+        { nome: "Adrenalina", tempo: 10, desc: "1 mg IV (PCR / bradicardia grave)" }
+    ],
+
+    idades: ["28 anos", "34 anos", "41 anos", "52 anos", "58 anos", "63 anos", "71 anos", "79 anos", "84 anos"],
+    sexos: ["Masculino", "Feminino"]
+};
+
+let casosClinicos = [];
+let casoAtual = null;
+let estabilidade = 70;
+let tempoRestante = 180;
+let pontuacao = 0;
+let ritmoConfirmado = false;
+let tratamentosAplicados = [];
+let jogoFinalizado = false;
+let timerIntervalId = null;
+let currentBpm = 75;
+let ecgTime = 0;
+let noiseLevel = 0;
+
+const els = {
+    pacienteId: document.getElementById("paciente-id"),
+    idade: document.getElementById("idade"),
+    sexo: document.getElementById("sexo"),
+    sintomas: document.getElementById("sintomas"),
+    historia: document.getElementById("historia"),
+    stabilityBar: document.getElementById("stability-bar"),
+    stabilityValue: document.getElementById("stability-value"),
+    timer: document.getElementById("timer"),
+    score: document.getElementById("score"),
+    ritmoSelect: document.getElementById("ritmo"),
+    confirmarRitmo: document.getElementById("confirmar-ritmo"),
+    detectarRitmo: document.getElementById("detectar-ritmo"),
+    detecaoResultado: document.getElementById("detecao-resultado"),
+    tratamentosList: document.getElementById("tratamentos-list"),
+    feedbackBox: document.getElementById("feedback-box"),
+    gameOver: document.getElementById("game-over"),
+    gameOverMessage: document.getElementById("game-over-message"),
+    gameOverDetails: document.getElementById("game-over-details"),
+    newCase: document.getElementById("new-case"),
+    finalizar: document.getElementById("finalizar-procedimento"),
+    bpmDisplay: document.getElementById("bpm-display"),
+    ritmoLabel: document.getElementById("ritmo-label")
+};
+
+function gerarCasosClinicos(qtd = 150) {
+    const casos = [];
+    for (let i = 0; i < qtd; i++) {
+        const ritmo = dadosBase.ritmos[Math.floor(Math.random() * dadosBase.ritmos.length)];
+        const sintomasDisp = [...ritmo.sintomas];
+        const numSint = Math.min(sintomasDisp.length, Math.floor(Math.random() * 3) + 1);
+        const sintomasSel = [];
+        for (let s = 0; s < numSint; s++) {
+            const idx = Math.floor(Math.random() * sintomasDisp.length);
+            sintomasSel.push(sintomasDisp.splice(idx, 1)[0]);
+        }
+        const hist = ritmo.historia[Math.floor(Math.random() * ritmo.historia.length)];
+
+        let stabInit = 70;
+        if (["Fibrilação Ventricular", "Assistolia", "Torsades de Pointes"].includes(ritmo.nome)) stabInit = 15 + Math.random() * 25;
+        else if (["Taquicardia Ventricular", "Bloqueio AV de 3º Grau"].includes(ritmo.nome)) stabInit = 30 + Math.random() * 30;
+        else if (["Fibrilação Atrial", "Flutter Atrial", "Bradicardia Sinusal"].includes(ritmo.nome)) stabInit = 50 + Math.random() * 25;
+        else stabInit = 65 + Math.random() * 25;
+
+        casos.push({
+            id: String(i + 1).padStart(3, "0"),
+            ritmo: ritmo.nome,
+            idade: dadosBase.idades[Math.floor(Math.random() * dadosBase.idades.length)],
+            sexo: dadosBase.sexos[Math.floor(Math.random() * dadosBase.sexos.length)],
+            sintomas: sintomasSel,
+            historia: hist,
+            caracteristicas: ritmo.caracteristicas,
+            tratamentosCorretos: ritmo.tratamentosCorretos,
+            tratamentosIncorretos: ritmo.tratamentosIncorretos,
+            racionalCorretos: ritmo.racionalCorretos,
+            referencia: ritmo.referencia,
+            tipo: ritmo.tipo,
+            bpmBase: ritmo.bpmBase,
+            irregular: ritmo.irregular,
+            estabilidadeInicial: Math.round(stabInit)
+        });
+    }
+    return casos;
+}
+
+function preencherSelectRitmos() {
+    const opts = dadosBase.ritmos.map(r => `<option value="${r.nome}">${r.nome}</option>`).join("");
+    els.ritmoSelect.innerHTML = `<option value="">— Selecione o ritmo —</option>${opts}`;
+}
+
+function atualizarInterface() {
+    if (!casoAtual) return;
+
+    els.pacienteId.textContent = `#${casoAtual.id}`;
+    els.idade.textContent = casoAtual.idade;
+    els.sexo.textContent = casoAtual.sexo;
+    els.sintomas.textContent = casoAtual.sintomas.join(", ");
+    els.historia.textContent = casoAtual.historia;
+
+    els.stabilityBar.style.width = `${estabilidade}%`;
+    if (estabilidade > 75) els.stabilityBar.className = "h-full rounded-full bg-blue-500 stability-bar";
+    else if (estabilidade > 55) els.stabilityBar.className = "h-full rounded-full bg-green-500 stability-bar";
+    else if (estabilidade > 30) els.stabilityBar.className = "h-full rounded-full bg-yellow-500 stability-bar";
+    else els.stabilityBar.className = "h-full rounded-full bg-red-600 stability-bar";
+    els.stabilityValue.textContent = `${estabilidade}%`;
+
+    els.score.textContent = pontuacao;
+
+    const min = Math.floor(tempoRestante / 60);
+    const seg = (tempoRestante % 60).toString().padStart(2, "0");
+    els.timer.textContent = `${min}:${seg}`;
+    els.timer.className = tempoRestante <= 15 ? "timer-critical" : "text-yellow-400";
+
+    const disabledRitmo = ritmoConfirmado || jogoFinalizado;
+    els.ritmoSelect.disabled = disabledRitmo;
+    els.confirmarRitmo.disabled = disabledRitmo;
+    els.confirmarRitmo.classList.toggle("opacity-50", disabledRitmo);
+    els.confirmarRitmo.classList.toggle("cursor-not-allowed", disabledRitmo);
+
+    // Botão de detecção automática: disponível enquanto o ritmo não foi confirmado
+    const disabledDetect = ritmoConfirmado || jogoFinalizado;
+    els.detectarRitmo.disabled = disabledDetect;
+    els.detectarRitmo.classList.toggle("opacity-50", disabledDetect);
+    els.detectarRitmo.classList.toggle("cursor-not-allowed", disabledDetect);
+    if (ritmoConfirmado) {
+        els.detecaoResultado.classList.add("hidden");
+    }
+
+    const canFinish = ritmoConfirmado && !jogoFinalizado;
+    els.finalizar.disabled = !canFinish;
+    els.finalizar.classList.toggle("opacity-50", !canFinish);
+    els.finalizar.classList.toggle("cursor-not-allowed", !canFinish);
+
+    els.tratamentosList.innerHTML = dadosBase.tratamentos.map(t => {
+        const applied = tratamentosAplicados.includes(t.nome);
+        const disabled = jogoFinalizado || applied || !ritmoConfirmado;
+        const cls = applied
+            ? "bg-blue-700 border-blue-500"
+            : disabled
+                ? "bg-gray-800 border-gray-700 opacity-50 cursor-not-allowed"
+                : "bg-gray-800 border-gray-600 hover:bg-gray-700 hover:border-gray-500";
+        return `
+            <button class="w-full text-left px-3 py-2 rounded-lg border transition-all duration-150 text-sm ${cls}"
+                ${disabled ? "disabled" : ""}
+                onclick="aplicarTratamento('${t.nome}')">
+                <span class="font-semibold">${t.nome}</span>
+                <span class="text-gray-400 text-xs ml-1">(${t.tempo}s)</span>
+                <span class="block text-xs text-gray-500">${t.desc}</span>
+            </button>`;
+    }).join("");
+
+    els.bpmDisplay.textContent = currentBpm > 0 ? `${currentBpm} bpm` : "— bpm";
+    els.ritmoLabel.textContent = ritmoConfirmado ? casoAtual.ritmo : "Ritmo não identificado";
+}
+
+function iniciarNovoCaso() {
+    clearInterval(timerIntervalId);
+    casosClinicos = gerarCasosClinicos(150);
+    casoAtual = casosClinicos[Math.floor(Math.random() * casosClinicos.length)];
+
+    estabilidade = casoAtual.estabilidadeInicial;
+    tempoRestante = 180;
+    pontuacao = 0;
+    ritmoConfirmado = false;
+    tratamentosAplicados = [];
+    jogoFinalizado = false;
+    ecgTime = 0;
+    noiseLevel = Math.max(0, (70 - estabilidade) / 100);
+
+    els.feedbackBox.innerHTML = `<p class="text-blue-300">Novo caso iniciado. Analise o ECG e os dados clínicos do paciente. Você pode usar a detecção automática como auxílio.</p>`;
+    els.gameOver.classList.add("hidden");
+    els.ritmoSelect.value = "";
+    els.detecaoResultado.classList.add("hidden");
+    els.detecaoResultado.innerHTML = "";
+
+    currentBpm = casoAtual.bpmBase > 0
+        ? Math.round(casoAtual.bpmBase * (0.92 + Math.random() * 0.16))
+        : 0;
+
+    atualizarInterface();
+    iniciarTimer();
+    // Atualiza o traçado em papel (sem mexer no monitor ao vivo)
+    setTimeout(desenharPapelECG, 120);
+}
+
+function confirmarRitmo() {
+    if (jogoFinalizado || ritmoConfirmado) return;
+    const sel = els.ritmoSelect.value;
+    if (!sel) {
+        adicionarFeedback("Selecione um ritmo antes de confirmar.", "info");
+        return;
+    }
+
+    ritmoConfirmado = true;
+    tempoRestante = Math.max(0, tempoRestante - 5);
+    pontuacao += 5;
+
+    if (sel === casoAtual.ritmo) {
+        pontuacao += 25;
+        adicionarFeedback(`<strong>✔ Ritmo correto:</strong> ${sel}<br><span class="text-gray-400 text-xs">${casoAtual.caracteristicas}</span>`, "success");
+    } else {
+        estabilidade = Math.max(0, estabilidade - 22);
+        pontuacao = Math.max(0, pontuacao - 12);
+        adicionarFeedback(`<strong>✘ Ritmo incorreto!</strong> Você escolheu <em>${sel}</em>. O ritmo real é <strong>${casoAtual.ritmo}</strong>.<br><span class="text-gray-400 text-xs">${casoAtual.caracteristicas}</span>`, "error");
+    }
+    verificarFim();
+    atualizarInterface();
+}
+
+/**
+ * ALGORITMO DE DETECÇÃO AUTOMÁTICA DE RITMO (rule-based + features)
+ * Simula um analisador de ECG educacional baseado em regras clássicas de interpretação:
+ * 1. Frequência cardíaca (bradicardia / normal / taquicardia)
+ * 2. Regularidade do RR
+ * 3. Presença/ausência de ondas P
+ * 4. Largura do QRS (estreito vs largo)
+ * 5. Atividade de baseline (fibrilatória, dente de serra, caótica, flatline)
+ * 6. Confiança reduzida quando estabilidade hemodinâmica está baixa (mais ruído)
+ */
+function detectarRitmoAutomatico() {
+    if (jogoFinalizado || !casoAtual) {
+        adicionarFeedback("Nenhum caso ativo para análise.", "info");
+        return;
+    }
+    if (ritmoConfirmado) {
+        adicionarFeedback("O ritmo já foi confirmado. Use a detecção apenas como auxílio diagnóstico antes de confirmar.", "info");
+        return;
+    }
+
+    // --- Extração de features do caso atual (simulando análise do traçado) ---
+    const bpm = currentBpm;
+    const irreg = casoAtual.irregular;
+    const tipo = casoAtual.tipo;          // usado internamente para gerar features realistas
+    const noise = noiseLevel;             // 0–1 (quanto maior, menor a confiança)
+    const stab = estabilidade;
+
+    // Features derivadas (como um algoritmo real extrairia)
+    const features = {
+        rate: bpm,
+        isBrady: bpm > 0 && bpm < 60,
+        isTachy: bpm > 100,
+        isExtremeTachy: bpm > 150,
+        isRegular: !irreg,
+        hasPWave: ["sinusal", "avb1"].includes(tipo),
+        wideQRS: ["ventricular", "avb3", "tdp"].includes(tipo),
+        chaoticBaseline: tipo === "vf",
+        flatline: tipo === "asistolia",
+        sawtooth: tipo === "flutter",
+        fibWave: tipo === "atrial",
+        polymorphic: tipo === "tdp",
+        dissociation: tipo === "avb3",
+        longPR: tipo === "avb1"
+    };
+
+    // --- Motor de regras (decision tree simplificado estilo ACLS/ECG interpretation) ---
+    let candidatos = [];
+    let findings = [];
+
+    // 1. Análise de baseline extrema
+    if (features.flatline || (bpm === 0 && stab < 40)) {
+        candidatos.push({ ritmo: "Assistolia", score: 0.92, razao: "Linha isoelétrica / ausência de atividade elétrica ventricular" });
+        findings.push("Baseline: flatline");
+    }
+    if (features.chaoticBaseline || (bpm === 0 && !features.flatline)) {
+        candidatos.push({ ritmo: "Fibrilação Ventricular", score: 0.90, razao: "Atividade elétrica caótica de alta frequência sem QRS organizados" });
+        findings.push("Baseline: caótica (FV)");
+    }
+    if (features.polymorphic && features.isExtremeTachy) {
+        candidatos.push({ ritmo: "Torsades de Pointes", score: 0.88, razao: "TV polimórfica com variação de amplitude (torsão em torno da linha de base)" });
+        findings.push("Morfologia: polimórfica + QT longo sugerido");
+    }
+
+    // 2. Taquicardias de QRS largo
+    if (features.wideQRS && features.isTachy && features.isRegular && !features.polymorphic) {
+        candidatos.push({ ritmo: "Taquicardia Ventricular", score: 0.87, razao: "Ritmo regular, QRS largos (>120 ms), frequência ventricular elevada" });
+        findings.push("QRS: largo | Regularidade: regular | Taxa: taquicardia");
+    }
+
+    // 3. Taquicardias de QRS estreito
+    if (!features.wideQRS && features.isTachy) {
+        if (features.sawtooth) {
+            candidatos.push({ ritmo: "Flutter Atrial", score: 0.86, razao: "Ondas F em dente de serra + condução AV fixa (geralmente 2:1)" });
+            findings.push("Baseline: dente de serra (flutter)");
+        } else if (features.fibWave || (irreg && !features.hasPWave)) {
+            candidatos.push({ ritmo: "Fibrilação Atrial", score: 0.85, razao: "Ritmo irregularmente irregular, ausência de ondas P, ondas f" });
+            findings.push("Regularidade: irregular | Ondas P: ausentes");
+        } else if (features.hasPWave && features.isRegular) {
+            candidatos.push({ ritmo: "Taquicardia Sinusal", score: 0.84, razao: "Onda P antes de cada QRS, PR normal, regular, FC > 100 bpm" });
+            findings.push("Ondas P: presentes | Regular");
+        }
+    }
+
+    // 4. Bradicardias e bloqueios
+    if (features.isBrady || bpm < 50) {
+        if (features.dissociation) {
+            candidatos.push({ ritmo: "Bloqueio AV de 3º Grau", score: 0.89, razao: "Dissociação atrioventricular completa + escape ventricular lento" });
+            findings.push("Dissociação AV | Escape ventricular");
+        } else if (features.hasPWave && features.isRegular) {
+            candidatos.push({ ritmo: "Bradicardia Sinusal", score: 0.86, razao: "Onda P presente, PR normal, QRS estreito, FC < 60 bpm" });
+            findings.push("Ondas P: presentes | FC baixa");
+        }
+    }
+
+    // 5. Ritmos normais / quase normais
+    if (bpm >= 60 && bpm <= 100 && features.hasPWave && features.isRegular && !features.wideQRS) {
+        if (features.longPR) {
+            candidatos.push({ ritmo: "Bloqueio AV de 1º Grau", score: 0.83, razao: "PR prolongado (>200 ms) constante, resto do traçado sinusal" });
+            findings.push("PR: prolongado");
+        } else {
+            candidatos.push({ ritmo: "Ritmo Sinusal", score: 0.91, razao: "Onda P antes de cada QRS, PR e QRS normais, regular, 60-100 bpm" });
+            findings.push("Morfologia sinusal normal");
+        }
+    }
+
+    // Fallback se nada forte foi detectado
+    if (candidatos.length === 0) {
+        // Heurística residual
+        if (bpm === 0) {
+            candidatos.push({ ritmo: "Assistolia", score: 0.70, razao: "Ausência de complexos QRS detectáveis" });
+        } else if (features.wideQRS) {
+            candidatos.push({ ritmo: "Taquicardia Ventricular", score: 0.65, razao: "QRS largos predominantes" });
+        } else if (irreg) {
+            candidatos.push({ ritmo: "Fibrilação Atrial", score: 0.60, razao: "Irregularidade do intervalo RR" });
+        } else {
+            candidatos.push({ ritmo: "Ritmo Sinusal", score: 0.55, razao: "Features insuficientes – hipótese mais provável" });
+        }
+        findings.push("Análise com baixa certeza (features ambíguas)");
+    }
+
+    // Ordena por score e pega o melhor
+    candidatos.sort((a, b) => b.score - a.score);
+    let melhor = candidatos[0];
+
+    // Penaliza confiança pelo ruído / baixa estabilidade (simula dificuldade de leitura)
+    const confiancaAjustada = Math.max(0.35, melhor.score * (1 - noise * 0.45) * (stab > 40 ? 1 : 0.85));
+    melhor.score = confiancaAjustada;
+
+    // Pequena chance de erro quando confiança baixa (torna o detector mais realista)
+    const deveErrar = confiancaAjustada < 0.62 && Math.random() < 0.35;
+    let ritmoDetectado = melhor.ritmo;
+    let razaoFinal = melhor.razao;
+    let confiancaPct = Math.round(confiancaAjustada * 100);
+
+    if (deveErrar) {
+        // Escolhe um ritmo "plausível" errado
+        const errosComuns = {
+            "Taquicardia Ventricular": ["Fibrilação Ventricular", "Torsades de Pointes"],
+            "Fibrilação Atrial": ["Flutter Atrial", "Taquicardia Sinusal"],
+            "Flutter Atrial": ["Fibrilação Atrial", "Taquicardia Sinusal"],
+            "Bradicardia Sinusal": ["Bloqueio AV de 1º Grau", "Bloqueio AV de 3º Grau"],
+            "Bloqueio AV de 3º Grau": ["Bradicardia Sinusal", "Assistolia"],
+            "Ritmo Sinusal": ["Bloqueio AV de 1º Grau", "Taquicardia Sinusal"],
+            "Assistolia": ["Fibrilação Ventricular"],
+            "Fibrilação Ventricular": ["Torsades de Pointes", "Assistolia"]
+        };
+        const possiveisErros = errosComuns[melhor.ritmo] || ["Ritmo Sinusal"];
+        ritmoDetectado = possiveisErros[Math.floor(Math.random() * possiveisErros.length)];
+        razaoFinal = "Sinal ruidoso / baixa estabilidade – interpretação ambígua";
+        confiancaPct = Math.round(confiancaPct * 0.7);
+    }
+
+    // Atualiza UI
+    els.ritmoSelect.value = ritmoDetectado;
+    els.detecaoResultado.classList.remove("hidden");
+    els.detecaoResultado.innerHTML = `
+        <span class="text-purple-300 font-semibold">IA:</span> 
+        <strong>${ritmoDetectado}</strong> 
+        <span class="text-gray-400">(${confiancaPct}% confiança)</span>
+    `;
+
+    // Feedback detalhado
+    const findingsTxt = findings.length ? findings.join(" • ") : "Análise morfológica padrão";
+    adicionarFeedback(
+        `<strong>🔍 Detecção Automática</strong><br>
+         <span class="text-purple-300">Ritmo sugerido:</span> <strong>${ritmoDetectado}</strong> 
+         <span class="text-gray-400">(${confiancaPct}% confiança)</span><br>
+         <span class="text-xs text-gray-400">${razaoFinal}</span><br>
+         <span class="text-xs text-gray-500">Features: FC=${bpm > 0 ? bpm + " bpm" : "indetectável"} | ${findingsTxt}</span><br>
+         <span class="text-xs text-yellow-300/80">⚠ A detecção automática é um auxílio. Sempre confirme clinicamente antes de tratar.</span>`,
+        confiancaPct >= 75 ? "success" : (confiancaPct >= 55 ? "warning" : "info")
+    );
+
+    // Pequeno custo de tempo (análise leva alguns segundos)
+    tempoRestante = Math.max(0, tempoRestante - 3);
+    atualizarInterface();
+}
+
+function aplicarTratamento(nome) {
+    if (jogoFinalizado || !ritmoConfirmado || tratamentosAplicados.includes(nome)) return;
+
+    const t = dadosBase.tratamentos.find(x => x.nome === nome);
+    if (!t) return;
+
+    tratamentosAplicados.push(nome);
+    tempoRestante = Math.max(0, tempoRestante - t.tempo);
+
+    if (casoAtual.tratamentosCorretos.includes(nome)) {
+        estabilidade = Math.min(100, estabilidade + 18);
+        pontuacao += 30;
+        const raz = casoAtual.racionalCorretos[nome] || "Tratamento adequado para este ritmo.";
+        adicionarFeedback(`<strong>✔ ${nome} — Correto!</strong><br><span class="text-gray-300 text-xs">${raz}</span>`, "success");
+    } else {
+        estabilidade = Math.max(0, estabilidade - 18);
+        pontuacao = Math.max(0, pontuacao - 15);
+        const expl = casoAtual.tratamentosIncorretos[nome] || "Não indicado ou potencialmente prejudicial neste ritmo.";
+        adicionarFeedback(`<strong>✘ ${nome} — Incorreto!</strong><br><span class="text-gray-300 text-xs">${expl}</span>`, "error");
+    }
+    noiseLevel = Math.max(0, (70 - estabilidade) / 100);
+    verificarFim();
+    atualizarInterface();
+}
+
+function adicionarFeedback(msg, tipo = "default") {
+    const cores = {
+        success: "text-emerald-300",
+        error: "text-red-400",
+        warning: "text-yellow-300",
+        info: "text-sky-300",
+        default: "text-gray-200"
+    };
+    els.feedbackBox.innerHTML += `<p class="${cores[tipo] || cores.default} mb-2 leading-snug">${msg}</p>`;
+    els.feedbackBox.scrollTop = els.feedbackBox.scrollHeight;
+}
+
+function iniciarTimer() {
+    timerIntervalId = setInterval(() => {
+        if (jogoFinalizado) { clearInterval(timerIntervalId); return; }
+        tempoRestante--;
+        if (tempoRestante <= 0) {
+            finalizarJogo("⏱ Tempo esgotado! O paciente não resistiu à demora no atendimento.", "perdeu");
+        }
+        if (["Fibrilação Ventricular", "Assistolia", "Torsades de Pointes", "Taquicardia Ventricular"].includes(casoAtual.ritmo) && estabilidade > 5) {
+            if (Math.random() < 0.08) {
+                estabilidade = Math.max(0, estabilidade - 1);
+                noiseLevel = Math.max(0, (70 - estabilidade) / 100);
+            }
+        }
+        atualizarInterface();
+    }, 1000);
+}
+
+function verificarFim() {
+    if (estabilidade <= 0) {
+        finalizarJogo("💀 Paciente em PCR refratária. Estabilidade chegou a zero.", "perdeu");
+        return;
+    }
+    const todosOk = casoAtual.tratamentosCorretos.every(t => tratamentosAplicados.includes(t));
+    if (ritmoConfirmado && els.ritmoSelect.value === casoAtual.ritmo && todosOk && estabilidade >= 80) {
+        const bonus = Math.floor(tempoRestante / 4);
+        pontuacao += bonus;
+        finalizarJogo(`🎉 Paciente estabilizado com sucesso! Pontuação final: ${pontuacao} (bônus de tempo +${bonus})`, "venceu");
+    }
+}
+
+function finalizarProcedimento() {
+    if (jogoFinalizado || !ritmoConfirmado) return;
+    jogoFinalizado = true;
+    clearInterval(timerIntervalId);
+
+    const ritmoOk = els.ritmoSelect.value === casoAtual.ritmo;
+    const todosOk = casoAtual.tratamentosCorretos.every(t => tratamentosAplicados.includes(t));
+    let msg = "";
+    let res = "perdeu";
+
+    if (ritmoOk && todosOk && estabilidade >= 55) {
+        const bonus = Math.floor(tempoRestante / 4);
+        pontuacao += bonus;
+        msg = estabilidade >= 80
+            ? `🎉 Excelente! Paciente estabilizado. Pontuação: ${pontuacao} (+${bonus} tempo)`
+            : `✅ Procedimento correto. Estabilidade final ${estabilidade}%. Pontuação: ${pontuacao} (+${bonus} tempo)`;
+        res = "venceu";
+    } else {
+        if (!ritmoOk) msg = "Procedimento finalizado com erro na identificação do ritmo.";
+        else if (!todosOk) msg = "Ritmo identificado, porém tratamentos essenciais incompletos ou incorretos.";
+        else msg = `Paciente não estabilizado (estabilidade ${estabilidade}%).`;
+        pontuacao = Math.max(0, pontuacao - 40);
+        res = "perdeu";
+    }
+    finalizarJogo(msg, res);
+}
+
+function finalizarJogo(mensagem, resultado) {
+    jogoFinalizado = true;
+    clearInterval(timerIntervalId);
+    els.gameOver.classList.remove("hidden");
+    els.gameOverMessage.textContent = mensagem;
+    els.gameOverMessage.className = resultado === "venceu"
+        ? "text-xl sm:text-2xl font-bold text-center mb-3 text-emerald-300"
+        : "text-xl sm:text-2xl font-bold text-center mb-3 text-red-300";
+
+    let det = `<p class="mb-2"><strong>Ritmo real:</strong> ${casoAtual.ritmo}<br><span class="text-gray-400 text-xs">${casoAtual.caracteristicas}</span></p>`;
+
+    if (ritmoConfirmado) {
+        det += els.ritmoSelect.value === casoAtual.ritmo
+            ? `<p class="text-emerald-300 font-semibold">✔ Você identificou o ritmo corretamente.</p>`
+            : `<p class="text-red-400 font-semibold">✘ Identificação incorreta (você escolheu: ${els.ritmoSelect.value}).</p>`;
+    } else {
+        det += `<p class="text-yellow-300">Você não chegou a confirmar o ritmo.</p>`;
+    }
+
+    det += `<p class="mt-3 font-semibold">Tratamentos essenciais:</p><ul class="list-disc list-inside ml-2 text-sm">`;
+    casoAtual.tratamentosCorretos.forEach(t => {
+        det += `<li>${t} — <span class="text-gray-400">${casoAtual.racionalCorretos[t] || ""}</span></li>`;
+    });
+    det += `</ul>`;
+
+    det += `<p class="mt-2 font-semibold">Seus tratamentos:</p><ul class="list-disc list-inside ml-2 text-sm">`;
+    if (tratamentosAplicados.length) {
+        tratamentosAplicados.forEach(t => {
+            const ok = casoAtual.tratamentosCorretos.includes(t);
+            det += `<li class="${ok ? "text-emerald-300" : "text-red-400"}">${t}</li>`;
+        });
+    } else det += `<li class="text-gray-500">Nenhum</li>`;
+    det += `</ul>`;
+
+    const ref = casoAtual.referencia;
+    det += `<p class="mt-3 text-xs text-gray-400 italic">Ref: ${ref.autor}. ${ref.titulo}. ${ref.edicao}. Cap. ${ref.capitulo}, p. ${ref.paginas}.</p>`;
+
+    els.gameOverDetails.innerHTML = det;
+    atualizarInterface();
+}
+
+function gaussian(x, mu, sigma, amp) {
+    return amp * Math.exp(-Math.pow(x - mu, 2) / (2 * sigma * sigma));
+}
+
+function gerarComplexo(phase, tipo, p5inst) {
+    let y = 0;
+
+    if (tipo === "vf") {
+        y = (p5inst.noise(phase * 40 + ecgTime * 3) - 0.5) * 90;
+        y += (p5inst.noise(phase * 12 + ecgTime * 1.5) - 0.5) * 40;
+        return y;
+    }
+    if (tipo === "asistolia") {
+        return (p5inst.noise(phase * 2 + ecgTime) - 0.5) * 1.5;
+    }
+    if (tipo === "tdp") {
+        const envelope = Math.sin(phase * Math.PI * 2 * 0.15 + ecgTime * 0.3) * 0.6 + 0.7;
+        y = Math.sin(phase * Math.PI * 2 * 8) * 55 * envelope;
+        y += Math.sin(phase * Math.PI * 2 * 5.5 + 1.2) * 25 * envelope;
+        y += (p5inst.noise(phase * 15) - 0.5) * 15;
+        return y;
+    }
+
+    if (tipo === "sinusal" || tipo === "avb1") {
+        y += gaussian(phase, 0.18, 0.025, 12);
+        y -= gaussian(phase, 0.32, 0.012, 18);
+        y += gaussian(phase, 0.35, 0.015, 75);
+        y -= gaussian(phase, 0.38, 0.013, 28);
+        y += gaussian(phase, 0.62, 0.05, 22);
+    } else if (tipo === "atrial") {
+        y += (p5inst.noise(phase * 25 + ecgTime * 2) - 0.5) * 18;
+        y -= gaussian(phase, 0.32, 0.012, 12);
+        y += gaussian(phase, 0.35, 0.014, 60);
+        y -= gaussian(phase, 0.38, 0.012, 20);
+        y += gaussian(phase, 0.60, 0.045, 15);
+    } else if (tipo === "flutter") {
+        for (let i = 0; i < 4; i++) {
+            const pos = (i / 4) + 0.05;
+            y += gaussian(phase, pos, 0.03, 14) - gaussian(phase, pos + 0.04, 0.025, 10);
+        }
+        y -= gaussian(phase, 0.33, 0.012, 15);
+        y += gaussian(phase, 0.36, 0.014, 65);
+        y -= gaussian(phase, 0.39, 0.012, 22);
+    } else if (tipo === "ventricular") {
+        y += gaussian(phase, 0.28, 0.04, -25);
+        y += gaussian(phase, 0.38, 0.05, 85);
+        y += gaussian(phase, 0.48, 0.045, -40);
+        y += gaussian(phase, 0.65, 0.06, 20);
+    } else if (tipo === "avb3") {
+        if (phase < 0.25) {
+            y += gaussian(phase, 0.12, 0.02, 10);
+        }
+        y += gaussian(phase, 0.40, 0.045, -20);
+        y += gaussian(phase, 0.50, 0.055, 70);
+        y += gaussian(phase, 0.62, 0.05, -30);
+        y += gaussian(phase, 0.78, 0.06, 15);
+    }
+
+    return y;
+}
+
+let sketch = function (p) {
+    let rrInterval = 0.8;
+
+    p.setup = function () {
+        const w = document.getElementById("ecg-canvas").clientWidth || 400;
+        const canvas = p.createCanvas(w, 180);
+        canvas.parent("ecg-canvas");
+        p.frameRate(30);
+        p.windowResized = () => {
+            const nw = document.getElementById("ecg-canvas").clientWidth || 400;
+            p.resizeCanvas(nw, 180);
+        };
+    };
+
+    p.draw = function () {
+        if (!casoAtual) return;
+
+        p.background(15, 23, 42);
+        drawGrid(p);
+
+        const targetBpm = currentBpm > 0 ? currentBpm : 60;
+        rrInterval = 60 / Math.max(targetBpm, 20);
+
+        p.stroke(34, 197, 94);
+        p.strokeWeight(2);
+        p.noFill();
+        p.beginShape();
+
+        const samples = p.width;
+        for (let x = 0; x < samples; x++) {
+            const tGlobal = ecgTime + (x / samples) * 1.8;
+            let y = sampleECG(tGlobal, p);
+            y += (p.noise(tGlobal * 8 + x * 0.1) - 0.5) * noiseLevel * 35;
+            p.vertex(x, p.height / 2 - y);
+        }
+        p.endShape();
+
+        const cursorX = (ecgTime * 60) % p.width;
+        p.stroke(74, 222, 128, 80);
+        p.strokeWeight(1);
+        p.line(cursorX, 0, cursorX, p.height);
+
+        ecgTime += 0.033;
+    };
+
+    function drawGrid(p) {
+        p.stroke(30, 58, 80);
+        p.strokeWeight(0.5);
+        const small = 8;
+        for (let x = 0; x < p.width; x += small) p.line(x, 0, x, p.height);
+        for (let y = 0; y < p.height; y += small) p.line(0, y, p.width, y);
+
+        p.stroke(40, 80, 110);
+        p.strokeWeight(1);
+        const big = small * 5;
+        for (let x = 0; x < p.width; x += big) p.line(x, 0, x, p.height);
+        for (let y = 0; y < p.height; y += big) p.line(0, y, p.width, y);
+
+        p.stroke(50, 100, 130, 100);
+        p.line(0, p.height / 2, p.width, p.height / 2);
+    }
+
+    function sampleECG(t, p) {
+        const tipo = casoAtual.tipo;
+        if (tipo === "vf" || tipo === "asistolia" || tipo === "tdp") {
+            return gerarComplexo((t % 1), tipo, p);
+        }
+
+        let localRR = rrInterval;
+        if (casoAtual.irregular) {
+            localRR = rrInterval * (0.7 + p.noise(Math.floor(t / rrInterval) * 0.5) * 0.6);
+        }
+
+        const beatIndex = Math.floor(t / localRR);
+        const phase = (t % localRR) / localRR;
+
+        const morphNoise = 1 + (p.noise(beatIndex * 0.3) - 0.5) * 0.08;
+        return gerarComplexo(phase, tipo, p) * morphNoise;
+    }
+};
+
+new p5(sketch);
+
+/* ================================================================
+   SIMULADOR DE TRAÇADO EM PAPEL ECG (clássico)
+   - NÃO altera o monitor ao vivo (p5.js)
+   - Renderiza em Canvas 2D com grade rosa/vermelha tradicional
+   - Velocidade 25 mm/s | Ganho 10 mm/mV
+   ================================================================ */
+
+// Pseudo-noise simples (não depende do p5)
+function paperNoise(x) {
+    const n = Math.sin(x * 12.9898) * 43758.5453;
+    return n - Math.floor(n);
+}
+
+function gerarComplexoPaper(phase, tipo) {
+    // Versão adaptada do gerarComplexo que não precisa de instância p5
+    let y = 0;
+    const n = (seed) => paperNoise(phase * 17 + seed + (ecgTime || 0));
+
+    if (tipo === "vf") {
+        y = (n(1) - 0.5) * 90;
+        y += (n(2) - 0.5) * 40;
+        return y;
+    }
+    if (tipo === "asistolia") {
+        return (n(3) - 0.5) * 1.8;
+    }
+    if (tipo === "tdp") {
+        const envelope = Math.sin(phase * Math.PI * 2 * 0.15 + (ecgTime || 0) * 0.3) * 0.6 + 0.7;
+        y = Math.sin(phase * Math.PI * 2 * 8) * 55 * envelope;
+        y += Math.sin(phase * Math.PI * 2 * 5.5 + 1.2) * 25 * envelope;
+        y += (n(4) - 0.5) * 15;
+        return y;
+    }
+
+    if (tipo === "sinusal" || tipo === "avb1") {
+        y += gaussian(phase, 0.18, 0.025, 12);
+        y -= gaussian(phase, 0.32, 0.012, 18);
+        y += gaussian(phase, 0.35, 0.015, 75);
+        y -= gaussian(phase, 0.38, 0.013, 28);
+        y += gaussian(phase, 0.62, 0.05, 22);
+    } else if (tipo === "atrial") {
+        y += (n(5) - 0.5) * 18;
+        y -= gaussian(phase, 0.32, 0.012, 12);
+        y += gaussian(phase, 0.35, 0.014, 60);
+        y -= gaussian(phase, 0.38, 0.012, 20);
+        y += gaussian(phase, 0.60, 0.045, 15);
+    } else if (tipo === "flutter") {
+        for (let i = 0; i < 4; i++) {
+            const pos = (i / 4) + 0.05;
+            y += gaussian(phase, pos, 0.03, 14) - gaussian(phase, pos + 0.04, 0.025, 10);
+        }
+        y -= gaussian(phase, 0.33, 0.012, 15);
+        y += gaussian(phase, 0.36, 0.014, 65);
+        y -= gaussian(phase, 0.39, 0.012, 22);
+    } else if (tipo === "ventricular") {
+        y += gaussian(phase, 0.28, 0.04, -25);
+        y += gaussian(phase, 0.38, 0.05, 85);
+        y += gaussian(phase, 0.48, 0.045, -40);
+        y += gaussian(phase, 0.65, 0.06, 20);
+    } else if (tipo === "avb3") {
+        if (phase < 0.25) y += gaussian(phase, 0.12, 0.02, 10);
+        y += gaussian(phase, 0.40, 0.045, -20);
+        y += gaussian(phase, 0.50, 0.055, 70);
+        y += gaussian(phase, 0.62, 0.05, -30);
+        y += gaussian(phase, 0.78, 0.06, 15);
+    }
+    return y;
+}
+
+function sampleECGPaper(t, tipo, rr, irregular) {
+    if (tipo === "vf" || tipo === "asistolia" || tipo === "tdp") {
+        return gerarComplexoPaper((t % 1), tipo);
+    }
+    let localRR = rr;
+    if (irregular) {
+        localRR = rr * (0.7 + paperNoise(Math.floor(t / rr) * 0.5) * 0.6);
+    }
+    const beatIndex = Math.floor(t / localRR);
+    const phase = (t % localRR) / localRR;
+    const morphNoise = 1 + (paperNoise(beatIndex * 0.3) - 0.5) * 0.08;
+    return gerarComplexoPaper(phase, tipo) * morphNoise;
+}
+
+/**
+ * Retorna intervalos realistas (em ms) e posições normalizadas de fase
+ * para o ritmo atual — usado tanto na morfologia quanto nas anotações.
+ */
+function obterIntervalosECG(tipo, bpm) {
+    // Valores de referência clínicos (ms)
+    // PR normal: 120–200 | QRS: <120 | QT: varia com FC (Bazett)
+    const rrMs = bpm > 0 ? (60000 / bpm) : 1000;
+
+    let pr = 160, qrs = 90, qt = 380;
+    let temP = true, temQRS = true, temT = true;
+
+    switch (tipo) {
+        case "sinusal":
+            pr = 140 + Math.round((Math.random() - 0.5) * 30);
+            qrs = 85 + Math.round((Math.random() - 0.5) * 20);
+            qt = Math.min(440, Math.round(0.39 * Math.sqrt(rrMs / 1000) * 1000));
+            break;
+        case "avb1":
+            pr = 240 + Math.round(Math.random() * 80); // PR longo (>200)
+            qrs = 90;
+            qt = Math.min(440, Math.round(0.39 * Math.sqrt(rrMs / 1000) * 1000));
+            break;
+        case "avb3":
+            pr = null; // dissociação — não há PR real
+            qrs = 140; // escape ventricular largo
+            qt = 420;
+            temP = true; // P isoladas existem
+            break;
+        case "atrial": // FA
+            pr = null; // sem P
+            qrs = 85;
+            qt = Math.min(420, Math.round(0.38 * Math.sqrt(rrMs / 1000) * 1000));
+            temP = false;
+            break;
+        case "flutter":
+            pr = null;
+            qrs = 85;
+            qt = Math.min(400, Math.round(0.37 * Math.sqrt(rrMs / 1000) * 1000));
+            temP = false;
+            break;
+        case "ventricular": // TV
+            pr = null;
+            qrs = 160; // QRS largo
+            qt = 360;  // QT "aparente" curto pelo rate alto
+            temP = false;
+            break;
+        case "tdp":
+            pr = null;
+            qrs = 150;
+            qt = 520; // QT prolongado (característica)
+            temP = false;
+            break;
+        case "vf":
+            pr = null; qrs = null; qt = null;
+            temP = false; temQRS = false; temT = false;
+            break;
+        case "asistolia":
+            pr = null; qrs = null; qt = null;
+            temP = false; temQRS = false; temT = false;
+            break;
+        default:
+            break;
+    }
+
+    // QTc (Bazett): QT / √(RR em segundos)
+    let qtc = null;
+    if (qt != null && bpm > 0) {
+        qtc = Math.round(qt / Math.sqrt(rrMs / 1000));
+    }
+
+    // --- Critérios de alargamento do QRS ---
+    // Padrão ACLS / AHA / ESC:
+    //   QRS < 120 ms  → estreito (supraventricular na maioria dos casos)
+    //   QRS ≥ 120 ms  → alargado (ventricular até prova em contrário, ou BCR/BCE, ou aberrância)
+    const LIMIAR_ALARGAMENTO = 120; // ms
+    const wide = qrs != null && qrs >= LIMIAR_ALARGAMENTO;
+    let criterioAlargamento = null;
+    let significadoClinico = null;
+
+    if (qrs == null) {
+        criterioAlargamento = "Não mensurável";
+        significadoClinico = "Sem complexos QRS organizados (FV / Assistolia).";
+    } else if (wide) {
+        criterioAlargamento = `QRS ALARGADO (${qrs} ms ≥ 120 ms)`;
+        if (tipo === "ventricular") {
+            significadoClinico = "Critério de taquicardia de QRS largo → tratar como TV até prova em contrário (ACLS).";
+        } else if (tipo === "tdp") {
+            significadoClinico = "QRS largo + polimórfico + QT longo → Torsades de Pointes.";
+        } else if (tipo === "avb3") {
+            significadoClinico = "Escape ventricular (QRS largo) em bloqueio AV completo.";
+        } else {
+            significadoClinico = "QRS ≥ 120 ms: considerar origem ventricular, bloqueio de ramo ou condução aberrante.";
+        }
+    } else {
+        criterioAlargamento = `QRS ESTREITO (${qrs} ms < 120 ms)`;
+        significadoClinico = "QRS estreito sugere origem supraventricular (nó sinusal, atrial ou juncional).";
+    }
+
+    // --- Status de cada intervalo (para tabela de análise) ---
+    // RR / FC
+    let rrStatus = "normal", rrLabel = "Normal";
+    if (bpm <= 0) { rrStatus = "na"; rrLabel = "—"; }
+    else if (bpm < 60) { rrStatus = "brad"; rrLabel = "Bradicardia"; }
+    else if (bpm > 100) { rrStatus = "tach"; rrLabel = "Taquicardia"; }
+    else { rrStatus = "ok"; rrLabel = "Normal"; }
+
+    // PR
+    let prStatus = "na", prLabel = "Não mensurável";
+    if (pr != null) {
+        if (pr < 120) { prStatus = "warn"; prLabel = "Curto"; }
+        else if (pr > 200) { prStatus = "bad"; prLabel = "Prolongado"; }
+        else { prStatus = "ok"; prLabel = "Normal"; }
+    }
+
+    // QRS
+    let qrsStatus = "na", qrsLabel = "Não mensurável";
+    if (qrs != null) {
+        if (wide) { qrsStatus = "bad"; qrsLabel = "Alargado"; }
+        else { qrsStatus = "ok"; qrsLabel = "Estreito"; }
+    }
+
+    // QT / QTc (limites aproximados; QTc > 440–460 preocupante)
+    let qtStatus = "na", qtLabel = "Não mensurável";
+    let qtcStatus = "na", qtcLabel = "—";
+    if (qt != null) {
+        qtStatus = "ok"; qtLabel = "Mensurável";
+    }
+    if (qtc != null) {
+        if (qtc > 480) { qtcStatus = "bad"; qtcLabel = "Muito prolongado"; }
+        else if (qtc > 440) { qtcStatus = "warn"; qtcLabel = "Limítrofe / prolongado"; }
+        else if (qtc < 350) { qtcStatus = "warn"; qtcLabel = "Curto"; }
+        else { qtcStatus = "ok"; qtcLabel = "Normal"; }
+    }
+
+    // Interpretação consolidada
+    const flags = [];
+    if (rrStatus === "brad") flags.push("Bradicardia (FC < 60 bpm)");
+    if (rrStatus === "tach") flags.push("Taquicardia (FC > 100 bpm)");
+    if (prStatus === "bad") flags.push("PR prolongado → sugere BAV de 1º grau");
+    if (prStatus === "warn") flags.push("PR curto (avaliar pré-excitação se contexto)");
+    if (qrsStatus === "bad") flags.push("QRS alargado (≥120 ms) — origem ventricular / BCR / aberrância");
+    if (qtcStatus === "bad") flags.push("QTc muito prolongado — risco de Torsades de Pointes");
+    if (qtcStatus === "warn" && qtc > 440) flags.push("QTc limítrofe/prolongado — monitorar e revisar fármacos/eletrólitos");
+    if (tipo === "vf" || tipo === "asistolia") flags.push("Intervalos não mensuráveis (ritmo de PCR)");
+    if (flags.length === 0) flags.push("Intervalos dentro dos limites da normalidade para o ritmo atual.");
+
+    return {
+        pr, qrs, qt, qtc, rrMs, bpm, temP, temQRS, temT,
+        wide, criterioAlargamento, significadoClinico,
+        limiar: LIMIAR_ALARGAMENTO,
+        // status para tabela
+        rrStatus, rrLabel,
+        prStatus, prLabel,
+        qrsStatus, qrsLabel,
+        qtStatus, qtLabel,
+        qtcStatus, qtcLabel,
+        flags
+    };
+}
+
+function desenharPapelECG() {
+    if (!casoAtual) return;
+
+    const canvas = document.getElementById("ecg-paper-canvas");
+    if (!canvas) return;
+
+    const parentW = canvas.parentElement.clientWidth || 400;
+    const dpr = window.devicePixelRatio || 1;
+    const height = 180; // um pouco mais alto para caber as anotações
+    canvas.width = parentW * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = parentW + "px";
+    canvas.style.height = height + "px";
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const W = parentW;
+    const H = height;
+
+    // Fundo papel ECG
+    ctx.fillStyle = "#fff5f5";
+    ctx.fillRect(0, 0, W, H);
+
+    const mm = 3.8;
+    const small = mm;
+    const big = mm * 5;
+
+    // Grade fina
+    ctx.strokeStyle = "rgba(255, 180, 180, 0.7)";
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= W; x += small) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y <= H; y += small) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Grade grossa
+    ctx.strokeStyle = "rgba(220, 80, 80, 0.55)";
+    ctx.lineWidth = 1.1;
+    for (let x = 0; x <= W; x += big) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y <= H; y += big) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    const baseline = H * 0.48;
+    ctx.strokeStyle = "rgba(180, 60, 60, 0.25)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, baseline); ctx.lineTo(W, baseline); ctx.stroke();
+
+    // Calibração 1 mV
+    const calX = 8;
+    const calH = 10 * mm;
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(calX, baseline);
+    ctx.lineTo(calX, baseline - calH);
+    ctx.lineTo(calX + mm * 2, baseline - calH);
+    ctx.lineTo(calX + mm * 2, baseline);
+    ctx.stroke();
+
+    // --- Traçado ---
+    const tipo = casoAtual.tipo;
+    const bpm = currentBpm > 0 ? currentBpm : 60;
+    const rr = 60 / Math.max(bpm, 20);
+    const pxPerSec = 25 * mm;
+    const startX = calX + mm * 3;
+    const usableW = W - startX - 4;
+    const durationSec = usableW / pxPerSec;
+    const scale = (10 * mm) / 80;
+
+    const intervalos = obterIntervalosECG(tipo, bpm);
+
+    ctx.strokeStyle = "#111111";
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+
+    const samples = Math.floor(usableW);
+    let started = false;
+    for (let i = 0; i < samples; i++) {
+        const t = (i / samples) * durationSec;
+        const yVal = sampleECGPaper(t, tipo, rr, casoAtual.irregular);
+        const y = baseline - yVal * scale;
+        const x = startX + i;
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // ========== ANOTAÇÕES DE INTERVALOS PR / QRS / QT ==========
+    // Escolhemos um batimento representativo no meio do traçado para marcar
+    if (intervalos.temQRS && bpm > 0 && tipo !== "vf" && tipo !== "asistolia") {
+        // Posição do batimento alvo (por volta de 40% da duração)
+        const beatTime = durationSec * 0.38;
+        const beatStartX = startX + (beatTime / durationSec) * usableW;
+
+        // Conversão ms → pixels (25 mm/s → 1 ms = 0.025 mm)
+        const msToPx = (ms) => (ms / 1000) * pxPerSec;
+
+        // Posições relativas dentro do ciclo (aproximação da morfologia)
+        // P onset ~ phase 0.12, QRS onset ~ 0.30, QRS end ~ 0.42, T end ~ 0.72
+        const prMs = intervalos.pr;
+        const qrsMs = intervalos.qrs || 90;
+        const qtMs = intervalos.qt || 380;
+
+        // Âncora: início do QRS
+        const qrsOnsetX = beatStartX;
+        const pOnsetX = prMs != null ? qrsOnsetX - msToPx(prMs) : null;
+        const qrsEndX = qrsOnsetX + msToPx(qrsMs);
+        const tEndX = qrsOnsetX + msToPx(qtMs);
+
+        const markerTop = baseline - 52;
+        const markerBot = baseline + 28;
+        const labelY = H - 14;
+
+        // Função auxiliar para desenhar colchete horizontal de intervalo
+        function drawInterval(x1, x2, color, label, yOff) {
+            if (x1 == null || x2 == null || x1 < startX - 5 || x2 > W - 5) return;
+            const midY = markerTop + yOff;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1.4;
+
+            // Linhas verticais
+            ctx.beginPath();
+            ctx.moveTo(x1, midY - 6);
+            ctx.lineTo(x1, midY + 6);
+            ctx.moveTo(x2, midY - 6);
+            ctx.lineTo(x2, midY + 6);
+            // Linha horizontal
+            ctx.moveTo(x1, midY);
+            ctx.lineTo(x2, midY);
+            ctx.stroke();
+
+            // Label
+            ctx.font = "bold 9px Courier New, monospace";
+            const txt = label;
+            const tw = ctx.measureText(txt).width;
+            ctx.fillText(txt, (x1 + x2) / 2 - tw / 2, midY - 8);
+        }
+
+        // PR (azul)
+        if (prMs != null && pOnsetX != null) {
+            drawInterval(pOnsetX, qrsOnsetX, "#2563eb", `PR ${prMs} ms`, 0);
+        }
+
+        // QRS — cor de alerta se alargado (≥120 ms)
+        const qrsColor = intervalos.wide ? "#dc2626" : "#d97706";
+        const qrsLabel = intervalos.wide
+            ? `QRS ${qrsMs} ms ★ ALARGADO`
+            : `QRS ${qrsMs} ms`;
+        drawInterval(qrsOnsetX, qrsEndX, qrsColor, qrsLabel, 16);
+
+        // Destacar visualmente a zona do QRS quando alargado
+        if (intervalos.wide) {
+            ctx.fillStyle = "rgba(220, 38, 38, 0.08)";
+            ctx.fillRect(qrsOnsetX, baseline - 45, qrsEndX - qrsOnsetX, 70);
+        }
+
+        // QT (roxo)
+        if (qtMs != null) {
+            drawInterval(qrsOnsetX, tEndX, "#7c3aed", `QT ${qtMs} ms`, 32);
+        }
+
+        // Legenda de cores + critério de alargamento no canto
+        ctx.font = "9px Courier New, monospace";
+        let lx = W - 155;
+        let ly = 11;
+        if (prMs != null) {
+            ctx.fillStyle = "#2563eb";
+            ctx.fillText(`PR  ${prMs} ms`, lx, ly);
+            ly += 12;
+        }
+        ctx.fillStyle = qrsColor;
+        ctx.font = intervalos.wide ? "bold 9px Courier New, monospace" : "9px Courier New, monospace";
+        ctx.fillText(`QRS ${qrsMs} ms${intervalos.wide ? " ≥120" : " <120"}`, lx, ly);
+        ly += 12;
+        ctx.font = "9px Courier New, monospace";
+        if (qtMs != null) {
+            ctx.fillStyle = "#7c3aed";
+            const qtcTxt = intervalos.qtc ? `  QTc ${intervalos.qtc}` : "";
+            ctx.fillText(`QT  ${qtMs} ms${qtcTxt}`, lx, ly);
+            ly += 12;
+        }
+        // Critério
+        ctx.fillStyle = intervalos.wide ? "#dc2626" : "#16a34a";
+        ctx.font = "bold 9px Courier New, monospace";
+        ctx.fillText(intervalos.wide ? "▲ QRS ALARGADO" : "● QRS ESTREITO", lx, ly);
+    } else if (tipo === "vf" || tipo === "asistolia") {
+        ctx.fillStyle = "#9b2c2c";
+        ctx.font = "9px Courier New, monospace";
+        ctx.fillText("PR/QRS/QT: não mensuráveis", W - 145, 12);
+    }
+
+    // Lead
+    ctx.fillStyle = "#9b2c2c";
+    ctx.font = "bold 10px Courier New, monospace";
+    ctx.fillText("DII", 4, 12);
+
+    // Info abaixo do canvas + critério de alargamento
+    const infoEl = document.getElementById("paper-info");
+    if (infoEl) {
+        const ritmoTxt = ritmoConfirmado ? casoAtual.ritmo : "Ritmo não identificado";
+        let intTxt = "";
+        if (intervalos.pr != null) intTxt += `PR ${intervalos.pr} ms  `;
+        if (intervalos.qrs != null) {
+            intTxt += intervalos.wide
+                ? `QRS ${intervalos.qrs} ms ★ALARGADO  `
+                : `QRS ${intervalos.qrs} ms  `;
+        }
+        if (intervalos.qt != null) intTxt += `QT ${intervalos.qt} ms`;
+        if (intervalos.qtc != null) intTxt += ` (QTc ${intervalos.qtc})`;
+        if (!intTxt) intTxt = "Intervalos não mensuráveis";
+        infoEl.innerHTML = `${ritmoTxt}  •  ${bpm > 0 ? bpm + " bpm" : "—"}  •  ${intTxt}`;
+    }
+
+    // Atualiza também um possível painel de critérios (se existir no DOM)
+    atualizarPainelAlargamento(intervalos);
+}
+
+/**
+ * Preenche a tabela de Análise de Intervalos ECG
+ */
+function atualizarPainelIntervalos(intervalos) {
+    const painel = document.getElementById("painel-intervalos");
+    const tbody = document.getElementById("tabela-intervalos");
+    const interp = document.getElementById("interpretacao-intervalos");
+    if (!painel || !tbody || !interp || !intervalos) return;
+
+    painel.classList.remove("hidden");
+
+    const badge = (status, label) => {
+        const cores = {
+            ok:   "bg-emerald-900/50 text-emerald-300 border-emerald-700",
+            warn: "bg-yellow-900/40 text-yellow-300 border-yellow-700",
+            bad:  "bg-red-900/50 text-red-300 border-red-700",
+            brad: "bg-blue-900/40 text-blue-300 border-blue-700",
+            tach: "bg-orange-900/40 text-orange-300 border-orange-700",
+            na:   "bg-gray-800 text-gray-500 border-gray-600"
+        };
+        const cls = cores[status] || cores.na;
+        return `<span class="inline-block px-1.5 py-0.5 rounded border text-[10px] font-semibold ${cls}">${label}</span>`;
+    };
+
+    const fmt = (v, unit = "ms") => (v == null ? "—" : `${v} ${unit}`);
+
+    const rows = [
+        {
+            nome: "RR / FC",
+            valor: intervalos.bpm > 0
+                ? `${Math.round(intervalos.rrMs)} ms (${intervalos.bpm} bpm)`
+                : "—",
+            ref: "60–100 bpm",
+            status: intervalos.rrStatus,
+            label: intervalos.rrLabel
+        },
+        {
+            nome: "PR",
+            valor: fmt(intervalos.pr),
+            ref: "120–200 ms",
+            status: intervalos.prStatus,
+            label: intervalos.prLabel
+        },
+        {
+            nome: "QRS",
+            valor: fmt(intervalos.qrs),
+            ref: "< 120 ms",
+            status: intervalos.qrsStatus,
+            label: intervalos.qrsLabel
+        },
+        {
+            nome: "QT",
+            valor: fmt(intervalos.qt),
+            ref: "varia com FC",
+            status: intervalos.qtStatus,
+            label: intervalos.qtLabel
+        },
+        {
+            nome: "QTc (Bazett)",
+            valor: fmt(intervalos.qtc),
+            ref: "≤ 440 ms (♂) / ≤ 460 ms (♀)",
+            status: intervalos.qtcStatus,
+            label: intervalos.qtcLabel
+        }
+    ];
+
+    tbody.innerHTML = rows.map(r => `
+        <tr class="border-b border-gray-700/60">
+            <td class="py-1.5 pr-2 font-medium text-gray-300">${r.nome}</td>
+            <td class="py-1.5 pr-2 text-gray-200 font-mono">${r.valor}</td>
+            <td class="py-1.5 pr-2 text-gray-500">${r.ref}</td>
+            <td class="py-1.5">${badge(r.status, r.label)}</td>
+        </tr>
+    `).join("");
+
+    // Interpretação
+    const flagsHtml = (intervalos.flags || []).map(f =>
+        `<div class="flex gap-1.5 items-start"><span class="text-red-400 mt-0.5">▸</span><span>${f}</span></div>`
+    ).join("");
+    interp.innerHTML = `
+        <div class="font-semibold text-gray-300 mb-1">Interpretação automática</div>
+        ${flagsHtml}
+        <div class="mt-1.5 text-[10px] text-gray-500">
+            QTc pela fórmula de Bazett: QT / √(RR em segundos). Valores de referência aproximados (AHA/ESC).
+        </div>
+    `;
+}
+
+/**
+ * Atualiza o painel educativo de critérios de alargamento do QRS
+ * e desenha os exemplos visuais de cada critério.
+ */
+function atualizarPainelAlargamento(intervalos) {
+    const painel = document.getElementById("painel-alargamento");
+    const statusEl = document.getElementById("alargamento-status");
+    const sigEl = document.getElementById("alargamento-significado");
+    if (!painel || !statusEl || !sigEl || !intervalos) return;
+
+    painel.classList.remove("hidden");
+
+    // Também atualiza a tabela completa de intervalos
+    atualizarPainelIntervalos(intervalos);
+
+    if (intervalos.qrs == null) {
+        statusEl.innerHTML = `<span class="text-gray-400">QRS não mensurável</span> <span class="text-gray-500">(FV / Assistolia)</span>`;
+        sigEl.textContent = intervalos.significadoClinico || "Sem complexos QRS organizados.";
+    } else if (intervalos.wide) {
+        statusEl.innerHTML = `
+            <span class="inline-block px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 font-bold border border-red-700">
+                ▲ QRS ALARGADO — ${intervalos.qrs} ms ≥ ${intervalos.limiar} ms
+            </span>`;
+        sigEl.innerHTML = `
+            <span class="text-red-300/90">${intervalos.significadoClinico}</span>
+            <br><span class="text-gray-500">Critérios clássicos: duração ≥ 120 ms (3 mm pequenos em 25 mm/s). 
+            Morfologia de BRE/BRD, concordância, ou critério de Brugada podem reforçar origem ventricular.</span>`;
+    } else {
+        statusEl.innerHTML = `
+            <span class="inline-block px-1.5 py-0.5 rounded bg-emerald-900/50 text-emerald-300 font-bold border border-emerald-700">
+                ● QRS ESTREITO — ${intervalos.qrs} ms &lt; ${intervalos.limiar} ms
+            </span>`;
+        sigEl.innerHTML = `
+            <span class="text-emerald-300/90">${intervalos.significadoClinico}</span>
+            <br><span class="text-gray-500">QRS &lt; 120 ms favorece origem supraventricular. 
+            Ainda assim, avaliar estabilidade hemodinâmica e contexto clínico.</span>`;
+    }
+
+    // Garante que os exemplos visuais existam e estejam desenhados
+    garantirExemplosVisuais();
+    garantirExemplosArritmias();
+    garantirPainelPediatrico();
+}
+
+/* ================================================================
+   EXEMPLOS VISUAIS DOS CRITÉRIOS — SVG reais (vetoriais)
+   Cada SVG simula um trecho de ECG clássico de livro-texto
+   ================================================================ */
+
+/** Gera o markup SVG de um exemplo de critério */
+function svgExemplo(tipo, cor) {
+    // ViewBox 0 0 200 70 — linha de base em y=38
+    const grid = `
+      <defs>
+        <pattern id="g-${tipo}" width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M8 0H0V8" fill="none" stroke="#3a4a6a" stroke-width="0.4"/>
+        </pattern>
+        <pattern id="g5-${tipo}" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M40 0H0V40" fill="none" stroke="#4a5a7a" stroke-width="0.7"/>
+        </pattern>
+      </defs>
+      <rect width="200" height="70" fill="#1a1a2e"/>
+      <rect width="200" height="70" fill="url(#g-${tipo})"/>
+      <rect width="200" height="70" fill="url(#g5-${tipo})"/>
+      <line x1="0" y1="38" x2="200" y2="38" stroke="#4a6080" stroke-width="0.6" opacity="0.5"/>`;
+
+    // Paths de dois batimentos (aproximação clássica de livro)
+    // Coordenadas pensadas para 25 mm/s visual
+    let wave = "";
+    let marks = "";
+
+    if (tipo === "estreito") {
+        // P-QRS estreito-T  (QRS ~ 10 unidades ≈ <120ms)
+        wave = `
+          <path d="M5,38 
+            C8,38 10,32 14,32 C17,32 19,38 21,38
+            L28,38 L30,42 L33,12 L36,46 L39,38
+            C44,38 48,28 54,28 C58,28 62,38 66,38
+            L70,38
+            C73,38 75,32 79,32 C82,32 84,38 86,38
+            L93,38 L95,42 L98,12 L101,46 L104,38
+            C109,38 113,28 119,28 C123,28 127,38 131,38"
+            fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        marks = `
+          <line x1="28" y1="52" x2="39" y2="52" stroke="${cor}" stroke-width="1.5"/>
+          <line x1="28" y1="49" x2="28" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <line x1="39" y1="49" x2="39" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <text x="33.5" y="63" fill="${cor}" font-size="7" font-family="monospace" text-anchor="middle">QRS</text>`;
+    } else if (tipo === "alargado") {
+        // QRS largo e bizarro (sem P clara)
+        wave = `
+          <path d="M5,38
+            L12,40 L18,30 L26,8 L36,50 L46,22 L54,38
+            L62,38
+            L69,40 L75,30 L83,8 L93,50 L103,22 L111,38
+            L120,38"
+            fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        marks = `
+          <!-- limiar 120ms (referência de QRS estreito) -->
+          <line x1="26" y1="10" x2="26" y2="56" stroke="#dc2626" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/>
+          <line x1="12" y1="52" x2="54" y2="52" stroke="${cor}" stroke-width="1.5"/>
+          <line x1="12" y1="49" x2="12" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <line x1="54" y1="49" x2="54" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <text x="33" y="63" fill="${cor}" font-size="7" font-family="monospace" text-anchor="middle">QRS largo</text>`;
+    } else if (tipo === "pr-normal") {
+        wave = `
+          <path d="M5,38
+            C8,38 10,31 14,31 C17,31 19,38 21,38
+            L36,38
+            L38,42 L41,12 L44,46 L47,38
+            C52,38 56,28 62,28 C66,28 70,38 74,38
+            L80,38
+            C83,38 85,31 89,31 C92,31 94,38 96,38
+            L111,38
+            L113,42 L116,12 L119,46 L122,38
+            C127,38 131,28 137,28 C141,28 145,38 149,38"
+            fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        marks = `
+          <line x1="21" y1="52" x2="36" y2="52" stroke="${cor}" stroke-width="1.5"/>
+          <line x1="21" y1="49" x2="21" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <line x1="36" y1="49" x2="36" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <text x="28.5" y="63" fill="${cor}" font-size="7" font-family="monospace" text-anchor="middle">PR</text>`;
+    } else if (tipo === "pr-longo") {
+        wave = `
+          <path d="M5,38
+            C8,38 10,31 14,31 C17,31 19,38 21,38
+            L50,38
+            L52,42 L55,12 L58,46 L61,38
+            C66,38 70,28 76,28 C80,28 84,38 88,38
+            L95,38
+            C98,38 100,31 104,31 C107,31 109,38 111,38
+            L140,38
+            L142,42 L145,12 L148,46 L151,38
+            C156,38 160,28 166,28 C170,28 174,38 178,38"
+            fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        marks = `
+          <line x1="21" y1="52" x2="50" y2="52" stroke="${cor}" stroke-width="1.5"/>
+          <line x1="21" y1="49" x2="21" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <line x1="50" y1="49" x2="50" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <text x="35.5" y="63" fill="${cor}" font-size="7" font-family="monospace" text-anchor="middle">PR longo</text>`;
+    } else if (tipo === "qt-normal") {
+        wave = `
+          <path d="M5,38
+            C8,38 10,32 14,32 C17,32 19,38 21,38
+            L28,38 L30,42 L33,12 L36,46 L39,38
+            C46,38 50,26 58,26 C64,26 68,38 72,38
+            L78,38
+            C81,38 83,32 87,32 C90,32 92,38 94,38
+            L101,38 L103,42 L106,12 L109,46 L112,38
+            C119,38 123,26 131,26 C137,26 141,38 145,38"
+            fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        marks = `
+          <line x1="28" y1="52" x2="72" y2="52" stroke="${cor}" stroke-width="1.5"/>
+          <line x1="28" y1="49" x2="28" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <line x1="72" y1="49" x2="72" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <text x="50" y="63" fill="${cor}" font-size="7" font-family="monospace" text-anchor="middle">QT</text>`;
+    } else if (tipo === "qt-longo") {
+        wave = `
+          <path d="M5,38
+            C8,38 10,32 14,32 C17,32 19,38 21,38
+            L28,38 L30,42 L33,14 L36,46 L39,38
+            C50,38 58,24 72,24 C82,24 90,38 96,38
+            L102,38
+            C105,38 107,32 111,32 C114,32 116,38 118,38
+            L125,38 L127,42 L130,14 L133,46 L136,38
+            C147,38 155,24 169,24 C179,24 187,38 193,38"
+            fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        marks = `
+          <line x1="28" y1="52" x2="96" y2="52" stroke="${cor}" stroke-width="1.5"/>
+          <line x1="28" y1="49" x2="28" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <line x1="96" y1="49" x2="96" y2="55" stroke="${cor}" stroke-width="1.3"/>
+          <text x="62" y="63" fill="${cor}" font-size="7" font-family="monospace" text-anchor="middle">QT longo</text>`;
+    }
+
+    return `<svg viewBox="0 0 200 70" width="100%" height="70" xmlns="http://www.w3.org/2000/svg" style="display:block;border-radius:4px;">
+      ${grid}
+      ${wave}
+      ${marks}
+    </svg>`;
+}
+
+const EXEMPLOS_CRITERIOS = [
+    { titulo: "QRS Estreito",   sub: "< 120 ms",            cor: "#16a34a", tipo: "estreito",
+      clinica: "Favorece origem supraventricular. Conduta conforme estabilidade." },
+    { titulo: "QRS Alargado",   sub: "≥ 120 ms",            cor: "#dc2626", tipo: "alargado",
+      clinica: "Tratar como ventricular até prova em contrário (ACLS)." },
+    { titulo: "PR Normal",      sub: "120–200 ms",          cor: "#2563eb", tipo: "pr-normal",
+      clinica: "Condução AV preservada. Sem intervenção específica." },
+    { titulo: "PR Longo",       sub: "> 200 ms (BAV 1º)",   cor: "#2563eb", tipo: "pr-longo",
+      clinica: "BAV 1º grau — geralmente benigno; revisar medicações." },
+    { titulo: "QT Normal",      sub: "QTc ≤ 440 ms",        cor: "#7c3aed", tipo: "qt-normal",
+      clinica: "Repolarização adequada. Baixo risco arrítmico por QT." },
+    { titulo: "QT Prolongado",  sub: "QTc > 460–480 ms",    cor: "#7c3aed", tipo: "qt-longo",
+      clinica: "Risco de Torsades. Corrigir eletrólitos e fármacos." }
+];
+
+function garantirExemplosVisuais() {
+    const grid = document.getElementById("exemplos-visuais-grid");
+    if (!grid) return;
+
+    if (grid.children.length === 0) {
+        EXEMPLOS_CRITERIOS.forEach(ex => {
+            const card = document.createElement("div");
+            card.className = "bg-gray-900/80 border border-gray-700 rounded p-1.5 flex flex-col";
+            card.innerHTML = `
+                <div class="text-[10px] font-bold mb-0.5" style="color:${ex.cor}">${ex.titulo}</div>
+                <div class="text-[9px] text-gray-500 mb-1">${ex.sub}</div>
+                ${svgExemplo(ex.tipo, ex.cor)}
+                <div class="mt-1.5 text-[9px] text-gray-400 leading-snug border-t border-gray-700/60 pt-1.5">
+                    ${ex.clinica}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        const btn = document.getElementById("btn-toggle-exemplos");
+        if (btn) {
+            btn.addEventListener("click", () => {
+                const hidden = grid.classList.toggle("hidden");
+                btn.textContent = hidden ? "Expandir" : "Recolher";
+            });
+        }
+    }
+}
+
+/* ================================================================
+   EXEMPLOS SVG DE ARRITMIAS COMUNS
+   ================================================================ */
+function svgArritmia(tipo) {
+    const grid = `
+      <defs>
+        <pattern id="ag-${tipo}" width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M8 0H0V8" fill="none" stroke="#3a4a6a" stroke-width="0.4"/>
+        </pattern>
+        <pattern id="ag5-${tipo}" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M40 0H0V40" fill="none" stroke="#4a5a7a" stroke-width="0.7"/>
+        </pattern>
+      </defs>
+      <rect width="200" height="70" fill="#1a1a2e"/>
+      <rect width="200" height="70" fill="url(#ag-${tipo})"/>
+      <rect width="200" height="70" fill="url(#ag5-${tipo})"/>
+      <line x1="0" y1="38" x2="200" y2="38" stroke="#4a6080" stroke-width="0.6" opacity="0.5"/>`;
+
+    let wave = "";
+    // Cada path desenha ~2–4 batimentos característicos
+    if (tipo === "sinusal") {
+        wave = `<path d="M4,38 C7,38 9,31 13,31 C16,31 18,38 20,38 L28,38 L30,42 L33,10 L36,48 L39,38 C45,38 49,27 56,27 C61,27 65,38 69,38
+          L75,38 C78,38 80,31 84,31 C87,31 89,38 91,38 L99,38 L101,42 L104,10 L107,48 L110,38 C116,38 120,27 127,27 C132,27 136,38 140,38
+          L146,38 C149,38 151,31 155,31 C158,31 160,38 162,38 L170,38 L172,42 L175,10 L178,48 L181,38 C187,38 191,27 198,27" fill="none" stroke="#4ade80" stroke-width="1.7" stroke-linejoin="round"/>`;
+    } else if (tipo === "brady") {
+        // Batimentos mais espaçados
+        wave = `<path d="M8,38 C11,38 13,31 17,31 C20,31 22,38 24,38 L34,38 L36,42 L39,10 L42,48 L45,38 C52,38 56,27 64,27 C70,27 74,38 78,38
+          L100,38 C103,38 105,31 109,31 C112,31 114,38 116,38 L126,38 L128,42 L131,10 L134,48 L137,38 C144,38 148,27 156,27 C162,27 166,38 170,38" fill="none" stroke="#4ade80" stroke-width="1.7" stroke-linejoin="round"/>`;
+    } else if (tipo === "tachy") {
+        // Batimentos apertados
+        wave = `<path d="M3,38 C5,38 6,32 9,32 C11,32 12,38 14,38 L18,38 L19,41 L21,12 L23,46 L25,38 C29,38 31,28 36,28 C39,28 41,38 44,38
+          L48,38 C50,38 51,32 54,32 C56,32 57,38 59,38 L63,38 L64,41 L66,12 L68,46 L70,38 C74,38 76,28 81,28 C84,28 86,38 89,38
+          L93,38 C95,38 96,32 99,32 C101,32 102,38 104,38 L108,38 L109,41 L111,12 L113,46 L115,38 C119,38 121,28 126,28 C129,28 131,38 134,38
+          L138,38 C140,38 141,32 144,32 C146,32 147,38 149,38 L153,38 L154,41 L156,12 L158,46 L160,38 C164,38 166,28 171,28 C174,28 176,38 179,38
+          L183,38 C185,38 186,32 189,32 C191,32 192,38 194,38" fill="none" stroke="#4ade80" stroke-width="1.6" stroke-linejoin="round"/>`;
+    } else if (tipo === "fa") {
+        // Baseline irregular + QRS irregulares
+        wave = `<path d="M2,38 Q5,34 8,38 Q11,42 14,37 Q17,33 20,39 Q23,43 26,36 Q29,32 32,40
+          L35,38 L36,42 L38,12 L40,47 L42,38
+          Q46,34 49,40 Q52,44 55,36 Q58,32 61,41 Q64,45 67,35
+          L72,38 L73,42 L75,12 L77,47 L79,38
+          Q83,33 86,40 Q89,44 92,35 Q95,31 98,42 Q101,46 104,36
+          L110,38 L111,42 L113,12 L115,47 L117,38
+          Q121,34 124,39 Q127,43 130,35 Q133,31 136,41 Q139,45 142,37
+          L148,38 L149,42 L151,12 L153,47 L155,38
+          Q159,33 162,40 Q165,44 168,36 Q171,32 174,41 Q177,45 180,35
+          L186,38 L187,42 L189,12 L191,47 L193,38" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linejoin="round"/>`;
+    } else if (tipo === "flutter") {
+        // Dente de serra + QRS a cada 2–3 ondas F
+        wave = `<path d="M2,38 L6,28 L10,38 L14,28 L18,38 L22,28 L26,38
+          L28,42 L31,10 L34,48 L37,38
+          L41,28 L45,38 L49,28 L53,38 L57,28 L61,38
+          L63,42 L66,10 L69,48 L72,38
+          L76,28 L80,38 L84,28 L88,38 L92,28 L96,38
+          L98,42 L101,10 L104,48 L107,38
+          L111,28 L115,38 L119,28 L123,38 L127,28 L131,38
+          L133,42 L136,10 L139,48 L142,38
+          L146,28 L150,38 L154,28 L158,38 L162,28 L166,38
+          L168,42 L171,10 L174,48 L177,38
+          L181,28 L185,38 L189,28 L193,38 L197,28" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linejoin="round"/>`;
+    } else if (tipo === "tv") {
+        // QRS largos e regulares, rápidos
+        wave = `<path d="M3,38 L8,44 L14,8 L22,52 L30,20 L36,38
+          L42,44 L48,8 L56,52 L64,20 L70,38
+          L76,44 L82,8 L90,52 L98,20 L104,38
+          L110,44 L116,8 L124,52 L132,20 L138,38
+          L144,44 L150,8 L158,52 L166,20 L172,38
+          L178,44 L184,8 L192,52 L198,30" fill="none" stroke="#4ade80" stroke-width="1.7" stroke-linejoin="round"/>`;
+    } else if (tipo === "fv") {
+        // Caos
+        wave = `<path d="M2,38 L5,20 L9,50 L13,15 L17,55 L21,25 L25,48 L29,18 L33,52 L37,22 L41,50 L45,16 L49,54 L53,28 L57,46 L61,14 L65,56 L69,30 L73,44 L77,12 L81,58 L85,26 L89,48 L93,18 L97,52 L101,24 L105,50 L109,16 L113,54 L117,28 L121,46 L125,14 L129,56 L133,30 L137,44 L141,12 L145,58 L149,26 L153,48 L157,18 L161,52 L165,24 L169,50 L173,16 L177,54 L181,28 L185,46 L189,14 L193,56 L197,32" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linejoin="round"/>`;
+    } else if (tipo === "asistolia") {
+        // Quase linha reta com mínimo ruído
+        wave = `<path d="M2,38 L10,37.5 L20,38.5 L30,37.8 L40,38.2 L50,37.6 L60,38.4 L70,37.9 L80,38.1 L90,37.7 L100,38.3 L110,37.8 L120,38.2 L130,37.6 L140,38.4 L150,37.9 L160,38.1 L170,37.7 L180,38.3 L190,37.8 L198,38" fill="none" stroke="#4ade80" stroke-width="1.4"/>`;
+    } else if (tipo === "bav1") {
+        // PR longo
+        wave = `<path d="M4,38 C7,38 9,31 13,31 C16,31 18,38 20,38 L48,38 L50,42 L53,10 L56,48 L59,38 C65,38 69,27 76,27 C81,27 85,38 89,38
+          L95,38 C98,38 100,31 104,31 C107,31 109,38 111,38 L139,38 L141,42 L144,10 L147,48 L150,38 C156,38 160,27 167,27 C172,27 176,38 180,38" fill="none" stroke="#4ade80" stroke-width="1.7" stroke-linejoin="round"/>`;
+    } else if (tipo === "bav3") {
+        // P isoladas + escape ventricular largo e lento
+        wave = `<path d="M6,38 C9,38 11,30 15,30 C18,30 20,38 22,38
+          L40,38 L44,48 L52,8 L62,50 L70,38
+          L90,38 C93,38 95,30 99,30 C102,30 104,38 106,38
+          L130,38 L134,48 L142,8 L152,50 L160,38
+          L175,38 C178,38 180,30 184,30 C187,30 189,38 191,38" fill="none" stroke="#4ade80" stroke-width="1.7" stroke-linejoin="round"/>`;
+    } else if (tipo === "tdp") {
+        // Polimórfico com envelope que varia
+        wave = `<path d="M2,38 L6,30 L12,10 L18,50 L24,20 L30,45 L36,15 L42,48 L48,25 L54,40 L60,18 L66,52 L72,12 L78,55 L84,22 L90,48 L96,8 L102,58 L108,28 L114,42 L120,14 L126,50 L132,20 L138,46 L144,16 L150,52 L156,24 L162,44 L168,12 L174,54 L180,26 L186,40 L192,18 L198,48" fill="none" stroke="#4ade80" stroke-width="1.6" stroke-linejoin="round"/>`;
+    }
+
+    return `<svg viewBox="0 0 200 70" width="100%" height="70" xmlns="http://www.w3.org/2000/svg" style="display:block;border-radius:4px;">
+      ${grid}
+      ${wave}
+    </svg>`;
+}
+
+const EXEMPLOS_ARRITMIAS = [
+    {
+        titulo: "Ritmo Sinusal",
+        sub: "60–100 bpm, regular",
+        cor: "#4ade80",
+        tipo: "sinusal",
+        clinica: "Ritmo normal. Paciente geralmente assintomático. Apenas observação se estável."
+    },
+    {
+        titulo: "Bradicardia Sinusal",
+        sub: "FC < 60 bpm",
+        cor: "#60a5fa",
+        tipo: "brady",
+        clinica: "Pode causar tontura, síncope ou hipotensão. Atropina se sintomática; observar se estável."
+    },
+    {
+        titulo: "Taquicardia Sinusal",
+        sub: "FC > 100 bpm",
+        cor: "#fbbf24",
+        tipo: "tachy",
+        clinica: "Resposta a febre, dor, hipovolemia ou sepse. Tratar a causa — não o ritmo."
+    },
+    {
+        titulo: "Fibrilação Atrial",
+        sub: "Irregular, sem P",
+        cor: "#f472b6",
+        tipo: "fa",
+        clinica: "Palpitações, dispneia, risco de tromboembolismo. Controle de FC/ritmo; cardioversão se instável."
+    },
+    {
+        titulo: "Flutter Atrial",
+        sub: "Dente de serra",
+        cor: "#a78bfa",
+        tipo: "flutter",
+        clinica: "Semelhante à FA. Cardioversão elétrica muito eficaz. Avaliar anticoagulação."
+    },
+    {
+        titulo: "Taquicardia Ventricular",
+        sub: "QRS largo, regular",
+        cor: "#f87171",
+        tipo: "tv",
+        clinica: "Pode evoluir para FV. Cardioversão se instável; amiodarona se estável com pulso."
+    },
+    {
+        titulo: "Fibrilação Ventricular",
+        sub: "Caos, sem QRS",
+        cor: "#ef4444",
+        tipo: "fv",
+        clinica: "PCR — sem pulso. Desfibrilação imediata + RCP + adrenalina (ACLS)."
+    },
+    {
+        titulo: "Assistolia",
+        sub: "Linha reta",
+        cor: "#94a3b8",
+        tipo: "asistolia",
+        clinica: "PCR não chocável. RCP de alta qualidade + adrenalina. Identificar causas reversíveis."
+    },
+    {
+        titulo: "BAV 1º Grau",
+        sub: "PR > 200 ms",
+        cor: "#38bdf8",
+        tipo: "bav1",
+        clinica: "Geralmente benigno e assintomático. Revisar fármacos (betabloqueadores, cálcio-bloqueadores)."
+    },
+    {
+        titulo: "BAV 3º Grau",
+        sub: "Dissociação AV",
+        cor: "#fb923c",
+        tipo: "bav3",
+        clinica: "Risco de síncope (Stokes-Adams) e instabilidade. Atropina/adrenalina como ponte; marcapasso."
+    },
+    {
+        titulo: "Torsades de Pointes",
+        sub: "TV polimórfica + QT↑",
+        cor: "#e879f9",
+        tipo: "tdp",
+        clinica: "Associada a QT longo. Magnésio IV; desfibrilar se sem pulso. Corrigir eletrólitos e fármacos."
+    }
+];
+
+function garantirExemplosArritmias() {
+    const grid = document.getElementById("arritmias-grid");
+    const painel = document.getElementById("painel-arritmias");
+    if (!grid || !painel) return;
+
+    painel.classList.remove("hidden");
+
+    if (grid.children.length === 0) {
+        EXEMPLOS_ARRITMIAS.forEach(ex => {
+            const card = document.createElement("div");
+            card.className = "bg-gray-900/80 border border-gray-700 rounded p-1.5 flex flex-col";
+            card.innerHTML = `
+                <div class="text-[10px] font-bold mb-0.5" style="color:${ex.cor}">${ex.titulo}</div>
+                <div class="text-[9px] text-gray-500 mb-1">${ex.sub}</div>
+                ${svgArritmia(ex.tipo)}
+                <div class="mt-1.5 text-[9px] text-gray-400 leading-snug border-t border-gray-700/60 pt-1.5">
+                    ${ex.clinica}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        const btn = document.getElementById("btn-toggle-arritmias");
+        if (btn) {
+            btn.addEventListener("click", () => {
+                const hidden = grid.classList.toggle("hidden");
+                btn.textContent = hidden ? "Expandir" : "Recolher";
+            });
+        }
+    }
+}
+
+/* ================================================================
+   INTERPRETAÇÃO DE ECG PEDIÁTRICO
+   Valores aproximados (Davignon e tabelas pediátricas de referência)
+   ================================================================ */
+const VALORES_PEDIATRICOS = [
+    { idade: "RN (0–7 d)",     fc: "120–160", pr: "80–160",  qrs: "40–70",  qtc: "≤ 440" },
+    { idade: "Lactente (1–12 m)", fc: "100–160", pr: "80–160",  qrs: "40–80",  qtc: "≤ 440" },
+    { idade: "1–3 anos",       fc: "90–150",  pr: "80–160",  qrs: "40–80",  qtc: "≤ 440" },
+    { idade: "3–5 anos",       fc: "80–140",  pr: "80–160",  qrs: "50–90",  qtc: "≤ 440" },
+    { idade: "5–8 anos",       fc: "70–120",  pr: "90–170",  qrs: "50–90",  qtc: "≤ 440" },
+    { idade: "8–12 anos",      fc: "60–110",  pr: "90–180",  qrs: "50–100", qtc: "≤ 440" },
+    { idade: "12–16 anos",     fc: "60–100",  pr: "100–200", qrs: "60–110", qtc: "≤ 440–460" },
+    { idade: "Adulto (ref.)",  fc: "60–100",  pr: "120–200", qrs: "< 120",  qtc: "≤ 440–460" }
+];
+
+function garantirPainelPediatrico() {
+    const painel = document.getElementById("painel-pediatrico");
+    const tbody = document.getElementById("tabela-pediatrico");
+    const conteudo = document.getElementById("pediatrico-conteudo");
+    if (!painel || !tbody) return;
+
+    painel.classList.remove("hidden");
+
+    if (tbody.children.length === 0) {
+        tbody.innerHTML = VALORES_PEDIATRICOS.map((r, i) => {
+            const isAdult = i === VALORES_PEDIATRICOS.length - 1;
+            const rowCls = isAdult ? "border-t border-gray-600 text-gray-500" : "border-b border-gray-700/50";
+            return `
+                <tr class="${rowCls}">
+                    <td class="py-1 pr-2 font-medium ${isAdult ? "text-gray-500" : "text-gray-300"}">${r.idade}</td>
+                    <td class="py-1 pr-2 font-mono">${r.fc}</td>
+                    <td class="py-1 pr-2 font-mono">${r.pr}</td>
+                    <td class="py-1 pr-2 font-mono">${r.qrs}</td>
+                    <td class="py-1 font-mono">${r.qtc}</td>
+                </tr>`;
+        }).join("");
+
+        const btn = document.getElementById("btn-toggle-pediatrico");
+        if (btn && conteudo) {
+            btn.addEventListener("click", () => {
+                const hidden = conteudo.classList.toggle("hidden");
+                btn.textContent = hidden ? "Expandir" : "Recolher";
+            });
+        }
+    }
+}
+
+els.confirmarRitmo.addEventListener("click", confirmarRitmo);
+els.detectarRitmo.addEventListener("click", detectarRitmoAutomatico);
+els.newCase.addEventListener("click", iniciarNovoCaso);
+els.finalizar.addEventListener("click", finalizarProcedimento);
+
+// Botão de gerar papel
+document.getElementById("btn-gerar-papel").addEventListener("click", () => {
+    desenharPapelECG();
+    adicionarFeedback("Traçado em papel ECG atualizado (25 mm/s • 10 mm/mV).", "info");
+});
+
+preencherSelectRitmos();
+document.addEventListener("DOMContentLoaded", () => {
+    iniciarNovoCaso();
+    // Gera o papel na primeira carga (após um pequeno delay para o layout estabilizar)
+    setTimeout(desenharPapelECG, 200);
+});
+</script>
+</body>
+</html>

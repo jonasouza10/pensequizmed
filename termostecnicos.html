@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Termos Técnicos - Medicina - Um quiz para testar seu conhecimento em vocabulário médico e conceitos clínicos.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Termos Técnicos - Medicina</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Termos Técnicos - Medicina</h1>
+  <p>Domine o jargão da saúde! Teste seu vocabulário médico. 🩺</p>
+
+  <div id="terminal">[SISTEMA DE TERMOS MÉDICOS INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🧠 Termos restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR DESAFIO MÉDICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE TERMOS TÉCNICOS - MEDICINA</h2>
+      <p>Bem-vindo, Estudante de Medicina! Este simulador foi desenvolvido para aprimorar seu vocabulário e compreensão de termos técnicos essenciais da área da saúde.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Testar sua capacidade de definir ou identificar o significado correto de termos médicos e científicos.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Expandir seu conhecimento sobre a linguagem especializada utilizada em diversas especialidades médicas.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará um "Termo Médico" no terminal.</li>
+        <li><strong>Análise:</strong> Leia o termo e sua breve descrição ou contexto ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de definição. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada, e uma breve explicação será fornecida.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de termos restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todos os termos tiverem sido processados.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A precisão na terminologia médica é crucial para a comunicação e o cuidado ao paciente. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>Os termos e definições contidas neste PenseQuiz foram elaborados com base em dicionários médicos e literatura de referência da área da saúde. Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas:</p>
+      <ul>
+        <li>**DICIONÁRIOS MÉDICOS:** Dicionário Médico de Blakiston's, Dicionário Médico Dorland, Dicionário de Termos Médicos S. C. E. A. S. (e outros dicionários reconhecidos).</li>
+        <li>**LIVROS-TEXTO:** Livros de anatomia, fisiologia, patologia, farmacologia e outras disciplinas básicas e clínicas da medicina.</li>
+        <li>**ATLAS E GLOSSÁRIOS:** Atlas de anatomia (e.g., Netter), glossários de terminologia médica especializada.</li>
+        <li>**ORGANIZAÇÕES DE SAÚDE:** Publicações e terminologias padronizadas por organizações como a Organização Mundial da Saúde (OMS).</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui a consulta a fontes primárias e a constante atualização sobre novos termos e conceitos na área médica.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Qual o significado do termo 'Bradicardia'?",
+    "correta": "Frequência cardíaca abaixo do normal (geralmente < 60 bpm)",
+    "texto": "Bradicardia é a frequência cardíaca anormalmente baixa, geralmente abaixo de 60 batimentos por minuto em adultos. O oposto é a taquicardia.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE BRADICARDIA",
+    "alternativas": [
+      "Pressão arterial alta",
+      "Frequência respiratória acelerada",
+      "Dificuldade para engolir",
+      "Frequência cardíaca abaixo do normal (geralmente < 60 bpm)"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Taquicardia'?",
+    "correta": "Frequência cardíaca acima do normal (geralmente > 100 bpm)",
+    "texto": "Taquicardia é o aumento da frequência cardíaca, tipicamente acima de 100 bpm em repouso no adulto.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE TAQUICARDIA",
+    "alternativas": [
+      "Pressão arterial baixa",
+      "Frequência cardíaca abaixo de 60",
+      "Parada cardíaca",
+      "Frequência cardíaca acima do normal (geralmente > 100 bpm)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipertensão arterial'?",
+    "correta": "Pressão arterial persistentemente elevada",
+    "texto": "Hipertensão arterial é a elevação sustentada da pressão arterial, geralmente definida como ≥ 140/90 mmHg.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE HIPERTENSÃO",
+    "alternativas": [
+      "Pressão arterial baixa",
+      "Frequência cardíaca alta",
+      "Colesterol elevado",
+      "Pressão arterial persistentemente elevada"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Hipotensão'?",
+    "correta": "Pressão arterial abaixo do normal",
+    "texto": "Hipotensão é a pressão arterial anormalmente baixa, que pode causar tontura, síncope e hipoperfusão tecidual.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE HIPOTENSÃO",
+    "alternativas": [
+      "Pressão arterial alta",
+      "Frequência cardíaca baixa",
+      "Edema de membros",
+      "Pressão arterial abaixo do normal"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Isquemia'?",
+    "correta": "Redução do suprimento sanguíneo a um tecido ou órgão",
+    "texto": "Isquemia é a diminuição do fluxo sanguíneo, resultando em falta de oxigênio e nutrientes, podendo levar a lesão ou necrose.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE ISQUEMIA",
+    "alternativas": [
+      "Aumento do fluxo sanguíneo",
+      "Inflamação de vasos",
+      "Formação de coágulo",
+      "Redução do suprimento sanguíneo a um tecido ou órgão"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Infarto'?",
+    "correta": "Necrose de tecido por falta de irrigação sanguínea",
+    "texto": "Infarto é a morte (necrose) de um tecido causada por interrupção prolongada do suprimento sanguíneo (isquemia).",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE INFARTO",
+    "alternativas": [
+      "Inflamação aguda",
+      "Hemorragia interna",
+      "Edema generalizado",
+      "Necrose de tecido por falta de irrigação sanguínea"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Aterosclerose'?",
+    "correta": "Acúmulo de placas de gordura nas paredes das artérias",
+    "texto": "Aterosclerose é o endurecimento e estreitamento das artérias pelo acúmulo de placas ateromatosas (lipídios, células e tecido fibroso).",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE ATEROSCLEROSE",
+    "alternativas": [
+      "Inflamação das veias",
+      "Dilatação das artérias",
+      "Espasmo vascular",
+      "Acúmulo de placas de gordura nas paredes das artérias"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Trombose'?",
+    "correta": "Formação de coágulo sanguíneo dentro de um vaso",
+    "texto": "Trombose é a formação de um trombo (coágulo) no interior de um vaso sanguíneo, podendo obstruir o fluxo.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE TROMBOSE",
+    "alternativas": [
+      "Ruptura de vaso",
+      "Dilatação de veia",
+      "Espasmo arterial",
+      "Formação de coágulo sanguíneo dentro de um vaso"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Embolia'?",
+    "correta": "Obstrução de um vaso por material carregado pela corrente sanguínea",
+    "texto": "Embolia ocorre quando um êmbolo (coágulo, gordura, ar etc.) é transportado pela corrente sanguínea e obstrui um vaso à distância.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE EMBOLIA",
+    "alternativas": [
+      "Formação local de coágulo",
+      "Ruptura de aneurisma",
+      "Inflamação de veia",
+      "Obstrução de um vaso por material carregado pela corrente sanguínea"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Hemostasia'?",
+    "correta": "Processo fisiológico de parada do sangramento",
+    "texto": "Hemostasia é o conjunto de mecanismos (vasoconstrição, tampão plaquetário e coagulação) que interrompem o sangramento.",
+    "ameaca": "FISIOLOGIA: DEFINIÇÃO DE HEMOSTASIA",
+    "alternativas": [
+      "Acúmulo de sangue",
+      "Destruição de hemácias",
+      "Produção de sangue",
+      "Processo fisiológico de parada do sangramento"
+    ]
+  },
+  {
+    "inimigo": "Em semiologia, o que é 'Anamnese'?",
+    "correta": "Coleta da história clínica do paciente",
+    "texto": "Anamnese é a entrevista estruturada que coleta queixas, história da doença atual, antecedentes e hábitos do paciente.",
+    "ameaca": "SEMIOLOGIA: DEFINIÇÃO DE ANAMNESE",
+    "alternativas": [
+      "Exame físico completo",
+      "Cirurgia diagnóstica",
+      "Análise laboratorial",
+      "Coleta da história clínica do paciente"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Prognóstico'?",
+    "correta": "Previsão do curso e desfecho de uma doença",
+    "texto": "Prognóstico é a estimativa do resultado esperado de uma doença ou tratamento, baseada em evidências e experiência clínica.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE PROGNÓSTICO",
+    "alternativas": [
+      "O tratamento indicado",
+      "A causa da doença",
+      "O conjunto de sintomas",
+      "Previsão do curso e desfecho de uma doença"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Diagnóstico'?",
+    "correta": "Identificação de uma doença ou condição a partir de sinais e sintomas",
+    "texto": "Diagnóstico é o processo de determinar a natureza de uma doença com base em história, exame físico e exames complementares.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE DIAGNÓSTICO",
+    "alternativas": [
+      "Previsão do desfecho",
+      "Tratamento cirúrgico",
+      "Prescrição de medicamentos",
+      "Identificação de uma doença ou condição a partir de sinais e sintomas"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Sintoma'?",
+    "correta": "Manifestação subjetiva relatada pelo paciente",
+    "texto": "Sintoma é a queixa subjetiva sentida e relatada pelo paciente (ex.: dor, náusea), diferindo do sinal, que é objetivo.",
+    "ameaca": "SEMIOLOGIA: DEFINIÇÃO DE SINTOMA",
+    "alternativas": [
+      "Achado do exame físico",
+      "Resultado de exame laboratorial",
+      "Lesão visível",
+      "Manifestação subjetiva relatada pelo paciente"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Sinal' clínico?",
+    "correta": "Manifestação objetiva detectada pelo examinador",
+    "texto": "Sinal é um achado objetivo observado ou mensurado pelo profissional de saúde (ex.: febre, sopro, edema).",
+    "ameaca": "SEMIOLOGIA: DEFINIÇÃO DE SINAL",
+    "alternativas": [
+      "Queixa do paciente",
+      "História familiar",
+      "Resultado de biópsia",
+      "Manifestação objetiva detectada pelo examinador"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Etiologia'?",
+    "correta": "Estudo ou causa de uma doença",
+    "texto": "Etiologia refere-se à causa ou ao conjunto de causas de uma doença ou condição patológica.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE ETIOLOGIA",
+    "alternativas": [
+      "Tratamento da doença",
+      "Prognóstico",
+      "Sintomas associados",
+      "Estudo ou causa de uma doença"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Patogenia' (ou patogenia)?",
+    "correta": "Mecanismo pelo qual uma causa produz a doença",
+    "texto": "Patogenia descreve a sequência de eventos e mecanismos pelos quais um agente etiológico leva ao desenvolvimento da doença.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE PATOGENIA",
+    "alternativas": [
+      "Causa externa da doença",
+      "Tratamento específico",
+      "Nome da doença",
+      "Mecanismo pelo qual uma causa produz a doença"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Iatrogenia'?",
+    "correta": "Condição adversa causada por intervenção médica",
+    "texto": "Iatrogenia é qualquer dano, doença ou complicação resultante de procedimento, medicamento ou conduta médica.",
+    "ameaca": "ÉTICA/SAÚDE: DEFINIÇÃO DE IATROGENIA",
+    "alternativas": [
+      "Melhora espontânea",
+      "Benefício do tratamento",
+      "Erro de diagnóstico isolado",
+      "Condição adversa causada por intervenção médica"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Nosocomial'?",
+    "correta": "Infecção ou condição adquirida no ambiente hospitalar",
+    "texto": "Infecção nosocomial (ou relacionada à assistência à saúde) é aquela adquirida durante a permanência em serviço de saúde.",
+    "ameaca": "INFECTOLOGIA: DEFINIÇÃO DE NOSOCOMIAL",
+    "alternativas": [
+      "Infecção comunitária",
+      "Doença genética",
+      "Alergia a medicamento",
+      "Infecção ou condição adquirida no ambiente hospitalar"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Idiopático'?",
+    "correta": "De causa desconhecida",
+    "texto": "Idiopático designa uma doença ou condição cuja causa não foi identificada.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE IDIOPÁTICO",
+    "alternativas": [
+      "Causado por vírus",
+      "Hereditário",
+      "Causado por trauma",
+      "De causa desconhecida"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Edema'?",
+    "correta": "Acúmulo anormal de líquido nos tecidos",
+    "texto": "Edema é o inchaço decorrente do acúmulo excessivo de fluido no espaço intersticial.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE EDEMA",
+    "alternativas": [
+      "Dor muscular intensa",
+      "Aumento da temperatura",
+      "Diminuição do apetite",
+      "Acúmulo anormal de líquido nos tecidos"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Cianose'?",
+    "correta": "Coloração azulada da pele e mucosas por baixa oxigenação",
+    "texto": "Cianose indica hipoxemia e aparece em áreas de pele fina e bem vascularizada (lábios, leito ungueal).",
+    "ameaca": "SEMIOLOGIA: DEFINIÇÃO DE CIANOSE",
+    "alternativas": [
+      "Pele pálida",
+      "Aumento da pigmentação",
+      "Pele avermelhada",
+      "Coloração azulada da pele e mucosas por baixa oxigenação"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Icterícia'?",
+    "correta": "Coloração amarelada da pele e mucosas por excesso de bilirrubina",
+    "texto": "Icterícia resulta da elevação da bilirrubina no sangue, visível na pele, escleras e mucosas.",
+    "ameaca": "HEPATOLOGIA: DEFINIÇÃO DE ICTERÍCIA",
+    "alternativas": [
+      "Pele azulada",
+      "Pele pálida",
+      "Manchas vermelhas",
+      "Coloração amarelada da pele e mucosas por excesso de bilirrubina"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Dispneia'?",
+    "correta": "Sensação subjetiva de falta de ar",
+    "texto": "Dispneia é a percepção desconfortável de dificuldade respiratória relatada pelo paciente.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE DISPNÉIA",
+    "alternativas": [
+      "Aumento da frequência respiratória",
+      "Parada respiratória",
+      "Tosse com sangue",
+      "Sensação subjetiva de falta de ar"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Taquipneia'?",
+    "correta": "Aumento da frequência respiratória",
+    "texto": "Taquipneia é a elevação da frequência respiratória acima dos valores normais para a idade.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE TAQUIPNEIA",
+    "alternativas": [
+      "Diminuição da frequência respiratória",
+      "Parada respiratória",
+      "Respiração profunda",
+      "Aumento da frequência respiratória"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Apneia'?",
+    "correta": "Cessação temporária da respiração",
+    "texto": "Apneia é a interrupção do fluxo aéreo respiratório por um período, podendo ser central ou obstrutiva.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE APNEIA",
+    "alternativas": [
+      "Respiração acelerada",
+      "Respiração difícil",
+      "Tosse crônica",
+      "Cessação temporária da respiração"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Hemoptise'?",
+    "correta": "Expectoração de sangue proveniente das vias aéreas",
+    "texto": "Hemoptise é a eliminação de sangue pela boca originário do trato respiratório inferior.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE HEMOPTISE",
+    "alternativas": [
+      "Vômito com sangue",
+      "Sangue na urina",
+      "Sangue nas fezes",
+      "Expectoração de sangue proveniente das vias aéreas"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hematemese'?",
+    "correta": "Vômito de sangue",
+    "texto": "Hematemese é a eliminação de sangue pelo vômito, geralmente proveniente do trato gastrointestinal alto.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE HEMATEMESE",
+    "alternativas": [
+      "Tosse com sangue",
+      "Sangue na urina",
+      "Sangramento nasal",
+      "Vômito de sangue"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Melena'?",
+    "correta": "Fezes pretas e alcatroadas por sangue digerido",
+    "texto": "Melena indica sangramento digestivo alto; as fezes ficam pretas, brilhantes e de odor característico.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE MELENA",
+    "alternativas": [
+      "Fezes com sangue vivo",
+      "Diarreia aquosa",
+      "Constipação",
+      "Fezes pretas e alcatroadas por sangue digerido"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hematuria'?",
+    "correta": "Presença de sangue na urina",
+    "texto": "Hematúria é a presença de hemácias na urina, podendo ser macroscópica ou microscópica.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE HEMATÚRIA",
+    "alternativas": [
+      "Ausência de urina",
+      "Urina com pus",
+      "Urina excessiva",
+      "Presença de sangue na urina"
+    ]
+  },
+  {
+    "inimigo": "Em neurologia, o que significa 'Afasia'?",
+    "correta": "Distúrbio da linguagem (fala, compreensão, leitura ou escrita)",
+    "texto": "Afasia resulta de lesão nas áreas cerebrais da linguagem, podendo ser expressiva, receptiva ou mista.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE AFASIA",
+    "alternativas": [
+      "Dificuldade para caminhar",
+      "Perda de memória",
+      "Perda da sensibilidade",
+      "Distúrbio da linguagem (fala, compreensão, leitura ou escrita)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Disartria'?",
+    "correta": "Dificuldade de articulação da fala por alteração motora",
+    "texto": "Disartria é o distúrbio da articulação das palavras causado por fraqueza ou incoordenação dos músculos da fala.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE DISARTRIA",
+    "alternativas": [
+      "Perda total da fala",
+      "Dificuldade de compreensão",
+      "Gagueira",
+      "Dificuldade de articulação da fala por alteração motora"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Hemiplegia'?",
+    "correta": "Paralisia de um lado do corpo",
+    "texto": "Hemiplegia é a paralisia completa de um hemicorpo, geralmente por lesão do trato corticoespinhal contralateral.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE HEMIPLEGIA",
+    "alternativas": [
+      "Paralisia das quatro extremidades",
+      "Fraqueza de um membro",
+      "Tremor unilateral",
+      "Paralisia de um lado do corpo"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Paresia'?",
+    "correta": "Fraqueza muscular parcial",
+    "texto": "Paresia designa redução da força muscular, em contraste com plegia (paralisia completa).",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE PARESIA",
+    "alternativas": [
+      "Paralisia total",
+      "Aumento da força",
+      "Espasmo muscular",
+      "Fraqueza muscular parcial"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Ataxia'?",
+    "correta": "Falta de coordenação dos movimentos voluntários",
+    "texto": "Ataxia é a incoordenação motora, frequentemente por disfunção cerebelar ou sensitiva.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE ATAXIA",
+    "alternativas": [
+      "Fraqueza muscular",
+      "Tremor de repouso",
+      "Rigidez",
+      "Falta de coordenação dos movimentos voluntários"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Apraxia'?",
+    "correta": "Incapacidade de executar movimentos propositais aprendidos",
+    "texto": "Apraxia é a dificuldade de realizar gestos ou atos motores voluntários apesar da integridade motora e da compreensão.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE APRAXIA",
+    "alternativas": [
+      "Perda de força",
+      "Perda de sensibilidade",
+      "Incapacidade de falar",
+      "Incapacidade de executar movimentos propositais aprendidos"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Agnosia'?",
+    "correta": "Incapacidade de reconhecer objetos apesar de sensação intacta",
+    "texto": "Agnosia é a falha no reconhecimento de estímulos sensoriais (visual, auditiva, tátil) com vias sensoriais preservadas.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE AGNOSIA",
+    "alternativas": [
+      "Cegueira",
+      "Surdez",
+      "Perda de memória",
+      "Incapacidade de reconhecer objetos apesar de sensação intacta"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Convulsão'?",
+    "correta": "Episódio de atividade motora anormal por descarga neuronal excessiva",
+    "texto": "Convulsão é a manifestação motora de uma crise epiléptica, com contrações musculares involuntárias.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE CONVULSÃO",
+    "alternativas": [
+      "Desmaio simples",
+      "Tremor essencial",
+      "Espasmo muscular isolado",
+      "Episódio de atividade motora anormal por descarga neuronal excessiva"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Síncope'?",
+    "correta": "Perda transitória da consciência por hipoperfusão cerebral",
+    "texto": "Síncope é a perda breve de consciência e do tônus postural por redução transitória do fluxo sanguíneo cerebral.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE SÍNCOPE",
+    "alternativas": [
+      "Crise epiléptica",
+      "Coma prolongado",
+      "Vertigem sem perda de consciência",
+      "Perda transitória da consciência por hipoperfusão cerebral"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Cefaleia'?",
+    "correta": "Dor de cabeça",
+    "texto": "Cefaleia é o termo técnico para dor localizada na região da cabeça.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE CEFALEIA",
+    "alternativas": [
+      "Dor no pescoço",
+      "Dor facial",
+      "Tontura",
+      "Dor de cabeça"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Apendicectomia'?",
+    "correta": "Remoção cirúrgica do apêndice vermiforme",
+    "texto": "Apendicectomia é a cirurgia de retirada do apêndice, indicada principalmente na apendicite aguda.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE APENDICECTOMIA",
+    "alternativas": [
+      "Inflamação do apêndice",
+      "Exame de imagem abdominal",
+      "Medicamento para dor",
+      "Remoção cirúrgica do apêndice vermiforme"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Colecistectomia'?",
+    "correta": "Remoção cirúrgica da vesícula biliar",
+    "texto": "Colecistectomia é a cirurgia de retirada da vesícula biliar, comum no tratamento da colelitíase sintomática.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE COLECISTECTOMIA",
+    "alternativas": [
+      "Remoção do cólon",
+      "Remoção do fígado",
+      "Remoção do estômago",
+      "Remoção cirúrgica da vesícula biliar"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Laparotomia'?",
+    "correta": "Abertura cirúrgica da cavidade abdominal",
+    "texto": "Laparotomia é a incisão da parede abdominal para acesso à cavidade peritoneal.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE LAPAROTOMIA",
+    "alternativas": [
+      "Cirurgia por vídeo",
+      "Punção abdominal",
+      "Endoscopia digestiva",
+      "Abertura cirúrgica da cavidade abdominal"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Laparoscopia'?",
+    "correta": "Cirurgia minimamente invasiva da cavidade abdominal com vídeo",
+    "texto": "Laparoscopia utiliza pequenas incisões e uma câmera para visualizar e operar dentro do abdome.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE LAPAROSCOPIA",
+    "alternativas": [
+      "Abertura ampla do abdome",
+      "Exame de imagem",
+      "Biópsia percutânea",
+      "Cirurgia minimamente invasiva da cavidade abdominal com vídeo"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anastomose'?",
+    "correta": "Conexão cirúrgica entre duas estruturas ocas (vasos, intestinos)",
+    "texto": "Anastomose é a união cirúrgica de dois órgãos ocos ou vasos para restabelecer continuidade.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE ANASTOMOSE",
+    "alternativas": [
+      "Corte de um órgão",
+      "Remoção de tecido",
+      "Sutura de pele",
+      "Conexão cirúrgica entre duas estruturas ocas (vasos, intestinos)"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Biópsia'?",
+    "correta": "Retirada de amostra de tecido para exame anatomopatológico",
+    "texto": "Biópsia é o procedimento de coleta de fragmento tecidual para análise histopatológica ou citológica.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE BIÓPSIA",
+    "alternativas": [
+      "Remoção completa do órgão",
+      "Exame de sangue",
+      "Radiografia",
+      "Retirada de amostra de tecido para exame anatomopatológico"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Ressecção'?",
+    "correta": "Remoção cirúrgica de parte ou todo um órgão ou lesão",
+    "texto": "Ressecção designa a retirada cirúrgica de tecido, órgão ou tumor.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE RESSECÇÃO",
+    "alternativas": [
+      "Sutura de ferida",
+      "Drenagem de abscesso",
+      "Colocação de prótese",
+      "Remoção cirúrgica de parte ou todo um órgão ou lesão"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Debridamento'?",
+    "correta": "Remoção de tecido desvitalizado ou contaminado de uma ferida",
+    "texto": "Debridamento (ou desbridamento) limpa a ferida retirando tecido necrótico, infectado ou corpos estranhos.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE DEBRIDAMENTO",
+    "alternativas": [
+      "Sutura primária",
+      "Aplicação de curativo",
+      "Irrigação simples",
+      "Remoção de tecido desvitalizado ou contaminado de uma ferida"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Ostomia'?",
+    "correta": "Abertura cirúrgica de um órgão oco na parede abdominal",
+    "texto": "Ostomia (ex.: colostomia, ileostomia) cria um estoma para desvio do conteúdo intestinal ou urinário.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE OSTOMIA",
+    "alternativas": [
+      "Fechamento de ferida",
+      "Remoção de órgão",
+      "Biópsia",
+      "Abertura cirúrgica de um órgão oco na parede abdominal"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Hérnia'?",
+    "correta": "Protrusão de órgão ou tecido através de um orifício ou área enfraquecida",
+    "texto": "Hérnia é a saída de conteúdo de uma cavidade através de um ponto de fragilidade da parede.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE HÉRNIA",
+    "alternativas": [
+      "Tumor maligno",
+      "Infecção de pele",
+      "Fratura óssea",
+      "Protrusão de órgão ou tecido através de um orifício ou área enfraquecida"
+    ]
+  },
+  {
+    "inimigo": "Na farmacologia, o que significa 'Posologia'?",
+    "correta": "Regime de dosagem (quantidade, frequência e duração)",
+    "texto": "Posologia define a dose, o intervalo e a duração do tratamento com um medicamento.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE POSOLOGIA",
+    "alternativas": [
+      "Mecanismo de ação",
+      "Efeitos adversos",
+      "Nome genérico",
+      "Regime de dosagem (quantidade, frequência e duração)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Farmacocinética'?",
+    "correta": "Estudo do que o organismo faz com o fármaco (absorção, distribuição, metabolismo, excreção)",
+    "texto": "Farmacocinética descreve os processos de absorção, distribuição, metabolização e eliminação do medicamento.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE FARMACOCINÉTICA",
+    "alternativas": [
+      "Efeito do fármaco no organismo",
+      "Estudo de efeitos adversos",
+      "Interação entre fármacos",
+      "Estudo do que o organismo faz com o fármaco (absorção, distribuição, metabolismo, excreção)"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Farmacodinâmica'?",
+    "correta": "Estudo do que o fármaco faz no organismo (mecanismo e efeitos)",
+    "texto": "Farmacodinâmica analisa o mecanismo de ação e os efeitos bioquímicos e fisiológicos dos fármacos.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE FARMACODINÂMICA",
+    "alternativas": [
+      "Absorção do fármaco",
+      "Eliminação renal",
+      "Concentração plasmática",
+      "Estudo do que o fármaco faz no organismo (mecanismo e efeitos)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Biodisponibilidade'?",
+    "correta": "Fração e velocidade com que o fármaco atinge a circulação sistêmica",
+    "texto": "Biodisponibilidade quantifica a proporção da dose administrada que alcança o sangue de forma inalterada.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE BIODISPONIBILIDADE",
+    "alternativas": [
+      "Toxicidade do fármaco",
+      "Duração do efeito",
+      "Via de administração",
+      "Fração e velocidade com que o fármaco atinge a circulação sistêmica"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Meia-vida de um fármaco'?",
+    "correta": "Tempo necessário para a concentração plasmática cair pela metade",
+    "texto": "A meia-vida de eliminação é o tempo para a concentração do fármaco no plasma reduzir-se à metade.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE MEIA-VIDA",
+    "alternativas": [
+      "Tempo até o início do efeito",
+      "Duração total do tratamento",
+      "Tempo de absorção",
+      "Tempo necessário para a concentração plasmática cair pela metade"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Efeito placebo'?",
+    "correta": "Benefício terapêutico decorrente da expectativa e não do princípio ativo",
+    "texto": "Efeito placebo é a melhora clínica atribuída a fatores psicológicos e contextuais, sem ação farmacológica específica.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE EFEITO PLACEBO",
+    "alternativas": [
+      "Efeito adverso grave",
+      "Interação medicamentosa",
+      "Resistência ao fármaco",
+      "Benefício terapêutico decorrente da expectativa e não do princípio ativo"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Tolerância farmacológica'?",
+    "correta": "Necessidade de doses crescentes para obter o mesmo efeito",
+    "texto": "Tolerância é a redução da resposta a uma dose fixa de fármaco após uso continuado, exigindo aumento da dose.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE TOLERÂNCIA",
+    "alternativas": [
+      "Alergia ao medicamento",
+      "Dependência psicológica",
+      "Efeito paradoxal",
+      "Necessidade de doses crescentes para obter o mesmo efeito"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Interação medicamentosa'?",
+    "correta": "Modificação do efeito de um fármaco pela presença de outro",
+    "texto": "Interação medicamentosa ocorre quando um fármaco altera a farmacocinética ou farmacodinâmica de outro.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE INTERAÇÃO MEDICAMENTOSA",
+    "alternativas": [
+      "Efeito placebo",
+      "Alergia cruzada",
+      "Intoxicação isolada",
+      "Modificação do efeito de um fármaco pela presença de outro"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Contraindicação'?",
+    "correta": "Situação em que o uso do medicamento não é recomendado",
+    "texto": "Contraindicação é a condição clínica ou circunstância em que o risco do uso do fármaco supera o benefício.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE CONTRAINDICAÇÃO",
+    "alternativas": [
+      "Dose máxima",
+      "Via preferencial",
+      "Indicação principal",
+      "Situação em que o uso do medicamento não é recomendado"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Profilaxia'?",
+    "correta": "Medida para prevenir o aparecimento de doença ou complicação",
+    "texto": "Profilaxia designa ações preventivas, como vacinação ou antibioticoprofilaxia cirúrgica.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE PROFILAXIA",
+    "alternativas": [
+      "Tratamento curativo",
+      "Diagnóstico precoce",
+      "Reabilitação",
+      "Medida para prevenir o aparecimento de doença ou complicação"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Febre' (em termos clínicos)?",
+    "correta": "Elevação da temperatura corporal acima do normal",
+    "texto": "Febre é a elevação regulada da temperatura corporal, geralmente acima de 37,8–38°C, como resposta a infecção ou inflamação.",
+    "ameaca": "SEMIOLOGIA: DEFINIÇÃO DE FEBRE",
+    "alternativas": [
+      "Diminuição da temperatura",
+      "Sudorese excessiva",
+      "Calafrios isolados",
+      "Elevação da temperatura corporal acima do normal"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipotermia'?",
+    "correta": "Temperatura corporal abaixo do normal",
+    "texto": "Hipotermia é a temperatura central abaixo de 35°C, podendo ser acidental ou terapêutica.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE HIPOTERMIA",
+    "alternativas": [
+      "Febre alta",
+      "Calor excessivo",
+      "Sudorese",
+      "Temperatura corporal abaixo do normal"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Anorexia'?",
+    "correta": "Perda ou falta de apetite",
+    "texto": "Anorexia é a diminuição ou ausência de apetite, sintoma comum em diversas doenças.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE ANOREXIA",
+    "alternativas": [
+      "Aumento do apetite",
+      "Náusea",
+      "Vômito",
+      "Perda ou falta de apetite"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Polifagia'?",
+    "correta": "Aumento anormal do apetite ou da ingestão alimentar",
+    "texto": "Polifagia é o aumento excessivo do apetite, visto por exemplo no diabetes descompensado.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE POLIFAGIA",
+    "alternativas": [
+      "Falta de apetite",
+      "Sede excessiva",
+      "Urina excessiva",
+      "Aumento anormal do apetite ou da ingestão alimentar"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Polidipsia'?",
+    "correta": "Sede excessiva",
+    "texto": "Polidipsia é a ingestão exagerada de líquidos por sede intensa, clássica no diabetes mellitus.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE POLIDIPSIA",
+    "alternativas": [
+      "Falta de sede",
+      "Urina excessiva",
+      "Fome excessiva",
+      "Sede excessiva"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Poliúria'?",
+    "correta": "Aumento do volume urinário",
+    "texto": "Poliúria é a eliminação de volume urinário superior ao normal (geralmente > 3 L/dia no adulto).",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE POLIÚRIA",
+    "alternativas": [
+      "Diminuição da urina",
+      "Urina com sangue",
+      "Dor ao urinar",
+      "Aumento do volume urinário"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Oligúria'?",
+    "correta": "Diminuição do volume urinário",
+    "texto": "Oligúria é a redução do débito urinário, geralmente < 400–500 mL/dia no adulto.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE OLIGÚRIA",
+    "alternativas": [
+      "Aumento da urina",
+      "Ausência total de urina",
+      "Urina frequente",
+      "Diminuição do volume urinário"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anúria'?",
+    "correta": "Ausência ou volume urinário extremamente reduzido",
+    "texto": "Anúria é a eliminação de menos de 50–100 mL de urina por dia, sinal de gravidade.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE ANÚRIA",
+    "alternativas": [
+      "Urina excessiva",
+      "Urina frequente",
+      "Incontinência",
+      "Ausência ou volume urinário extremamente reduzido"
+    ]
+  },
+  {
+    "inimigo": "O que significa 'Disúria'?",
+    "correta": "Dor ou desconforto ao urinar",
+    "texto": "Disúria é a micção dolorosa ou desconfortável, comum em infecções urinárias.",
+    "ameaca": "UROLOGIA: DEFINIÇÃO DE DISÚRIA",
+    "alternativas": [
+      "Urina excessiva",
+      "Incontinência",
+      "Retenção urinária",
+      "Dor ou desconforto ao urinar"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Nictúria'?",
+    "correta": "Necessidade de acordar à noite para urinar",
+    "texto": "Nictúria é a interrupção do sono para micção, frequente em hiperplasia prostática e insuficiência cardíaca.",
+    "ameaca": "UROLOGIA: DEFINIÇÃO DE NICTÚRIA",
+    "alternativas": [
+      "Incontinência diurna",
+      "Retenção urinária",
+      "Dor ao urinar",
+      "Necessidade de acordar à noite para urinar"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Asma'?",
+    "correta": "Doença inflamatória crônica das vias aéreas com obstrução reversível",
+    "texto": "Caracterizada por hiper-responsividade brônquica e sintomas intermitentes.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE 'ASMA'",
+    "alternativas": [
+      "Infecção pulmonar",
+      "Fibrose pulmonar",
+      "Embolia pulmonar",
+      "Doença inflamatória crônica das vias aéreas com obstrução reversível"
+    ]
+  },
+  {
+    "inimigo": "O que é 'DPOC'?",
+    "correta": "Doença pulmonar obstrutiva crônica (enfisema e/ou bronquite crônica)",
+    "texto": "Obstrução crônica e pouco reversível ao fluxo aéreo, geralmente por tabagismo.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE 'DPOC'",
+    "alternativas": [
+      "Asma aguda",
+      "Pneumonia",
+      "Derrame pleural",
+      "Doença pulmonar obstrutiva crônica (enfisema e/ou bronquite crônica)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Pneumonia'?",
+    "correta": "Infecção do parênquima pulmonar",
+    "texto": "Inflamação infecciosa dos alvéolos e interstício pulmonar.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE 'PNEUMONIA'",
+    "alternativas": [
+      "Asma",
+      "DPOC",
+      "Pneumotórax",
+      "Infecção do parênquima pulmonar"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Pneumotórax'?",
+    "correta": "Presença de ar na cavidade pleural",
+    "texto": "Ar entre a pleura visceral e parietal, podendo colapsar o pulmão.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE 'PNEUMOTÓRAX'",
+    "alternativas": [
+      "Derrame pleural",
+      "Pneumonia",
+      "Embolia",
+      "Presença de ar na cavidade pleural"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Derrame pleural'?",
+    "correta": "Acúmulo anormal de líquido no espaço pleural",
+    "texto": "Líquido excessivo entre as pleuras, classificado como transudato ou exsudato.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE 'DERRAME PLEURAL'",
+    "alternativas": [
+      "Pneumotórax",
+      "Pneumonia",
+      "Hemotórax",
+      "Acúmulo anormal de líquido no espaço pleural"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Insuficiência cardíaca'?",
+    "correta": "Incapacidade do coração de bombear sangue adequadamente",
+    "texto": "Síndrome em que o débito cardíaco é insuficiente para as necessidades metabólicas.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE 'INSUFICIÊNCIA CARDÍACA'",
+    "alternativas": [
+      "Infarto agudo",
+      "Arritmia",
+      "Hipertensão",
+      "Incapacidade do coração de bombear sangue adequadamente"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Arritmia'?",
+    "correta": "Alteração do ritmo cardíaco normal",
+    "texto": "Qualquer desvio do ritmo sinusal normal em frequência ou regularidade.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE 'ARRITMIA'",
+    "alternativas": [
+      "Sopro cardíaco",
+      "Infarto",
+      "Insuficiência valvular",
+      "Alteração do ritmo cardíaco normal"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Sopro cardíaco'?",
+    "correta": "Som anormal gerado por fluxo turbulento no coração",
+    "texto": "Ruído auscultado devido a turbulência do fluxo sanguíneo intracardíaco ou vascular.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE 'SOPRO CARDÍACO'",
+    "alternativas": [
+      "Arritmia",
+      "Taquicardia",
+      "Bradicardia",
+      "Som anormal gerado por fluxo turbulento no coração"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Angina pectoris'?",
+    "correta": "Dor torácica por isquemia miocárdica",
+    "texto": "Desconforto torácico causado por desequilíbrio entre oferta e demanda de oxigênio no miocárdio.",
+    "ameaca": "CARDIOLOGIA: DEFINIÇÃO DE 'ANGINA PECTORIS'",
+    "alternativas": [
+      "Infarto estabelecido",
+      "Pericardite",
+      "Embolia pulmonar",
+      "Dor torácica por isquemia miocárdica"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Parada cardiorrespiratória'?",
+    "correta": "Cessação da atividade circulatória e respiratória eficaz",
+    "texto": "Ausência de pulso e respiração efetiva, exigindo reanimação imediata.",
+    "ameaca": "EMERGÊNCIA: DEFINIÇÃO DE 'PARADA CARDIORRESPIRATÓRIA'",
+    "alternativas": [
+      "Síncope",
+      "Crise convulsiva",
+      "Choque",
+      "Cessação da atividade circulatória e respiratória eficaz"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Choque'?",
+    "correta": "Estado de hipoperfusão tecidual generalizada",
+    "texto": "Insuficiência circulatória aguda com inadequada oferta de oxigênio aos tecidos.",
+    "ameaca": "EMERGÊNCIA: DEFINIÇÃO DE 'CHOQUE'",
+    "alternativas": [
+      "Hipertensão",
+      "Síncope isolada",
+      "Febre",
+      "Estado de hipoperfusão tecidual generalizada"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Sepse'?",
+    "correta": "Disfunção orgânica ameaçadora à vida por resposta desregulada à infecção",
+    "texto": "Resposta hospedeira desregulada à infecção que causa disfunção de órgãos.",
+    "ameaca": "INFECTOLOGIA: DEFINIÇÃO DE 'SEPSE'",
+    "alternativas": [
+      "Infecção localizada",
+      "Bacteremia isolada",
+      "Febre de origem indeterminada",
+      "Disfunção orgânica ameaçadora à vida por resposta desregulada à infecção"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Bacteremia'?",
+    "correta": "Presença de bactérias no sangue",
+    "texto": "Circulação de bactérias no sangue, comprovada por hemocultura.",
+    "ameaca": "INFECTOLOGIA: DEFINIÇÃO DE 'BACTEREMIA'",
+    "alternativas": [
+      "Sepse",
+      "Infecção urinária",
+      "Pneumonia",
+      "Presença de bactérias no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Abscesso'?",
+    "correta": "Coleção localizada de pus",
+    "texto": "Acúmulo circunscrito de material purulento em tecido ou órgão.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE 'ABSCESSO'",
+    "alternativas": [
+      "Celulite",
+      "Flegmão",
+      "Úlcera",
+      "Coleção localizada de pus"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Celulite (infecciosa)'?",
+    "correta": "Infecção difusa da derme e tecido subcutâneo",
+    "texto": "Processo infeccioso bacteriano que se espalha pelos tecidos moles.",
+    "ameaca": "INFECTOLOGIA: DEFINIÇÃO DE 'CELULITE (INFECCIOSA)'",
+    "alternativas": [
+      "Abscesso",
+      "Úlcera",
+      "Necrose",
+      "Infecção difusa da derme e tecido subcutâneo"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Úlcera'?",
+    "correta": "Lesão com perda de continuidade da pele ou mucosa",
+    "texto": "Solução de continuidade que atinge pelo menos a derme ou camada correspondente.",
+    "ameaca": "DERMATOLOGIA: DEFINIÇÃO DE 'ÚLCERA'",
+    "alternativas": [
+      "Eritema",
+      "Pápula",
+      "Vesícula",
+      "Lesão com perda de continuidade da pele ou mucosa"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Eritema'?",
+    "correta": "Vermelhidão da pele por vasodilatação",
+    "texto": "Coloração avermelhada da pele decorrente de aumento do fluxo sanguíneo.",
+    "ameaca": "DERMATOLOGIA: DEFINIÇÃO DE 'ERITEMA'",
+    "alternativas": [
+      "Cianose",
+      "Icterícia",
+      "Palidez",
+      "Vermelhidão da pele por vasodilatação"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Prurido'?",
+    "correta": "Sensação de coceira",
+    "texto": "Sensação desagradável que provoca o desejo de coçar.",
+    "ameaca": "DERMATOLOGIA: DEFINIÇÃO DE 'PRURIDO'",
+    "alternativas": [
+      "Dor",
+      "Queimação",
+      "Formigamento",
+      "Sensação de coceira"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Parestesia'?",
+    "correta": "Sensação anormal (formigamento, dormência)",
+    "texto": "Sensação espontânea anormal, como formigamento ou adormecimento.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE 'PARESTESIA'",
+    "alternativas": [
+      "Paralisia",
+      "Dor intensa",
+      "Perda total de sensibilidade",
+      "Sensação anormal (formigamento, dormência)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anestesia (neurológica)'?",
+    "correta": "Ausência de sensibilidade",
+    "texto": "Perda completa da sensação em determinada área.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE 'ANESTESIA (NEUROLÓGICA)'",
+    "alternativas": [
+      "Parestesia",
+      "Hipersensibilidade",
+      "Dor",
+      "Ausência de sensibilidade"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hiperalgesia'?",
+    "correta": "Aumento da sensibilidade dolorosa",
+    "texto": "Resposta exagerada a um estímulo normalmente doloroso.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE 'HIPERALGESIA'",
+    "alternativas": [
+      "Anestesia",
+      "Parestesia",
+      "Analgesia",
+      "Aumento da sensibilidade dolorosa"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Analgesia'?",
+    "correta": "Ausência de sensação de dor",
+    "texto": "Incapacidade de sentir dor, espontânea ou induzida por fármacos.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE 'ANALGESIA'",
+    "alternativas": [
+      "Anestesia total",
+      "Sedação",
+      "Paralisia",
+      "Ausência de sensação de dor"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Sedação'?",
+    "correta": "Redução do nível de consciência por fármacos",
+    "texto": "Estado de calma ou sonolência induzido farmacologicamente.",
+    "ameaca": "FARMACOLOGIA: DEFINIÇÃO DE 'SEDAÇÃO'",
+    "alternativas": [
+      "Anestesia geral",
+      "Analgesia",
+      "Paralisia",
+      "Redução do nível de consciência por fármacos"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anestesia geral'?",
+    "correta": "Estado de inconsciência, analgesia e imobilidade induzido",
+    "texto": "Perda reversível da consciência e da sensibilidade por agentes anestésicos.",
+    "ameaca": "ANESTESIOLOGIA: DEFINIÇÃO DE 'ANESTESIA GERAL'",
+    "alternativas": [
+      "Sedação consciente",
+      "Analgesia local",
+      "Bloqueio regional",
+      "Estado de inconsciência, analgesia e imobilidade induzido"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Intubação orotraqueal'?",
+    "correta": "Introdução de tubo na traqueia pela boca",
+    "texto": "Procedimento para garantir via aérea pérvia e ventilação mecânica.",
+    "ameaca": "EMERGÊNCIA: DEFINIÇÃO DE 'INTUBAÇÃO OROTRAQUEAL'",
+    "alternativas": [
+      "Traqueostomia",
+      "Sonda nasogástrica",
+      "Cricotireoidostomia",
+      "Introdução de tubo na traqueia pela boca"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Traqueostomia'?",
+    "correta": "Abertura cirúrgica da traqueia com colocação de cânula",
+    "texto": "Acesso cirúrgico à via aérea abaixo da laringe.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE 'TRAQUEOSTOMIA'",
+    "alternativas": [
+      "Intubação",
+      "Cricotireoidostomia",
+      "Broncoscopia",
+      "Abertura cirúrgica da traqueia com colocação de cânula"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Ventilação mecânica'?",
+    "correta": "Suporte respiratório artificial por aparelho",
+    "texto": "Substituição ou auxílio da ventilação pulmonar por ventilador.",
+    "ameaca": "PNEUMOLOGIA: DEFINIÇÃO DE 'VENTILAÇÃO MECÂNICA'",
+    "alternativas": [
+      "Oxigenoterapia simples",
+      "Nebulização",
+      "Fisioterapia respiratória",
+      "Suporte respiratório artificial por aparelho"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Diálise'?",
+    "correta": "Método de filtragem artificial do sangue",
+    "texto": "Procedimento que remove toxinas e excesso de líquido quando os rins falham.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'DIÁLISE'",
+    "alternativas": [
+      "Transfusão",
+      "Hemodinâmica",
+      "Biópsia renal",
+      "Método de filtragem artificial do sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Transfusão sanguínea'?",
+    "correta": "Administração de sangue ou hemocomponentes",
+    "texto": "Infusão intravenosa de concentrado de hemácias, plasma ou plaquetas.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'TRANSFUSÃO SANGUÍNEA'",
+    "alternativas": [
+      "Diálise",
+      "Hidratação",
+      "Quimioterapia",
+      "Administração de sangue ou hemocomponentes"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Quimioterapia'?",
+    "correta": "Tratamento com fármacos citotóxicos contra o câncer",
+    "texto": "Uso de agentes químicos para destruir ou inibir células neoplásicas.",
+    "ameaca": "ONCOLOGIA: DEFINIÇÃO DE 'QUIMIOTERAPIA'",
+    "alternativas": [
+      "Radioterapia",
+      "Cirurgia oncológica",
+      "Imunoterapia apenas",
+      "Tratamento com fármacos citotóxicos contra o câncer"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Radioterapia'?",
+    "correta": "Uso de radiação ionizante para tratamento de tumores",
+    "texto": "Terapia local com raios de alta energia para destruir células cancerosas.",
+    "ameaca": "ONCOLOGIA: DEFINIÇÃO DE 'RADIOTERAPIA'",
+    "alternativas": [
+      "Quimioterapia",
+      "Cirurgia",
+      "Hormonioterapia",
+      "Uso de radiação ionizante para tratamento de tumores"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Metástase'?",
+    "correta": "Disseminação de células tumorais para sítios distantes",
+    "texto": "Crescimento de tumor secundário em local remoto ao tumor primário.",
+    "ameaca": "ONCOLOGIA: DEFINIÇÃO DE 'METÁSTASE'",
+    "alternativas": [
+      "Tumor benigno",
+      "Hiperplasia",
+      "Displasia",
+      "Disseminação de células tumorais para sítios distantes"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Neoplasia'?",
+    "correta": "Crescimento tecidual anormal e descontrolado",
+    "texto": "Formação de novo tecido por proliferação celular excessiva (benigna ou maligna).",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE 'NEOPLASIA'",
+    "alternativas": [
+      "Inflamação",
+      "Infecção",
+      "Degeneração",
+      "Crescimento tecidual anormal e descontrolado"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Benigno'?",
+    "correta": "Tumor que não invade nem metastatiza",
+    "texto": "Neoplasia de crescimento localizado, sem invasão agressiva nem metástases.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE 'BENIGNO'",
+    "alternativas": [
+      "Maligno",
+      "Metastático",
+      "Indiferenciado",
+      "Tumor que não invade nem metastatiza"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Maligno'?",
+    "correta": "Tumor com capacidade de invasão e metástase",
+    "texto": "Neoplasia agressiva que invade tecidos e pode se disseminar.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE 'MALIGNO'",
+    "alternativas": [
+      "Benigno",
+      "Hiperplásico",
+      "Hamartoma",
+      "Tumor com capacidade de invasão e metástase"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Carcinoma'?",
+    "correta": "Câncer originado de células epiteliais",
+    "texto": "Neoplasia maligna de origem epitelial (pele, mucosas, glândulas).",
+    "ameaca": "ONCOLOGIA: DEFINIÇÃO DE 'CARCINOMA'",
+    "alternativas": [
+      "Sarcoma",
+      "Linfoma",
+      "Leucemia",
+      "Câncer originado de células epiteliais"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Sarcoma'?",
+    "correta": "Câncer originado de tecido conjuntivo ou mesenquimal",
+    "texto": "Neoplasia maligna de ossos, músculos, gordura ou vasos.",
+    "ameaca": "ONCOLOGIA: DEFINIÇÃO DE 'SARCOMA'",
+    "alternativas": [
+      "Carcinoma",
+      "Linfoma",
+      "Melanoma",
+      "Câncer originado de tecido conjuntivo ou mesenquimal"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Linfoma'?",
+    "correta": "Câncer do sistema linfático",
+    "texto": "Neoplasia maligna de linfócitos, podendo ser Hodgkin ou não Hodgkin.",
+    "ameaca": "ONCOLOGIA: DEFINIÇÃO DE 'LINFOMA'",
+    "alternativas": [
+      "Leucemia",
+      "Carcinoma",
+      "Sarcoma",
+      "Câncer do sistema linfático"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Leucemia'?",
+    "correta": "Câncer das células sanguíneas precursoras",
+    "texto": "Proliferação maligna de células hematopoéticas na medula óssea e sangue.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'LEUCEMIA'",
+    "alternativas": [
+      "Linfoma",
+      "Anemia",
+      "Trombocitose",
+      "Câncer das células sanguíneas precursoras"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anemia'?",
+    "correta": "Redução da capacidade de transporte de oxigênio do sangue",
+    "texto": "Diminuição da massa de hemácias ou da hemoglobina abaixo do normal.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'ANEMIA'",
+    "alternativas": [
+      "Leucocitose",
+      "Trombocitopenia",
+      "Policitemia",
+      "Redução da capacidade de transporte de oxigênio do sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Leucocitose'?",
+    "correta": "Aumento do número de leucócitos no sangue",
+    "texto": "Elevação da contagem de glóbulos brancos, comum em infecções.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'LEUCOCITOSE'",
+    "alternativas": [
+      "Leucopenia",
+      "Anemia",
+      "Trombocitose",
+      "Aumento do número de leucócitos no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Leucopenia'?",
+    "correta": "Diminuição do número de leucócitos no sangue",
+    "texto": "Contagem baixa de glóbulos brancos, aumentando risco de infecção.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'LEUCOPENIA'",
+    "alternativas": [
+      "Leucocitose",
+      "Anemia",
+      "Trombocitopenia",
+      "Diminuição do número de leucócitos no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Trombocitopenia'?",
+    "correta": "Diminuição do número de plaquetas",
+    "texto": "Contagem plaquetária baixa, elevando o risco de sangramento.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'TROMBOCITOPENIA'",
+    "alternativas": [
+      "Trombocitose",
+      "Anemia",
+      "Leucopenia",
+      "Diminuição do número de plaquetas"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Coagulopatia'?",
+    "correta": "Distúrbio da coagulação sanguínea",
+    "texto": "Alteração dos mecanismos de coagulação que predispõe a sangramento ou trombose.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'COAGULOPATIA'",
+    "alternativas": [
+      "Anemia",
+      "Leucemia",
+      "Alergia",
+      "Distúrbio da coagulação sanguínea"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hiperglicemia'?",
+    "correta": "Elevação da glicose no sangue",
+    "texto": "Concentração de glicose plasmática acima dos valores normais.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'HIPERGLICEMIA'",
+    "alternativas": [
+      "Hipoglicemia",
+      "Diabetes insipidus",
+      "Cetoacidose isolada",
+      "Elevação da glicose no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipoglicemia'?",
+    "correta": "Diminuição da glicose no sangue",
+    "texto": "Glicemia abaixo do normal, podendo causar sintomas neurológicos e adrenérgicos.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'HIPOGLICEMIA'",
+    "alternativas": [
+      "Hiperglicemia",
+      "Cetoacidose",
+      "Coma hiperosmolar",
+      "Diminuição da glicose no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Cetoacidose diabética'?",
+    "correta": "Complicação aguda do diabetes com cetose e acidose",
+    "texto": "Estado de hiperglicemia, cetose e acidose metabólica, mais comum no DM1.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'CETOACIDOSE DIABÉTICA'",
+    "alternativas": [
+      "Hipoglicemia",
+      "Coma hiperosmolar",
+      "Acidose láctica",
+      "Complicação aguda do diabetes com cetose e acidose"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipotireoidismo'?",
+    "correta": "Diminuição da função da tireoide",
+    "texto": "Produção insuficiente de hormônios tireoidianos, com metabolismo lento.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'HIPOTIREOIDISMO'",
+    "alternativas": [
+      "Hipertireoidismo",
+      "Tireoidite apenas",
+      "Bócio isolado",
+      "Diminuição da função da tireoide"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipertireoidismo'?",
+    "correta": "Aumento da função da tireoide",
+    "texto": "Excesso de hormônios tireoidianos, acelerando o metabolismo.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'HIPERTIREOIDISMO'",
+    "alternativas": [
+      "Hipotireoidismo",
+      "Tireoidite",
+      "Nódulo benigno",
+      "Aumento da função da tireoide"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Osteoporose'?",
+    "correta": "Redução da densidade óssea com risco de fraturas",
+    "texto": "Doença esquelética caracterizada por massa óssea baixa e deterioração da microarquitetura.",
+    "ameaca": "REUMATOLOGIA: DEFINIÇÃO DE 'OSTEOPOROSE'",
+    "alternativas": [
+      "Osteoartrite",
+      "Artrite reumatoide",
+      "Gota",
+      "Redução da densidade óssea com risco de fraturas"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Osteoartrite'?",
+    "correta": "Doença degenerativa das articulações",
+    "texto": "Desgaste da cartilagem articular com formação de osteófitos e dor.",
+    "ameaca": "REUMATOLOGIA: DEFINIÇÃO DE 'OSTEOARTRITE'",
+    "alternativas": [
+      "Osteoporose",
+      "Artrite reumatoide",
+      "Lúpus",
+      "Doença degenerativa das articulações"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Artrite reumatoide'?",
+    "correta": "Doença autoimune inflamatória das articulações",
+    "texto": "Poliartrite simétrica crônica de origem autoimune.",
+    "ameaca": "REUMATOLOGIA: DEFINIÇÃO DE 'ARTRITE REUMATOIDE'",
+    "alternativas": [
+      "Osteoartrite",
+      "Gota",
+      "Espondilite",
+      "Doença autoimune inflamatória das articulações"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Gota'?",
+    "correta": "Artrite por depósito de cristais de ácido úrico",
+    "texto": "Doença causada por hiperuricemia e precipitação de cristais de urato.",
+    "ameaca": "REUMATOLOGIA: DEFINIÇÃO DE 'GOTA'",
+    "alternativas": [
+      "Artrite reumatoide",
+      "Osteoartrite",
+      "Lúpus",
+      "Artrite por depósito de cristais de ácido úrico"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Lúpus eritematoso sistêmico'?",
+    "correta": "Doença autoimune multissistêmica",
+    "texto": "Afecção autoimune que pode acometer pele, articulações, rins, sistema nervoso e outros órgãos.",
+    "ameaca": "REUMATOLOGIA: DEFINIÇÃO DE 'LÚPUS ERITEMATOSO SISTÊMICO'",
+    "alternativas": [
+      "Artrite reumatoide",
+      "Esclerose sistêmica",
+      "Dermatomiosite",
+      "Doença autoimune multissistêmica"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Insuficiência renal'?",
+    "correta": "Redução da função dos rins de filtrar o sangue",
+    "texto": "Diminuição da taxa de filtração glomerular, aguda ou crônica.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'INSUFICIÊNCIA RENAL'",
+    "alternativas": [
+      "Infecção urinária",
+      "Cálculo renal",
+      "Síndrome nefrótica",
+      "Redução da função dos rins de filtrar o sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Síndrome nefrótica'?",
+    "correta": "Proteinúria maciça, hipoalbuminemia e edema",
+    "texto": "Conjunto de achados por lesão da barreira de filtração glomerular.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'SÍNDROME NEFRÓTICA'",
+    "alternativas": [
+      "Síndrome nefrítica",
+      "Insuficiência renal aguda",
+      "Pielonefrite",
+      "Proteinúria maciça, hipoalbuminemia e edema"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Cálculo renal (nefrolitíase)'?",
+    "correta": "Pedra formada no sistema urinário",
+    "texto": "Concreção cristalina no rim ou vias urinárias, podendo causar cólica e obstrução.",
+    "ameaca": "UROLOGIA: DEFINIÇÃO DE 'CÁLCULO RENAL (NEFROLITÍASE)'",
+    "alternativas": [
+      "Infecção urinária",
+      "Tumor renal",
+      "Cisto renal",
+      "Pedra formada no sistema urinário"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Infecção do trato urinário'?",
+    "correta": "Infecção em qualquer parte do sistema urinário",
+    "texto": "Colonização e invasão por micro-organismos nas vias urinárias.",
+    "ameaca": "UROLOGIA: DEFINIÇÃO DE 'INFECÇÃO DO TRATO URINÁRIO'",
+    "alternativas": [
+      "Cálculo renal",
+      "Insuficiência renal",
+      "Síndrome nefrótica",
+      "Infecção em qualquer parte do sistema urinário"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Doença inflamatória intestinal'?",
+    "correta": "Grupo de doenças crônicas inflamatórias do intestino (Crohn e retocolite)",
+    "texto": "Inclui doença de Crohn e retocolite ulcerativa, de natureza inflamatória crônica.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE 'DOENÇA INFLAMATÓRIA INTESTINAL'",
+    "alternativas": [
+      "Síndrome do intestino irritável",
+      "Doença celíaca",
+      "Gastroenterite aguda",
+      "Grupo de doenças crônicas inflamatórias do intestino (Crohn e retocolite)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Cirrose hepática'?",
+    "correta": "Fibrose difusa do fígado com nódulos de regeneração",
+    "texto": "Estágio final de doenças hepáticas crônicas, com distorção da arquitetura hepática.",
+    "ameaca": "HEPATOLOGIA: DEFINIÇÃO DE 'CIRROSE HEPÁTICA'",
+    "alternativas": [
+      "Hepatite aguda",
+      "Esteatose",
+      "Abscesso hepático",
+      "Fibrose difusa do fígado com nódulos de regeneração"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hepatite'?",
+    "correta": "Inflamação do fígado",
+    "texto": "Processo inflamatório hepático de causa viral, tóxica, autoimune ou outras.",
+    "ameaca": "HEPATOLOGIA: DEFINIÇÃO DE 'HEPATITE'",
+    "alternativas": [
+      "Cirrose",
+      "Colecistite",
+      "Pancreatite",
+      "Inflamação do fígado"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Pancreatite'?",
+    "correta": "Inflamação do pâncreas",
+    "texto": "Processo inflamatório agudo ou crônico do pâncreas, frequentemente por cálculos ou álcool.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE 'PANCREATITE'",
+    "alternativas": [
+      "Hepatite",
+      "Colecistite",
+      "Gastrite",
+      "Inflamação do pâncreas"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Gastrite'?",
+    "correta": "Inflamação da mucosa gástrica",
+    "texto": "Processo inflamatório do estômago, agudo ou crônico.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE 'GASTRITE'",
+    "alternativas": [
+      "Úlcera péptica",
+      "Esofagite",
+      "Duodenite",
+      "Inflamação da mucosa gástrica"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Úlcera péptica'?",
+    "correta": "Lesão da mucosa do estômago ou duodeno",
+    "texto": "Solução de continuidade na mucosa gastroduodenal, frequentemente relacionada a H. pylori ou AINEs.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE 'ÚLCERA PÉPTICA'",
+    "alternativas": [
+      "Gastrite",
+      "Esofagite",
+      "Câncer gástrico",
+      "Lesão da mucosa do estômago ou duodeno"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Refluxo gastroesofágico'?",
+    "correta": "Retorno do conteúdo gástrico ao esôfago",
+    "texto": "Passagem retrograda do conteúdo do estômago para o esôfago, causando sintomas ou lesão.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE 'REFLUXO GASTROESOFÁGICO'",
+    "alternativas": [
+      "Acalasia",
+      "Esofagite infecciosa",
+      "Úlcera gástrica",
+      "Retorno do conteúdo gástrico ao esôfago"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Constipação'?",
+    "correta": "Dificuldade ou infrequência de evacuações",
+    "texto": "Evacuações rarificadas ou com fezes endurecidas e esforço excessivo.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE 'CONSTIPAÇÃO'",
+    "alternativas": [
+      "Diarreia",
+      "Incontinência fecal",
+      "Melena",
+      "Dificuldade ou infrequência de evacuações"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Diarreia'?",
+    "correta": "Aumento da frequência ou liquidez das fezes",
+    "texto": "Evacuações mais frequentes ou de consistência amolecida/líquida.",
+    "ameaca": "GASTROENTEROLOGIA: DEFINIÇÃO DE 'DIARREIA'",
+    "alternativas": [
+      "Constipação",
+      "Melena",
+      "Esteatorreia apenas",
+      "Aumento da frequência ou liquidez das fezes"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Desidratação'?",
+    "correta": "Déficit de água corporal",
+    "texto": "Redução do conteúdo total de água do organismo, com ou sem perda de eletrólitos.",
+    "ameaca": "CLÍNICA: DEFINIÇÃO DE 'DESIDRATAÇÃO'",
+    "alternativas": [
+      "Edema",
+      "Hipervolemia",
+      "Intoxicação hídrica",
+      "Déficit de água corporal"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Acidose'?",
+    "correta": "Diminuição do pH sanguíneo",
+    "texto": "Aumento da concentração de íons hidrogênio ou redução do bicarbonato, baixando o pH.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'ACIDOSE'",
+    "alternativas": [
+      "Alcalose",
+      "Hipernatremia",
+      "Hipocalemia",
+      "Diminuição do pH sanguíneo"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Alcalose'?",
+    "correta": "Aumento do pH sanguíneo",
+    "texto": "Redução de H+ ou aumento de bicarbonato, elevando o pH do sangue.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'ALCALOSE'",
+    "alternativas": [
+      "Acidose",
+      "Hiponatremia",
+      "Hipercalemia",
+      "Aumento do pH sanguíneo"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hiponatremia'?",
+    "correta": "Baixa concentração de sódio no sangue",
+    "texto": "Sódio sérico abaixo do limite inferior da normalidade.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'HIPONATREMIA'",
+    "alternativas": [
+      "Hipernatremia",
+      "Hipocalemia",
+      "Hipercalemia",
+      "Baixa concentração de sódio no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipernatremia'?",
+    "correta": "Alta concentração de sódio no sangue",
+    "texto": "Sódio sérico elevado, geralmente por déficit de água livre.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'HIPERNATREMIA'",
+    "alternativas": [
+      "Hiponatremia",
+      "Hipocalemia",
+      "Hipercalemia",
+      "Alta concentração de sódio no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipocalemia'?",
+    "correta": "Baixa concentração de potássio no sangue",
+    "texto": "Potássio sérico abaixo do normal, com risco de arritmias.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'HIPOCALEMIA'",
+    "alternativas": [
+      "Hipercalemia",
+      "Hiponatremia",
+      "Hipocalcemia",
+      "Baixa concentração de potássio no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipercalemia'?",
+    "correta": "Alta concentração de potássio no sangue",
+    "texto": "Potássio sérico elevado, potencialmente fatal por arritmias.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'HIPERCALEMIA'",
+    "alternativas": [
+      "Hipocalemia",
+      "Hipernatremia",
+      "Hipercalcemia",
+      "Alta concentração de potássio no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipocalcemia'?",
+    "correta": "Baixa concentração de cálcio no sangue",
+    "texto": "Cálcio sérico reduzido, podendo causar tetania e alterações cardíacas.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'HIPOCALCEMIA'",
+    "alternativas": [
+      "Hipercalcemia",
+      "Hipocalemia",
+      "Hipomagnesemia",
+      "Baixa concentração de cálcio no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hipercalcemia'?",
+    "correta": "Alta concentração de cálcio no sangue",
+    "texto": "Cálcio sérico elevado, com sintomas gastrointestinais, renais e neurológicos.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'HIPERCALCEMIA'",
+    "alternativas": [
+      "Hipocalcemia",
+      "Hipercalemia",
+      "Hipernatremia",
+      "Alta concentração de cálcio no sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anúria'?",
+    "correta": "Ausência praticamente total de produção de urina",
+    "texto": "Débito urinário inferior a 50–100 mL/dia.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'ANÚRIA'",
+    "alternativas": [
+      "Oligúria",
+      "Poliúria",
+      "Nictúria",
+      "Ausência praticamente total de produção de urina"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Proteinúria'?",
+    "correta": "Presença excessiva de proteínas na urina",
+    "texto": "Eliminação urinária de proteínas acima do limite normal.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'PROTEINÚRIA'",
+    "alternativas": [
+      "Hematúria",
+      "Glicosúria",
+      "Cetonúria",
+      "Presença excessiva de proteínas na urina"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Glicosúria'?",
+    "correta": "Presença de glicose na urina",
+    "texto": "Eliminação de glicose pela urina, geralmente quando a glicemia ultrapassa o limiar renal.",
+    "ameaca": "NEFROLOGIA: DEFINIÇÃO DE 'GLICOSÚRIA'",
+    "alternativas": [
+      "Proteinúria",
+      "Hematúria",
+      "Cetonúria",
+      "Presença de glicose na urina"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Cetonúria'?",
+    "correta": "Presença de corpos cetônicos na urina",
+    "texto": "Eliminação de cetonas na urina, vista no jejum prolongado ou cetoacidose diabética.",
+    "ameaca": "ENDOCRINOLOGIA: DEFINIÇÃO DE 'CETONÚRIA'",
+    "alternativas": [
+      "Glicosúria",
+      "Proteinúria",
+      "Hematúria",
+      "Presença de corpos cetônicos na urina"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Proteinúria de Bence Jones'?",
+    "correta": "Proteína monoclonal na urina (cadeias leves)",
+    "texto": "Proteína característica do mieloma múltiplo, detectada na urina.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'PROTEINÚRIA DE BENCE JONES'",
+    "alternativas": [
+      "Albumina",
+      "Hemoglobina",
+      "Mioglobina",
+      "Proteína monoclonal na urina (cadeias leves)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Mieloma múltiplo'?",
+    "correta": "Câncer de plasmócitos na medula óssea",
+    "texto": "Neoplasia de plasmócitos que produz imunoglobulina monoclonal e lesa ossos e rins.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'MIELOMA MÚLTIPLO'",
+    "alternativas": [
+      "Linfoma",
+      "Leucemia linfoide",
+      "Macroglobulinemia",
+      "Câncer de plasmócitos na medula óssea"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anemia ferropriva'?",
+    "correta": "Anemia por deficiência de ferro",
+    "texto": "Anemia microcítica hipocrômica causada por falta de ferro.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'ANEMIA FERROPRIVA'",
+    "alternativas": [
+      "Anemia megaloblástica",
+      "Anemia falciforme",
+      "Talassemia",
+      "Anemia por deficiência de ferro"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anemia megaloblástica'?",
+    "correta": "Anemia por deficiência de B12 ou folato",
+    "texto": "Anemia macrocítica por prejuízo na síntese de DNA das células precursoras.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'ANEMIA MEGALOBLÁSTICA'",
+    "alternativas": [
+      "Anemia ferropriva",
+      "Anemia hemolítica",
+      "Anemia aplástica",
+      "Anemia por deficiência de B12 ou folato"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Anemia falciforme'?",
+    "correta": "Doença genética com hemácias em forma de foice",
+    "texto": "Hemoglobinopatia hereditária com polimerização da HbS e crises vaso-oclusivas.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'ANEMIA FALCIFORME'",
+    "alternativas": [
+      "Talassemia",
+      "Esferocitose",
+      "G6PD",
+      "Doença genética com hemácias em forma de foice"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hemofilia'?",
+    "correta": "Distúrbio hereditário da coagulação por deficiência de fator",
+    "texto": "Coagulopatia ligada ao X por deficiência do fator VIII (A) ou IX (B).",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'HEMOFILIA'",
+    "alternativas": [
+      "Púrpura trombocitopênica",
+      "Doença de von Willebrand",
+      "Coagulação intravascular",
+      "Distúrbio hereditário da coagulação por deficiência de fator"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Púrpura'?",
+    "correta": "Manchas vermelho-arroxeadas na pele por extravasamento de sangue",
+    "texto": "Lesões cutâneas por sangramento dérmico, não desaparecem à digitopressão.",
+    "ameaca": "DERMATOLOGIA: DEFINIÇÃO DE 'PÚRPURA'",
+    "alternativas": [
+      "Eritema",
+      "Petéquia isolada",
+      "Equimose profunda",
+      "Manchas vermelho-arroxeadas na pele por extravasamento de sangue"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Petéquias'?",
+    "correta": "Pequenos pontos hemorrágicos na pele ou mucosas",
+    "texto": "Hemorragias puntiformes de 1–2 mm, típicas de trombocitopenia.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'PETÉQUIAS'",
+    "alternativas": [
+      "Equimoses",
+      "Hematoma",
+      "Púrpura palpável",
+      "Pequenos pontos hemorrágicos na pele ou mucosas"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Equimose'?",
+    "correta": "Mancha hemorrágica maior que petéquia",
+    "texto": "Extravasamento sanguíneo subcutâneo formando mancha maior, com mudança de cor.",
+    "ameaca": "HEMATOLOGIA: DEFINIÇÃO DE 'EQUIMOSE'",
+    "alternativas": [
+      "Petéquia",
+      "Hematoma elevado",
+      "Púrpura palpável",
+      "Mancha hemorrágica maior que petéquia"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hematoma'?",
+    "correta": "Coleção de sangue em tecido extravascular",
+    "texto": "Acúmulo localizado de sangue fora dos vasos, formando massa.",
+    "ameaca": "PATOLOGIA: DEFINIÇÃO DE 'HEMATOMA'",
+    "alternativas": [
+      "Equimose",
+      "Petéquia",
+      "Púrpura",
+      "Coleção de sangue em tecido extravascular"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Contusão'?",
+    "correta": "Lesão por trauma sem ruptura da pele",
+    "texto": "Lesão tecidual por impacto, com extravasamento sanguíneo subcutâneo.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE 'CONTUSÃO'",
+    "alternativas": [
+      "Laceração",
+      "Abrasão",
+      "Ferimento corto-contuso",
+      "Lesão por trauma sem ruptura da pele"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Laceração'?",
+    "correta": "Ferimento irregular por trauma",
+    "texto": "Solução de continuidade irregular da pele ou tecidos por força de cisalhamento.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE 'LACERAÇÃO'",
+    "alternativas": [
+      "Incisão cirúrgica",
+      "Abrasão",
+      "Punção",
+      "Ferimento irregular por trauma"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Abrasão'?",
+    "correta": "Arrancamento superficial da epiderme",
+    "texto": "Lesão por fricção que remove a camada superficial da pele.",
+    "ameaca": "CIRURGIA: DEFINIÇÃO DE 'ABRASÃO'",
+    "alternativas": [
+      "Laceração",
+      "Contusão",
+      "Úlcera",
+      "Arrancamento superficial da epiderme"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Fratura'?",
+    "correta": "Solução de continuidade de um osso",
+    "texto": "Ruptura completa ou incompleta da estrutura óssea.",
+    "ameaca": "ORTOPEDIA: DEFINIÇÃO DE 'FRATURA'",
+    "alternativas": [
+      "Luxação",
+      "Entorse",
+      "Contusão óssea",
+      "Solução de continuidade de um osso"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Luxação'?",
+    "correta": "Perda completa do contato articular",
+    "texto": "Deslocamento completo das superfícies articulares.",
+    "ameaca": "ORTOPEDIA: DEFINIÇÃO DE 'LUXAÇÃO'",
+    "alternativas": [
+      "Fratura",
+      "Entorse",
+      "Subluxação",
+      "Perda completa do contato articular"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Entorse'?",
+    "correta": "Lesão ligamentar por estiramento ou ruptura parcial",
+    "texto": "Trauma articular com lesão de ligamentos, sem luxação completa.",
+    "ameaca": "ORTOPEDIA: DEFINIÇÃO DE 'ENTORSE'",
+    "alternativas": [
+      "Luxação",
+      "Fratura",
+      "Contusão",
+      "Lesão ligamentar por estiramento ou ruptura parcial"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Escoliose'?",
+    "correta": "Desvio lateral da coluna vertebral",
+    "texto": "Curvatura lateral anormal da coluna no plano frontal.",
+    "ameaca": "ORTOPEDIA: DEFINIÇÃO DE 'ESCOLIOSE'",
+    "alternativas": [
+      "Cifose",
+      "Lordose",
+      "Hérnia de disco",
+      "Desvio lateral da coluna vertebral"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Cifose'?",
+    "correta": "Aumento da curvatura torácica posterior",
+    "texto": "Convexaidade posterior exagerada da coluna torácica.",
+    "ameaca": "ORTOPEDIA: DEFINIÇÃO DE 'CIFOSE'",
+    "alternativas": [
+      "Lordose",
+      "Escoliose",
+      "Retificação",
+      "Aumento da curvatura torácica posterior"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Lordose'?",
+    "correta": "Aumento da curvatura lombar anterior",
+    "texto": "Concavidade anterior exagerada da coluna lombar.",
+    "ameaca": "ORTOPEDIA: DEFINIÇÃO DE 'LORDOSE'",
+    "alternativas": [
+      "Cifose",
+      "Escoliose",
+      "Espondilolistese",
+      "Aumento da curvatura lombar anterior"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Hérnia de disco'?",
+    "correta": "Protrusão do núcleo pulposo do disco intervertebral",
+    "texto": "Deslocamento do conteúdo discale que pode comprimir raízes nervosas.",
+    "ameaca": "ORTOPEDIA: DEFINIÇÃO DE 'HÉRNIA DE DISCO'",
+    "alternativas": [
+      "Espondilose",
+      "Fratura vertebral",
+      "Escoliose",
+      "Protrusão do núcleo pulposo do disco intervertebral"
+    ]
+  },
+  {
+    "inimigo": "O que é 'AVC (Acidente Vascular Cerebral)'?",
+    "correta": "Déficit neurológico agudo por distúrbio vascular cerebral",
+    "texto": "Lesão cerebral aguda isquêmica ou hemorrágica com sinais focais.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE 'AVC (ACIDENTE VASCULAR CEREBRAL)'",
+    "alternativas": [
+      "AIT",
+      "Enxaqueca",
+      "Crise epiléptica",
+      "Déficit neurológico agudo por distúrbio vascular cerebral"
+    ]
+  },
+  {
+    "inimigo": "O que é 'AIT (Ataque Isquêmico Transitório)'?",
+    "correta": "Déficit neurológico focal transitório sem infarto",
+    "texto": "Episódio isquêmico breve que regride completamente, sem lesão permanente.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE 'AIT (ATAQUE ISQUÊMICO TRANSITÓRIO)'",
+    "alternativas": [
+      "AVC estabelecido",
+      "Enxaqueca com aura",
+      "Síncope",
+      "Déficit neurológico focal transitório sem infarto"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Demência'?",
+    "correta": "Declínio cognitivo crônico que interfere nas atividades diárias",
+    "texto": "Síndrome de deterioração intelectual progressiva com prejuízo funcional.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE 'DEMÊNCIA'",
+    "alternativas": [
+      "Delirium",
+      "Depressão",
+      "Retardo mental",
+      "Declínio cognitivo crônico que interfere nas atividades diárias"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Delirium'?",
+    "correta": "Confusão mental aguda e flutuante",
+    "texto": "Distúrbio agudo da atenção e consciência, frequentemente reversível.",
+    "ameaca": "NEUROLOGIA: DEFINIÇÃO DE 'DELIRIUM'",
+    "alternativas": [
+      "Demência",
+      "Psicose crônica",
+      "Retardo",
+      "Confusão mental aguda e flutuante"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Depressão'?",
+    "correta": "Transtorno do humor com tristeza persistente e anedonia",
+    "texto": "Quadro de humor deprimido, perda de interesse e sintomas vegetativos.",
+    "ameaca": "PSIQUIATRIA: DEFINIÇÃO DE 'DEPRESSÃO'",
+    "alternativas": [
+      "Ansiedade",
+      "Transtorno bipolar",
+      "Esquizofrenia",
+      "Transtorno do humor com tristeza persistente e anedonia"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Ansiedade'?",
+    "correta": "Estado de apreensão e tensão antecipatória",
+    "texto": "Sensação de medo ou preocupação excessiva, com sintomas físicos e cognitivos.",
+    "ameaca": "PSIQUIATRIA: DEFINIÇÃO DE 'ANSIEDADE'",
+    "alternativas": [
+      "Depressão",
+      "Mania",
+      "Psicose",
+      "Estado de apreensão e tensão antecipatória"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Psicose'?",
+    "correta": "Perda de contato com a realidade (delírios e/ou alucinações)",
+    "texto": "Estado mental com comprometimento do juízo de realidade.",
+    "ameaca": "PSIQUIATRIA: DEFINIÇÃO DE 'PSICOSE'",
+    "alternativas": [
+      "Neuroses",
+      "Depressão",
+      "Ansiedade",
+      "Perda de contato com a realidade (delírios e/ou alucinações)"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Delírio (psiquiátrico)'?",
+    "correta": "Crença falsa e incorrigível",
+    "texto": "Ideia fixa falsa não compartilhada pelo grupo cultural do indivíduo.",
+    "ameaca": "PSIQUIATRIA: DEFINIÇÃO DE 'DELÍRIO (PSIQUIÁTRICO)'",
+    "alternativas": [
+      "Alucinação",
+      "Ilusão",
+      "Obsessão",
+      "Crença falsa e incorrigível"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Alucinação'?",
+    "correta": "Percepção sem estímulo externo real",
+    "texto": "Experiência sensorial vivida na ausência de estímulo correspondente.",
+    "ameaca": "PSIQUIATRIA: DEFINIÇÃO DE 'ALUCINAÇÃO'",
+    "alternativas": [
+      "Ilusão",
+      "Delírio",
+      "Desrealização",
+      "Percepção sem estímulo externo real"
+    ]
+  },
+  {
+    "inimigo": "O que é 'Ilusão'?",
+    "correta": "Percepção distorcida de um estímulo real",
+    "texto": "Interpretação errônea de um estímulo sensorial existente.",
+    "ameaca": "PSIQUIATRIA: DEFINIÇÃO DE 'ILUSÃO'",
+    "alternativas": [
+      "Alucinação",
+      "Delírio",
+      "Despersonalização",
+      "Percepção distorcida de um estímulo real"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🧠 TERMOS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA TERMINOLÓGICO] TERMO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🩺`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A DEFINIÇÃO CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A definição para '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE AVALIAÇÃO DE TERMOS MÉDICOS CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} termos.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TERMOS MÉDICOS INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

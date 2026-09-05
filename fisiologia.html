@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Fisiologia - Um quiz de Fisiologia para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Fisiologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Fisiologia</h1>
+  <p>Compreenda o funcionamento do corpo humano! 🧠</p>
+
+  <div id="terminal">[SISTEMA DE TESTE FISIOLÓGICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🩺 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE FISIOLÓGICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE FISIOLOGIA</h2>
+      <p>Bem-vindo, Futuro Fisiologista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre as funções e mecanismos do corpo humano e de outros sistemas biológicos.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente os processos fisiológicos, órgãos e sistemas funcionais apresentados no terminal.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre como o corpo funciona e mantém a homeostase.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Fisiológica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A compreensão dos mecanismos fisiológicos é vital. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Fisiologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica e biológica:</p>
+      <ul>
+        <li>**LIVRO:** Guyton e Hall - Tratado de Fisiologia Médica [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Ganong - Fisiologia Médica [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Berne & Levy - Fisiologia [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Silverthorn - Fisiologia Humana: Uma Abordagem Integrada [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Fisiologia.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico e biológico reconhecidas, como sites de universidades com materiais e cursos de Fisiologia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Hormonio pancreatico que reduz a glicose sanguinea",
+    "correta": "Insulina",
+    "texto": "Produzida pelas celulas beta; promove captacao de glicose.",
+    "ameaca": "INSULINA",
+    "alternativas": [
+      "Glucagon",
+      "Adrenalina",
+      "Cortisol",
+      "Insulina"
+    ]
+  },
+  {
+    "inimigo": "Processo inicial de formacao da urina nos rins",
+    "correta": "Filtracao glomerular",
+    "texto": "Agua e solutos pequenos passam do sangue para a capsula de Bowman.",
+    "ameaca": "FILTRACAO",
+    "alternativas": [
+      "Reabsorcao tubular",
+      "Secrecao tubular",
+      "Osmose pura",
+      "Filtracao glomerular"
+    ]
+  },
+  {
+    "inimigo": "Sistema responsavel pela troca de O2 e CO2",
+    "correta": "Sistema respiratorio",
+    "texto": "Pulmoes e vias aereas captam O2 e eliminam CO2.",
+    "ameaca": "RESPIRATORIO",
+    "alternativas": [
+      "Cardiovascular",
+      "Digestório",
+      "Endocrino",
+      "Sistema respiratorio"
+    ]
+  },
+  {
+    "inimigo": "Regiao do encefalo que controla equilibrio e coordenacao",
+    "correta": "Cerebelo",
+    "texto": "Coordena movimentos voluntarios, postura e equilibrio.",
+    "ameaca": "CEREBELO",
+    "alternativas": [
+      "Cortex cerebral",
+      "Tronco encefalico",
+      "Hipotálamo",
+      "Cerebelo"
+    ]
+  },
+  {
+    "inimigo": "Caracteristica das celulas musculares cardiacas",
+    "correta": "Juncoes comunicantes (discos intercalares)",
+    "texto": "Permitem propagacao rapida do potencial de acao e contracao sincronizada.",
+    "ameaca": "MIOCARDIO",
+    "alternativas": [
+      "Multinucleadas como esqueletico",
+      "Contracao voluntaria",
+      "Sem estriacoes",
+      "Juncoes comunicantes (discos intercalares)"
+    ]
+  },
+  {
+    "inimigo": "Unidade funcional do rim",
+    "correta": "Nefron",
+    "texto": "Glomerulo + tubulos; filtracao, reabsorcao e secrecao.",
+    "ameaca": "NEFRON",
+    "alternativas": [
+      "Ureter",
+      "Bexiga",
+      "Uretra",
+      "Nefron"
+    ]
+  },
+  {
+    "inimigo": "Hormonio chave no ciclo menstrual e caracteres sexuais femininos",
+    "correta": "Estrogenio",
+    "texto": "Produzido principalmente pelos ovarios.",
+    "ameaca": "ESTROGENIO",
+    "alternativas": [
+      "Testosterona",
+      "Progesterona isolada",
+      "Ocitocina",
+      "Estrogenio"
+    ]
+  },
+  {
+    "inimigo": "Processo de digestao de lipidios facilitado pela bile",
+    "correta": "Emulsificacao",
+    "texto": "Reduz tamanho das goticulas de gordura para acao das lipases.",
+    "ameaca": "EMULSIFICACAO",
+    "alternativas": [
+      "Saponificacao",
+      "Hidrolise proteica",
+      "Amilase",
+      "Emulsificacao"
+    ]
+  },
+  {
+    "inimigo": "Neurotransmissor ligado a prazer e recompensa",
+    "correta": "Dopamina",
+    "texto": "Sistemas de motivacao, prazer e controle motor.",
+    "ameaca": "DOPAMINA",
+    "alternativas": [
+      "Serotonina",
+      "Acetilcolina",
+      "GABA",
+      "Dopamina"
+    ]
+  },
+  {
+    "inimigo": "Manutencao do ambiente interno estavel",
+    "correta": "Homeostase",
+    "texto": "Regulacao fisiologica de temperatura, pH, glicose, etc.",
+    "ameaca": "HOMEOSTASE",
+    "alternativas": [
+      "Metabolismo",
+      "Adaptacao evolutiva",
+      "Evolucao",
+      "Homeostase"
+    ]
+  },
+  {
+    "inimigo": "Hormonio que eleva a glicose sanguinea (pancreas)",
+    "correta": "Glucagon",
+    "texto": "Celulas alfa; estimula glicogenolise e gliconeogenese.",
+    "ameaca": "GLUCAGON",
+    "alternativas": [
+      "Insulina",
+      "Somatostatina",
+      "Glucagon",
+      "Aldosterona"
+    ]
+  },
+  {
+    "inimigo": "Potencial de membrana em repouso: ion principal",
+    "correta": "Gradiente de K+ (mais permeabilidade ao potassio)",
+    "texto": "Interior negativo em relacao ao exterior.",
+    "ameaca": "POTENCIAL REPOUSO",
+    "alternativas": [
+      "So Na+",
+      "So Ca2+",
+      "Gradiente de K+ (mais permeabilidade ao potassio)",
+      "So Cl-"
+    ]
+  },
+  {
+    "inimigo": "Potencial de acao: despolarizacao",
+    "correta": "Abertura de canais de Na+ voltagem-dependentes",
+    "texto": "Na+ entra e o potencial torna-se positivo.",
+    "ameaca": "DESPOLARIZACAO",
+    "alternativas": [
+      "Saida de K+",
+      "Entrada de Cl-",
+      "Abertura de canais de Na+ voltagem-dependentes",
+      "Bomba Na/K apenas"
+    ]
+  },
+  {
+    "inimigo": "Potencial de acao: repolarizacao",
+    "correta": "Saida de K+ por canais de potassio",
+    "texto": "Restaura o potencial negativo.",
+    "ameaca": "REPOLARIZACAO",
+    "alternativas": [
+      "Entrada de Na+",
+      "Entrada de Ca2+",
+      "Saida de K+ por canais de potassio",
+      "Fechamento so de Cl-"
+    ]
+  },
+  {
+    "inimigo": "Bomba Na/K ATPase",
+    "correta": "3 Na+ para fora e 2 K+ para dentro (consome ATP)",
+    "texto": "Mantem gradientes ionicos e contribui para o potencial.",
+    "ameaca": "BOMBA NA K",
+    "alternativas": [
+      "Canais passivos apenas",
+      "Simporte glicose",
+      "3 Na+ para fora e 2 K+ para dentro (consome ATP)",
+      "Antiporte Ca/Na apenas"
+    ]
+  },
+  {
+    "inimigo": "Sinapse quimica: neurotransmissor na fenda",
+    "correta": "Liberado por exocitose mediada por Ca2+ no terminal",
+    "texto": "Liga-se a receptores pos-sinapticos.",
+    "ameaca": "SINAPSE",
+    "alternativas": [
+      "Passa por gap junctions apenas",
+      "Difusao de Na+ direto",
+      "Liberado por exocitose mediada por Ca2+ no terminal",
+      "So eletrica sempre"
+    ]
+  },
+  {
+    "inimigo": "Acetilcolina na juncao neuromuscular",
+    "correta": "Liga-se a receptores nicotinicos → despolarizacao da placa",
+    "texto": "Hidrolisada pela acetilcolinesterase.",
+    "ameaca": "ACH JNM",
+    "alternativas": [
+      "So muscarinico no musculo",
+      "Dopamina",
+      "Liga-se a receptores nicotinicos → despolarizacao da placa",
+      "GABA"
+    ]
+  },
+  {
+    "inimigo": "GABA",
+    "correta": "Principal neurotransmissor inibitorio no SNC",
+    "texto": "Abre canais de Cl- (ou K+); hiperpolariza.",
+    "ameaca": "GABA",
+    "alternativas": [
+      "Glutamato",
+      "Acetilcolina",
+      "Principal neurotransmissor inibitorio no SNC",
+      "Dopamina"
+    ]
+  },
+  {
+    "inimigo": "Glutamato",
+    "correta": "Principal neurotransmissor excitatorio no SNC",
+    "texto": "Receptores AMPA, NMDA, cainato.",
+    "ameaca": "GLUTAMATO",
+    "alternativas": [
+      "GABA",
+      "Glicina apenas",
+      "Principal neurotransmissor excitatorio no SNC",
+      "Serotonina"
+    ]
+  },
+  {
+    "inimigo": "Serotonina (5-HT)",
+    "correta": "Humor, sono, apetite; muitos receptores",
+    "texto": "Alvo de ISRS.",
+    "ameaca": "SEROTONINA",
+    "alternativas": [
+      "So motor",
+      "So periferico",
+      "Humor, sono, apetite; muitos receptores",
+      "So na juncao neuromuscular"
+    ]
+  },
+  {
+    "inimigo": "Noradrenalina",
+    "correta": "Neurotransmissor do sistema simpatico pos-ganglionar",
+    "texto": "Receptores alfa e beta.",
+    "ameaca": "NORADRENALINA",
+    "alternativas": [
+      "Acetilcolina em todos os efetores",
+      "Dopamina apenas",
+      "Neurotransmissor do sistema simpatico pos-ganglionar",
+      "GABA"
+    ]
+  },
+  {
+    "inimigo": "Sistema nervoso simpatico: efeitos gerais",
+    "correta": "Luta ou fuga: ↑FC, broncodilatacao, redistribuicao de fluxo",
+    "texto": "Ganglionar: ACh; pos-ganglionar: NA (exceto suor).",
+    "ameaca": "SIMPATICO",
+    "alternativas": [
+      "Repouso e digestao",
+      "So parassimpatico",
+      "Luta ou fuga: ↑FC, broncodilatacao, redistribuicao de fluxo",
+      "So somatico"
+    ]
+  },
+  {
+    "inimigo": "Sistema nervoso parassimpatico",
+    "correta": "Repouso e digestao: ↓FC, ↑motilidade GI, broncoconstrição",
+    "texto": "Neurotransmissor pos-ganglionar: ACh (muscarinico).",
+    "ameaca": "PARASSIMPATICO",
+    "alternativas": [
+      "Luta ou fuga",
+      "So somatico",
+      "Repouso e digestao: ↓FC, ↑motilidade GI, broncoconstrição",
+      "So medula adrenal"
+    ]
+  },
+  {
+    "inimigo": "Reflexo de estiramento (miotatico)",
+    "correta": "Fuso muscular detecta estiramento → contracao do mesmo musculo",
+    "texto": "Via monossinaptica; base do reflexo patelar.",
+    "ameaca": "REFLEXO MIOTATICO",
+    "alternativas": [
+      "So polissinaptico sempre",
+      "Inibe o proprio musculo",
+      "Fuso muscular detecta estiramento → contracao do mesmo musculo",
+      "So cutaneo"
+    ]
+  },
+  {
+    "inimigo": "Fuso muscular",
+    "correta": "Receptor de comprimento do musculo",
+    "texto": "Aferentes Ia e II; ajustado por motoneuronios gama.",
+    "ameaca": "FUSO",
+    "alternativas": [
+      "Orgao tendinoso de Golgi",
+      "Nociceptor",
+      "Receptor de comprimento do musculo",
+      "Barorreceptor"
+    ]
+  },
+  {
+    "inimigo": "Orgao tendinoso de Golgi",
+    "correta": "Detecta tensao no tendao; inibe o musculo (protecao)",
+    "texto": "Aferentes Ib.",
+    "ameaca": "GOLGI TENDAO",
+    "alternativas": [
+      "Fuso muscular",
+      "Meissner",
+      "Detecta tensao no tendao; inibe o musculo (protecao)",
+      "Pacini"
+    ]
+  },
+  {
+    "inimigo": "Cortex motor primario",
+    "correta": "Giro pre-central; origem do trato corticoespinal",
+    "texto": "Mapa somatotopico (homunculo motor).",
+    "ameaca": "CORTEX MOTOR",
+    "alternativas": [
+      "Giro pos-central",
+      "Cerebelo apenas",
+      "Giro pre-central; origem do trato corticoespinal",
+      "Hipotálamo"
+    ]
+  },
+  {
+    "inimigo": "Cortex somatossensorial primario",
+    "correta": "Giro pos-central; recebe informacao sensitiva do corpo",
+    "texto": "Homunculo sensorial.",
+    "ameaca": "CORTEX SENSORIAL",
+    "alternativas": [
+      "Pre-central",
+      "Occipital apenas",
+      "Giro pos-central; recebe informacao sensitiva do corpo",
+      "Tronco apenas"
+    ]
+  },
+  {
+    "inimigo": "Tronco encefalico: funcoes vitais",
+    "correta": "Centros respiratorio, cardiovascular e de consciencia (RF)",
+    "texto": "Mesencefalo, ponte e bulbo.",
+    "ameaca": "TRONCO",
+    "alternativas": [
+      "So cerebelo",
+      "So cortex",
+      "Centros respiratorio, cardiovascular e de consciencia (RF)",
+      "So medula espinhal"
+    ]
+  },
+  {
+    "inimigo": "Hipotálamo",
+    "correta": "Regula temperatura, fome, sede, sono e controle endocrino",
+    "texto": "Liga sistema nervoso ao endocrino (hipofise).",
+    "ameaca": "HIPOTALAMO",
+    "alternativas": [
+      "Cerebelo",
+      "Tálamo apenas sensorial",
+      "Regula temperatura, fome, sede, sono e controle endocrino",
+      "Cortex visual"
+    ]
+  },
+  {
+    "inimigo": "Hipofise anterior (adenohipofise)",
+    "correta": "GH, PRL, ACTH, TSH, FSH, LH",
+    "texto": "Controlada por hormonios hipotalamicos.",
+    "ameaca": "ADENOHIPOFISE",
+    "alternativas": [
+      "Ocitocina e ADH",
+      "So melatonin",
+      "GH, PRL, ACTH, TSH, FSH, LH",
+      "So adrenalina"
+    ]
+  },
+  {
+    "inimigo": "Hipofise posterior (neurohipofise)",
+    "correta": "Ocitocina e ADH (vasopressina)",
+    "texto": "Produzidos no hipotálamo e armazenados na posterior.",
+    "ameaca": "NEUROHIPOFISE",
+    "alternativas": [
+      "GH e PRL",
+      "ACTH e TSH",
+      "Ocitocina e ADH (vasopressina)",
+      "FSH e LH"
+    ]
+  },
+  {
+    "inimigo": "ADH (vasopressina)",
+    "correta": "Aumenta reabsorcao de agua no ducto coletor; vasoconstricao",
+    "texto": "Deficit: diabetes insipidus.",
+    "ameaca": "ADH",
+    "alternativas": [
+      "Aldosterona igual",
+      "ANP",
+      "Aumenta reabsorcao de agua no ducto coletor; vasoconstricao",
+      "Insulina"
+    ]
+  },
+  {
+    "inimigo": "Aldosterona",
+    "correta": "Aumenta reabsorcao de Na+ e secrecao de K+ no tubulo distal/coletor",
+    "texto": "Eixo renina-angiotensina-aldosterona.",
+    "ameaca": "ALDOSTERONA",
+    "alternativas": [
+      "ADH",
+      "ANP",
+      "Aumenta reabsorcao de Na+ e secrecao de K+ no tubulo distal/coletor",
+      "Cortisol apenas"
+    ]
+  },
+  {
+    "inimigo": "Eixo RAA",
+    "correta": "Renina (rim) → angiotensina I → II (ECA) → aldosterona e vasoconstricao",
+    "texto": "Resposta a hipovolemia e hipotensao.",
+    "ameaca": "EIXO RAA",
+    "alternativas": [
+      "So ADH",
+      "So ANP",
+      "Renina (rim) → angiotensina I → II (ECA) → aldosterona e vasoconstricao",
+      "So cortisol"
+    ]
+  },
+  {
+    "inimigo": "ANP (peptideo natriuretico atrial)",
+    "correta": "Liberado pelo atrio em estiramento; natriurese e vasodilatacao",
+    "texto": "Opoe-se ao RAA.",
+    "ameaca": "ANP",
+    "alternativas": [
+      "ADH",
+      "Aldosterona",
+      "Liberado pelo atrio em estiramento; natriurese e vasodilatacao",
+      "Renina"
+    ]
+  },
+  {
+    "inimigo": "Cortisol",
+    "correta": "Glicocorticoide: estresse, gliconeogenese, anti-inflamatorio",
+    "texto": "Eixo CRH-ACTH-adrenal.",
+    "ameaca": "CORTISOL",
+    "alternativas": [
+      "Aldosterona apenas",
+      "Adrenalina apenas",
+      "Glicocorticoide: estresse, gliconeogenese, anti-inflamatorio",
+      "Insulina"
+    ]
+  },
+  {
+    "inimigo": "Adrenalina (medula adrenal)",
+    "correta": "Catecolamina: luta ou fuga sistemica",
+    "texto": "Estimulo simpatico pre-ganglionar (ACh).",
+    "ameaca": "ADRENALINA",
+    "alternativas": [
+      "Cortisol apenas",
+      "Aldosterona",
+      "Catecolamina: luta ou fuga sistemica",
+      "ADH"
+    ]
+  },
+  {
+    "inimigo": "PTH (paratormonio)",
+    "correta": "Aumenta Ca2+ plasmatico (osso, rim, ativacao de vit D)",
+    "texto": "Hiperparatireoidismo: hiperCa.",
+    "ameaca": "PTH",
+    "alternativas": [
+      "Calcitonina",
+      "Insulina",
+      "Aumenta Ca2+ plasmatico (osso, rim, ativacao de vit D)",
+      "T4"
+    ]
+  },
+  {
+    "inimigo": "Calcitonina",
+    "correta": "Reduz Ca2+ plasmatico (inibe osteoclastos)",
+    "texto": "Produzida pelas celulas C da tireoide.",
+    "ameaca": "CALCITONINA",
+    "alternativas": [
+      "PTH",
+      "Vitamina D",
+      "Reduz Ca2+ plasmatico (inibe osteoclastos)",
+      "Cortisol"
+    ]
+  },
+  {
+    "inimigo": "Vitamina D ativa (calcitriol)",
+    "correta": "Aumenta absorcao intestinal de Ca2+ e PO4",
+    "texto": "Ativada no rim sob influencia do PTH.",
+    "ameaca": "CALCITRIOL",
+    "alternativas": [
+      "PTH apenas",
+      "Calcitonina",
+      "Aumenta absorcao intestinal de Ca2+ e PO4",
+      "Insulina"
+    ]
+  },
+  {
+    "inimigo": "T3 e T4",
+    "correta": "Aumentam metabolismo basal e consumo de O2",
+    "texto": "Essenciais para crescimento e desenvolvimento neurologico.",
+    "ameaca": "TIREOIDE",
+    "alternativas": [
+      "So calcitonina",
+      "So PTH",
+      "Aumentam metabolismo basal e consumo de O2",
+      "Insulina"
+    ]
+  },
+  {
+    "inimigo": "GH (hormonio do crescimento)",
+    "correta": "Crescimento linear e efeitos metabolicos (via IGF-1)",
+    "texto": "Excesso adulto: acromegalia.",
+    "ameaca": "GH",
+    "alternativas": [
+      "PRL",
+      "ACTH",
+      "Crescimento linear e efeitos metabolicos (via IGF-1)",
+      "ADH"
+    ]
+  },
+  {
+    "inimigo": "Prolactina",
+    "correta": "Estimula producao de leite",
+    "texto": "Inibida por dopamina hipotalamica.",
+    "ameaca": "PROLACTINA",
+    "alternativas": [
+      "Ocitocina apenas",
+      "GH",
+      "Estimula producao de leite",
+      "FSH"
+    ]
+  },
+  {
+    "inimigo": "Ocitocina",
+    "correta": "Contracao uterina e ejetacao do leite",
+    "texto": "Reflexo de succao e estiramento cervical.",
+    "ameaca": "OCITOCINA",
+    "alternativas": [
+      "Prolactina apenas",
+      "ADH igual",
+      "Contracao uterina e ejetacao do leite",
+      "FSH"
+    ]
+  },
+  {
+    "inimigo": "FSH e LH no homem",
+    "correta": "FSH: espermatogenese (Sertoli); LH: testosterona (Leydig)",
+    "texto": "Eixo GnRH-hipofise-gonada.",
+    "ameaca": "FSH LH HOMEM",
+    "alternativas": [
+      "So estrogenio",
+      "So ocitocina",
+      "FSH: espermatogenese (Sertoli); LH: testosterona (Leydig)",
+      "So ADH"
+    ]
+  },
+  {
+    "inimigo": "FSH e LH na mulher",
+    "correta": "FSH: crescimento folicular; LH: ovulacao e corpo luteo",
+    "texto": "Ciclo menstrual.",
+    "ameaca": "FSH LH MULHER",
+    "alternativas": [
+      "So prolactina",
+      "So ocitocina",
+      "FSH: crescimento folicular; LH: ovulacao e corpo luteo",
+      "So TSH"
+    ]
+  },
+  {
+    "inimigo": "Progesterona",
+    "correta": "Prepara o endometrio para implantacao; mantem gravidez",
+    "texto": "Produzida pelo corpo luteo e placenta.",
+    "ameaca": "PROGESTERONA",
+    "alternativas": [
+      "So estrogenio",
+      "Testosterona",
+      "Prepara o endometrio para implantacao; mantem gravidez",
+      "Insulina"
+    ]
+  },
+  {
+    "inimigo": "Ciclo cardiaco: sistole ventricular",
+    "correta": "Contracao ventricular → ejeção (valvas AV fechadas, semilunares abertas)",
+    "texto": "Pressao ventricular sobe.",
+    "ameaca": "SISTOLIA",
+    "alternativas": [
+      "Relaxamento",
+      "So atrial",
+      "Contracao ventricular → ejeção (valvas AV fechadas, semilunares abertas)",
+      "Diastase apenas"
+    ]
+  },
+  {
+    "inimigo": "Ciclo cardiaco: diástole ventricular",
+    "correta": "Relaxamento → enchimento (valvas AV abertas)",
+    "texto": "Pressao ventricular baixa.",
+    "ameaca": "DIASTOLE",
+    "alternativas": [
+      "Ejeção",
+      "So atrial contracao",
+      "Relaxamento → enchimento (valvas AV abertas)",
+      "Sistole isovolumetrica apenas"
+    ]
+  },
+  {
+    "inimigo": "Debito cardiaco",
+    "correta": "FC × volume sistolico",
+    "texto": "Normal ~5 L/min em adulto em repouso.",
+    "ameaca": "DEBITO CARDIACO",
+    "alternativas": [
+      "So pressao",
+      "So resistencia",
+      "FC × volume sistolico",
+      "So hematocrito"
+    ]
+  },
+  {
+    "inimigo": "Lei de Frank-Starling",
+    "correta": "Maior pre-carga (estiramento) → maior forca de contracao (dentro de limites)",
+    "texto": "Ajusta VS a volta venosa.",
+    "ameaca": "FRANK STARLING",
+    "alternativas": [
+      "So pos-carga",
+      "So FC",
+      "Maior pre-carga (estiramento) → maior forca de contracao (dentro de limites)",
+      "So resistencia periferica"
+    ]
+  },
+  {
+    "inimigo": "Pre-carga",
+    "correta": "Grau de estiramento do miocito no final da diástole",
+    "texto": "Relacionada ao volume diastolico final / PVC.",
+    "ameaca": "PRE CARGA",
+    "alternativas": [
+      "Pressao aortica",
+      "Resistencia arteriolar",
+      "Grau de estiramento do miocito no final da diástole",
+      "FC"
+    ]
+  },
+  {
+    "inimigo": "Pos-carga",
+    "correta": "Resistencia a ejeção ventricular (pressao aortica/pulmonar)",
+    "texto": "Aumento reduz volume sistolico se nao compensado.",
+    "ameaca": "POS CARGA",
+    "alternativas": [
+      "Volume diastolico",
+      "Retorno venoso",
+      "Resistencia a ejeção ventricular (pressao aortica/pulmonar)",
+      "Pre-carga igual"
+    ]
+  },
+  {
+    "inimigo": "Pressao arterial media (PAM)",
+    "correta": "DC × resistencia vascular periferica (aproximacao)",
+    "texto": "Tambem: PAD + (PAS-PAD)/3.",
+    "ameaca": "PAM",
+    "alternativas": [
+      "So sistolica",
+      "So diastolica",
+      "DC × resistencia vascular periferica (aproximacao)",
+      "So PVC"
+    ]
+  },
+  {
+    "inimigo": "Barorreceptores",
+    "correta": "Seio carotideo e arco aortico; detectam estiramento arterial",
+    "texto": "Reflexo: ↑PA → ↑parassimpatico e ↓simpatico.",
+    "ameaca": "BARORRECEPTOR",
+    "alternativas": [
+      "Quimiorreceptor central apenas",
+      "Fuso muscular",
+      "Seio carotideo e arco aortico; detectam estiramento arterial",
+      "Golgi"
+    ]
+  },
+  {
+    "inimigo": "Quimiorreceptores perifericos",
+    "correta": "Corpos carotideo e aortico: respondem a ↓PO2, ↑PCO2, ↓pH",
+    "texto": "Estimulam ventilacao.",
+    "ameaca": "QUIMIORRECEPTOR PERIF",
+    "alternativas": [
+      "So barorreceptor",
+      "So central ao O2",
+      "Corpos carotideo e aortico: respondem a ↓PO2, ↑PCO2, ↓pH",
+      "Fuso"
+    ]
+  },
+  {
+    "inimigo": "Quimiorreceptores centrais",
+    "correta": "Bulbo: respondem ao pH do LCR (CO2)",
+    "texto": "Principal drive ventilatorio em repouso.",
+    "ameaca": "QUIMIORRECEPTOR CENTRAL",
+    "alternativas": [
+      "So O2 periferico",
+      "So estiramento pulmonar",
+      "Bulbo: respondem ao pH do LCR (CO2)",
+      "Barorreceptor"
+    ]
+  },
+  {
+    "inimigo": "Surfactante pulmonar",
+    "correta": "Reduz tensao superficial alveolar; produzido por pneumocito II",
+    "texto": "Evita colapso; deficiencia no prematuro = SDR.",
+    "ameaca": "SURFACTANTE",
+    "alternativas": [
+      "Muco apenas",
+      "IgA apenas",
+      "Reduz tensao superficial alveolar; produzido por pneumocito II",
+      "Hemoglobina"
+    ]
+  },
+  {
+    "inimigo": "Lei de Laplace no alveolo",
+    "correta": "P = 2T/r; sem surfactante alveolos pequenos colapsariam",
+    "texto": "Surfactante estabiliza alveolos de diferentes tamanhos.",
+    "ameaca": "LAPLACE ALVEOLO",
+    "alternativas": [
+      "So fluxo sanguineo",
+      "So resistência de vias",
+      "P = 2T/r; sem surfactante alveolos pequenos colapsariam",
+      "Frank-Starling"
+    ]
+  },
+  {
+    "inimigo": "Volumes pulmonares: VC (volume corrente)",
+    "correta": "Ar inspirado/expirado em respiracao normal (~500 mL)",
+    "texto": "Base da ventilacao minuto.",
+    "ameaca": "VOLUME CORRENTE",
+    "alternativas": [
+      "CV",
+      "VR",
+      "Ar inspirado/expirado em respiracao normal (~500 mL)",
+      "CPT"
+    ]
+  },
+  {
+    "inimigo": "Capacidade vital",
+    "correta": "VRI + VC + VRE (maximo expirado apos inspiracao maxima)",
+    "texto": "Reduzida em restritivas.",
+    "ameaca": "CAPACIDADE VITAL",
+    "alternativas": [
+      "VR apenas",
+      "CPT menos VR igual sempre a CV? sim na pratica CV=CPT-VR",
+      "VRI + VC + VRE (maximo expirado apos inspiracao maxima)",
+      "So VC"
+    ]
+  },
+  {
+    "inimigo": "Volume residual",
+    "correta": "Ar que permanece apos expiracao maxima",
+    "texto": "Nao medido por espirometria simples.",
+    "ameaca": "VOLUME RESIDUAL",
+    "alternativas": [
+      "VC",
+      "VRI",
+      "Ar que permanece apos expiracao maxima",
+      "CV"
+    ]
+  },
+  {
+    "inimigo": "Ventilacao minuto",
+    "correta": "VC × frequencia respiratoria",
+    "texto": "Aumenta em exercicio e acidose.",
+    "ameaca": "VENTILACAO MINUTO",
+    "alternativas": [
+      "So VC",
+      "So CPT",
+      "VC × frequencia respiratoria",
+      "So VR"
+    ]
+  },
+  {
+    "inimigo": "Espaco morto anatomico",
+    "correta": "Volume das vias aereas de conducao (~150 mL) sem troca gasosa",
+    "texto": "Parte do VC nao participa das trocas.",
+    "ameaca": "ESPACO MORTO",
+    "alternativas": [
+      "Alveolos funcionais",
+      "Sangue",
+      "Volume das vias aereas de conducao (~150 mL) sem troca gasosa",
+      "Capacidade residual"
+    ]
+  },
+  {
+    "inimigo": "Troca gasosa alveolar",
+    "correta": "Difusao de O2 e CO2 segundo gradientes de pressao parcial",
+    "texto": "Barreira alveolocapilar fina.",
+    "ameaca": "TROCA GASOSA",
+    "alternativas": [
+      "Transporte ativo de O2",
+      "Filtracao",
+      "Difusao de O2 e CO2 segundo gradientes de pressao parcial",
+      "Osmose de N2"
+    ]
+  },
+  {
+    "inimigo": "Transporte de O2 no sangue",
+    "correta": "Principalmente ligado a hemoglobina; pequena parte dissolvido",
+    "texto": "Curva de dissociacao sigmoidal.",
+    "ameaca": "TRANSPORTE O2",
+    "alternativas": [
+      "So dissolvido",
+      "So plasma proteinas",
+      "Principalmente ligado a hemoglobina; pequena parte dissolvido",
+      "So em leucocitos"
+    ]
+  },
+  {
+    "inimigo": "Curva de dissociacao da Hb: deslocamento a direita",
+    "correta": "Facilita liberacao de O2 (↑CO2, ↓pH, ↑temp, ↑2,3-BPG)",
+    "texto": "Exercicio e acidose.",
+    "ameaca": "CURVA HB DIREITA",
+    "alternativas": [
+      "Aumenta afinidade",
+      "So esquerda no exercicio",
+      "Facilita liberacao de O2 (↑CO2, ↓pH, ↑temp, ↑2,3-BPG)",
+      "Nunca muda"
+    ]
+  },
+  {
+    "inimigo": "Efeito Bohr",
+    "correta": "↓pH / ↑CO2 reduz afinidade da Hb pelo O2",
+    "texto": "Ajuda liberacao nos tecidos ativos.",
+    "ameaca": "EFEITO BOHR",
+    "alternativas": [
+      "Aumenta afinidade no tecido",
+      "So no pulmao",
+      "↓pH / ↑CO2 reduz afinidade da Hb pelo O2",
+      "So temperatura"
+    ]
+  },
+  {
+    "inimigo": "Transporte de CO2",
+    "correta": "Bicarbonato (principal), carbaminoHb e dissolvido",
+    "texto": "Reacao da anidrase carbonica no eritrocito.",
+    "ameaca": "TRANSPORTE CO2",
+    "alternativas": [
+      "So dissolvido",
+      "So HbO2",
+      "Bicarbonato (principal), carbaminoHb e dissolvido",
+      "So plasma livre sem reacao"
+    ]
+  },
+  {
+    "inimigo": "Filtracao glomerular: forcas",
+    "correta": "Pressao hidrostatica glomerular favorece; oncótica e capsular se opoem",
+    "texto": "TFG normal ~125 mL/min.",
+    "ameaca": "FORCAS FG",
+    "alternativas": [
+      "So oncótica favorece",
+      "So capsular favorece",
+      "Pressao hidrostatica glomerular favorece; oncótica e capsular se opoem",
+      "So atmosferica"
+    ]
+  },
+  {
+    "inimigo": "TFG e clearence de creatinina",
+    "correta": "Estimativa da taxa de filtracao glomerular",
+    "texto": "Usada na pratica clinica para funcao renal.",
+    "ameaca": "TFG",
+    "alternativas": [
+      "So fluxo plasmatico renal",
+      "So reabsorcao",
+      "Estimativa da taxa de filtracao glomerular",
+      "So secrecao de PAH"
+    ]
+  },
+  {
+    "inimigo": "Reabsorcao de glicose no tubulo proximal",
+    "correta": "Cotransporte Na-glicose (SGLT); limite de transporte (Tm)",
+    "texto": "Glicosuria quando glicemia supera o limiar renal.",
+    "ameaca": "GLICOSE RENAL",
+    "alternativas": [
+      "So difusao simples",
+      "So no coletor",
+      "Cotransporte Na-glicose (SGLT); limite de transporte (Tm)",
+      "So secrecao"
+    ]
+  },
+  {
+    "inimigo": "Alca de Henle: mecanismo de contracorrente",
+    "correta": "Cria gradiente osmotico medular para concentrar a urina",
+    "texto": "Ramo ascendente espesso impermeavel a agua e ativo para NaCl.",
+    "ameaca": "CONTRACORRENTE",
+    "alternativas": [
+      "So filtracao",
+      "So secrecao de K",
+      "Cria gradiente osmotico medular para concentrar a urina",
+      "So dilui sempre"
+    ]
+  },
+  {
+    "inimigo": "Hormonio que torna o ducto coletor permeavel a agua",
+    "correta": "ADH (insere aquaporinas)",
+    "texto": "Urina concentrada.",
+    "ameaca": "AQP ADH",
+    "alternativas": [
+      "Aldosterona",
+      "ANP",
+      "ADH (insere aquaporinas)",
+      "PTH"
+    ]
+  },
+  {
+    "inimigo": "Secrecao de K+ no nefron distal",
+    "correta": "Aumentada por aldosterona e fluxo tubular alto",
+    "texto": "HiperK estimula aldosterona.",
+    "ameaca": "SECRECAO K",
+    "alternativas": [
+      "So reabsorcao sempre",
+      "So no glomerulo",
+      "Aumentada por aldosterona e fluxo tubular alto",
+      "So ADH"
+    ]
+  },
+  {
+    "inimigo": "Equilibrio acido-base: tampao principal no sangue",
+    "correta": "Sistema bicarbonato (H2CO3/HCO3-)",
+    "texto": "Tambem proteinas e fosfato.",
+    "ameaca": "TAMPÃO",
+    "alternativas": [
+      "So fosfato",
+      "So Hb isolada sem HCO3",
+      "Sistema bicarbonato (H2CO3/HCO3-)",
+      "So amonia"
+    ]
+  },
+  {
+    "inimigo": "Acidose respiratoria",
+    "correta": "↑PaCO2 (hipoventilacao) → ↓pH",
+    "texto": "Compensacao renal: ↑HCO3-.",
+    "ameaca": "ACIDOSE RESP",
+    "alternativas": [
+      "↓PaCO2",
+      "↑HCO3 primario",
+      "↑PaCO2 (hipoventilacao) → ↓pH",
+      "Alcalose metabolica"
+    ]
+  },
+  {
+    "inimigo": "Alcalose respiratoria",
+    "correta": "↓PaCO2 (hiperventilacao) → ↑pH",
+    "texto": "Ansiedade, altitude.",
+    "ameaca": "ALCALOSE RESP",
+    "alternativas": [
+      "↑PaCO2",
+      "↓HCO3 primario",
+      "↓PaCO2 (hiperventilacao) → ↑pH",
+      "Acidose metabolica"
+    ]
+  },
+  {
+    "inimigo": "Acidose metabolica",
+    "correta": "↓HCO3- → ↓pH; anion gap ou hipercloremica",
+    "texto": "Compensacao: hiperventilacao (↓PaCO2).",
+    "ameaca": "ACIDOSE MET",
+    "alternativas": [
+      "↑PaCO2 primario",
+      "↑HCO3",
+      "↓HCO3- → ↓pH; anion gap ou hipercloremica",
+      "Alcalose respiratoria"
+    ]
+  },
+  {
+    "inimigo": "Alcalose metabolica",
+    "correta": "↑HCO3- → ↑pH",
+    "texto": "Vomitos, diureticos; compensacao hipoventilacao.",
+    "ameaca": "ALCALOSE MET",
+    "alternativas": [
+      "↓HCO3",
+      "↑PaCO2 primario como causa",
+      "↑HCO3- → ↑pH",
+      "Acidose respiratoria"
+    ]
+  },
+  {
+    "inimigo": "Digestao de carboidratos",
+    "correta": "Amilase salivar/pancreatica + dissacaridases do intestino delgado",
+    "texto": "Produto final: monossacarideos absorvidos.",
+    "ameaca": "DIGESTAO CHO",
+    "alternativas": [
+      "So bile",
+      "So pepsina",
+      "Amilase salivar/pancreatica + dissacaridases do intestino delgado",
+      "So lipase"
+    ]
+  },
+  {
+    "inimigo": "Digestao de proteinas",
+    "correta": "Pepsina (estomago) + proteases pancreaticas e pepticases intestinais",
+    "texto": "Aminoacidos e oligopeptideos absorvidos.",
+    "ameaca": "DIGESTAO PTN",
+    "alternativas": [
+      "So amilase",
+      "So bile",
+      "Pepsina (estomago) + proteases pancreaticas e pepticases intestinais",
+      "So lipase"
+    ]
+  },
+  {
+    "inimigo": "Digestao de gorduras",
+    "correta": "Emulsificacao pela bile + lipase pancreatica",
+    "texto": "Monoglicerideos e acidos graxos → micelas → absorcao.",
+    "ameaca": "DIGESTAO GORDURA",
+    "alternativas": [
+      "So pepsina",
+      "So amilase",
+      "Emulsificacao pela bile + lipase pancreatica",
+      "So tripsina sem bile"
+    ]
+  },
+  {
+    "inimigo": "Gastrina",
+    "correta": "Estimula secrecao de acido cloridrico e crescimento da mucosa",
+    "texto": "Celulas G do antro.",
+    "ameaca": "GASTRINA",
+    "alternativas": [
+      "Secretina",
+      "CCK",
+      "Estimula secrecao de acido cloridrico e crescimento da mucosa",
+      "Motilina apenas"
+    ]
+  },
+  {
+    "inimigo": "Secretina",
+    "correta": "Estimula secrecao de bicarbonato pelo pancreas",
+    "texto": "Liberada por acido no duodeno.",
+    "ameaca": "SECRETINA",
+    "alternativas": [
+      "Gastrina",
+      "CCK apenas para acido",
+      "Estimula secrecao de bicarbonato pelo pancreas",
+      "Insulina"
+    ]
+  },
+  {
+    "inimigo": "CCK (colecistocinina)",
+    "correta": "Contrai vesicula biliar e estimula enzimas pancreaticas",
+    "texto": "Liberada por gordura/proteina no duodeno.",
+    "ameaca": "CCK",
+    "alternativas": [
+      "Secretina apenas HCO3",
+      "Gastrina",
+      "Contrai vesicula biliar e estimula enzimas pancreaticas",
+      "Motilina"
+    ]
+  },
+  {
+    "inimigo": "Motilidade gastrica: esvaziamento",
+    "correta": "Controlado por feedback duodenal (gordura, acido, hiperosmolaridade)",
+    "texto": "Solidos mais lentos que liquidos.",
+    "ameaca": "ESVAZIAMENTO GASTRICO",
+    "alternativas": [
+      "Sempre constante",
+      "So por gastrina acelerando sempre",
+      "Controlado por feedback duodenal (gordura, acido, hiperosmolaridade)",
+      "So por vontade"
+    ]
+  },
+  {
+    "inimigo": "Absorcao de ferro",
+    "correta": "Duodeno; forma ferrosa; regulada por hepcidina e estoques",
+    "texto": "Vitamina C favorece.",
+    "ameaca": "ABSORCAO FERRO",
+    "alternativas": [
+      "So ileo terminal",
+      "So colon",
+      "Duodeno; forma ferrosa; regulada por hepcidina e estoques",
+      "So com gordura"
+    ]
+  },
+  {
+    "inimigo": "Absorcao de vitamina B12",
+    "correta": "Ileo terminal; requer fator intrinseco gastrico",
+    "texto": "Deficiencia: anemia megaloblastica.",
+    "ameaca": "B12",
+    "alternativas": [
+      "Duodeno sem FI",
+      "So colon",
+      "Ileo terminal; requer fator intrinseco gastrico",
+      "So jejuno sem FI"
+    ]
+  },
+  {
+    "inimigo": "Termorregulacao: centro",
+    "correta": "Hipotálamo",
+    "texto": "Respostas: vasodilatacao/sudorese ou vasoconstricao/tremor.",
+    "ameaca": "TERMOREGULACAO",
+    "alternativas": [
+      "Cerebelo",
+      "Cortex occipital",
+      "Hipotálamo",
+      "Medula espinhal apenas"
+    ]
+  },
+  {
+    "inimigo": "Mecanismos de perda de calor",
+    "correta": "Radiacao, conducao, convencao, evaporacao (suor)",
+    "texto": "Em ambiente quente evaporacao e crucial.",
+    "ameaca": "PERDA CALOR",
+    "alternativas": [
+      "So tremor",
+      "So metabolismo",
+      "Radiacao, conducao, convencao, evaporacao (suor)",
+      "So contracao muscular"
+    ]
+  },
+  {
+    "inimigo": "Resposta ao frio",
+    "correta": "Vasoconstricao cutanea, tremor, piloereção, hormônios tireoidianos a longo prazo",
+    "texto": "Conserva e gera calor.",
+    "ameaca": "RESPOSTA FRIO",
+    "alternativas": [
+      "Sudorese",
+      "Vasodilatacao cutanea",
+      "Vasoconstricao cutanea, tremor, piloereção, hormônios tireoidianos a longo prazo",
+      "So bradipneia"
+    ]
+  },
+  {
+    "inimigo": "Exercicio: ajustes cardiovasculares",
+    "correta": "↑FC, ↑VS, redistribuicao de fluxo para musculos, ↑PAM sistolica",
+    "texto": "Vasodilatacao muscular local.",
+    "ameaca": "EXERCICIO CV",
+    "alternativas": [
+      "↓DC",
+      "So vasoconstricao muscular",
+      "↑FC, ↑VS, redistribuicao de fluxo para musculos, ↑PAM sistolica",
+      "↓retorno venoso"
+    ]
+  },
+  {
+    "inimigo": "Exercicio: ajustes respiratorios",
+    "correta": "↑ventilacao proporcional ao metabolismo; mantem PaO2 e PaCO2",
+    "texto": "Multiplos estimulos (central, periferico, mecanicos).",
+    "ameaca": "EXERCICIO RESP",
+    "alternativas": [
+      "Sempre hipercapnia",
+      "Sempre hipoxemia",
+      "↑ventilacao proporcional ao metabolismo; mantem PaO2 e PaCO2",
+      "Apneia"
+    ]
+  },
+  {
+    "inimigo": "Fadiga muscular",
+    "correta": "Deplecao de energia, acumulo de metabolitos, falha de excitacao-contracao",
+    "texto": "Tipos de fibra influenciam resistencia.",
+    "ameaca": "FADIGA",
+    "alternativas": [
+      "So falta de O2 sempre",
+      "So excesso de ATP",
+      "Deplecao de energia, acumulo de metabolitos, falha de excitacao-contracao",
+      "So excesso de Ca no sangue"
+    ]
+  },
+  {
+    "inimigo": "Tipos de fibra muscular esqueletico",
+    "correta": "Tipo I (lenta, oxidativa) e tipo II (rapida, glicolitica/oxidativa)",
+    "texto": "Resistencia vs forca/velocidade.",
+    "ameaca": "FIBRAS MUSCULARES",
+    "alternativas": [
+      "So um tipo",
+      "So cardiacas iguais",
+      "Tipo I (lenta, oxidativa) e tipo II (rapida, glicolitica/oxidativa)",
+      "So lisas"
+    ]
+  },
+  {
+    "inimigo": "Acoplamento excitacao-contracao no esqueletico",
+    "correta": "Potencial → tubulo T → liberacao de Ca do reticulum → troponina-tropomiosina",
+    "texto": "Ca permite interacao actina-miosina.",
+    "ameaca": "ACOELAMENTO",
+    "alternativas": [
+      "Sem Ca",
+      "So Na na contracao",
+      "Potencial → tubulo T → liberacao de Ca do reticulum → troponina-tropomiosina",
+      "So K"
+    ]
+  },
+  {
+    "inimigo": "Musculo liso: contracao",
+    "correta": "Ca-calmodulina-MLCK; mais lenta e sustentada; pode ser autorritmica",
+    "texto": "Visceras e vasos.",
+    "ameaca": "MUSCULO LISO",
+    "alternativas": [
+      "Igual ao esqueletico com troponina",
+      "So voluntario",
+      "Ca-calmodulina-MLCK; mais lenta e sustentada; pode ser autorritmica",
+      "So com discos intercalares"
+    ]
+  },
+  {
+    "inimigo": "Endotelio vascular: funcoes",
+    "correta": "NO (vasodilatacao), endotelina (vasoconstricao), barreira, anticoagulação local",
+    "texto": "Disfuncao endotelial na aterosclerose e HAS.",
+    "ameaca": "ENDOTELIO",
+    "alternativas": [
+      "So barreira passiva",
+      "So produz aldosterona",
+      "NO (vasodilatacao), endotelina (vasoconstricao), barreira, anticoagulação local",
+      "So filtra urina"
+    ]
+  },
+  {
+    "inimigo": "Retorno venoso",
+    "correta": "Valvas, bomba muscular, pressao negativa toracica, tono venoso",
+    "texto": "Determina pre-carga.",
+    "ameaca": "RETORNO VENOSO",
+    "alternativas": [
+      "So pressao aortica",
+      "So FC",
+      "Valvas, bomba muscular, pressao negativa toracica, tono venoso",
+      "So filtracao renal"
+    ]
+  },
+  {
+    "inimigo": "Edema: causas",
+    "correta": "↑pressao hidrostatica, ↓oncótica, ↑permeabilidade, bloqueio linfatico",
+    "texto": "Equilibrio de Starling nos capilares.",
+    "ameaca": "EDEMA",
+    "alternativas": [
+      "So excesso de K",
+      "So excesso de plaquetas",
+      "↑pressao hidrostatica, ↓oncótica, ↑permeabilidade, bloqueio linfatico",
+      "So excesso de eritrocitos"
+    ]
+  },
+  {
+    "inimigo": "Forcas de Starling no capilar",
+    "correta": "Hidrostatica favorece filtracao; oncótica favorece reabsorcao",
+    "texto": "Equilibrio determina volume intersticial.",
+    "ameaca": "STARLING CAPILAR",
+    "alternativas": [
+      "So oncótica filtra",
+      "So hidrostatica reabsorve",
+      "Hidrostatica favorece filtracao; oncótica favorece reabsorcao",
+      "So pressao atmosferica"
+    ]
+  },
+  {
+    "inimigo": "Reflexo de Bainbridge",
+    "correta": "Estiramento atrial ↑FC",
+    "texto": "Aumento do retorno venoso.",
+    "ameaca": "BAINBRIDGE",
+    "alternativas": [
+      "Barorreceptor carotideo apenas",
+      "↓FC com estiramento",
+      "Estiramento atrial ↑FC",
+      "So renal"
+    ]
+  },
+  {
+    "inimigo": "Reflexo de Cushing",
+    "correta": "↑PIC → hipertensao e bradircardia",
+    "texto": "Resposta a isquemia do tronco.",
+    "ameaca": "CUSHING",
+    "alternativas": [
+      "Hipotensao e taquicardia",
+      "So taquipneia",
+      "↑PIC → hipertensao e bradircardia",
+      "So poliuria"
+    ]
+  },
+  {
+    "inimigo": "Lei de Poiseuille (fluxo)",
+    "correta": "Fluxo proporcional a r^4 e ΔP; inversamente a viscosidade e comprimento",
+    "texto": "Raio e o fator dominante na resistencia vascular.",
+    "ameaca": "POISEUILLE",
+    "alternativas": [
+      "So viscosidade importa",
+      "Fluxo independente do raio",
+      "Fluxo proporcional a r^4 e ΔP; inversamente a viscosidade e comprimento",
+      "So comprimento"
+    ]
+  },
+  {
+    "inimigo": "Resistencia vascular pulmonar vs sistemica",
+    "correta": "Pulmonar muito menor; aceita todo o DC com baixa pressao",
+    "texto": "Circulacao em serie com a sistemica.",
+    "ameaca": "RVP",
+    "alternativas": [
+      "Pulmonar maior que sistemica",
+      "Iguais",
+      "Pulmonar muito menor; aceita todo o DC com baixa pressao",
+      "Pulmonar nao existe"
+    ]
+  },
+  {
+    "inimigo": "Hipoxia hipoxica vs anemica vs stagnante vs histotoxica",
+    "correta": "Classificacao da hipoxia por causa (altitude, anemia, choque, cianeto)",
+    "texto": "Tratamento conforme o tipo.",
+    "ameaca": "HIPOXIA TIPOS",
+    "alternativas": [
+      "So um tipo existe",
+      "So por falta de Hb",
+      "Classificacao da hipoxia por causa (altitude, anemia, choque, cianeto)",
+      "So por excesso de O2"
+    ]
+  },
+  {
+    "inimigo": "2,3-BPG",
+    "correta": "Metabolito eritrocitario que reduz afinidade da Hb pelo O2",
+    "texto": "Aumenta em altitude e acidose cronica.",
+    "ameaca": "23BPG",
+    "alternativas": [
+      "Aumenta afinidade",
+      "So no plasma",
+      "Metabolito eritrocitario que reduz afinidade da Hb pelo O2",
+      "So em leucocitos"
+    ]
+  },
+  {
+    "inimigo": "Eritropoetina",
+    "correta": "Produzida no rim em resposta a hipoxia; estimula medula",
+    "texto": "Anemia da DRC por deficiencia de EPO.",
+    "ameaca": "EPO",
+    "alternativas": [
+      "Produzida so no figado adulto",
+      "Inibe medula",
+      "Produzida no rim em resposta a hipoxia; estimula medula",
+      "So no baco"
+    ]
+  },
+  {
+    "inimigo": "Hemostasia primaria",
+    "correta": "Vasoconstricao + plugue plaquetario",
+    "texto": "Adesao e agregacao plaquetaria.",
+    "ameaca": "HEMOSTASIA 1",
+    "alternativas": [
+      "So coagulacao fibrinica",
+      "So fibrinólise",
+      "Vasoconstricao + plugue plaquetario",
+      "So vitamina K"
+    ]
+  },
+  {
+    "inimigo": "Hemostasia secundaria",
+    "correta": "Cascata de coagulacao → fibrina",
+    "texto": "Vias intrínseca, extrínseca e comum.",
+    "ameaca": "HEMOSTASIA 2",
+    "alternativas": [
+      "So plaquetas",
+      "So vasoconstricao",
+      "Cascata de coagulacao → fibrina",
+      "So EPO"
+    ]
+  },
+  {
+    "inimigo": "Fibrinolise",
+    "correta": "Plasmina degrada fibrina (gerada do plasminogenio)",
+    "texto": "Equilibra a coagulacao.",
+    "ameaca": "FIBRINOLISE",
+    "alternativas": [
+      "Forma coagulo",
+      "Inibe plasmina sempre",
+      "Plasmina degrada fibrina (gerada do plasminogenio)",
+      "So vitamina K"
+    ]
+  },
+  {
+    "inimigo": "Vitamina K e coagulacao",
+    "correta": "Fatores II, VII, IX, X e proteinas C/S",
+    "texto": "Alvo da varfarina.",
+    "ameaca": "VIT K COAG",
+    "alternativas": [
+      "So fator VIII",
+      "So plaquetas",
+      "Fatores II, VII, IX, X e proteinas C/S",
+      "So fibrinogênio sem ativacao"
+    ]
+  },
+  {
+    "inimigo": "Grupo sanguineo ABO",
+    "correta": "Antigenos na membrana do eritrocito; anticorpos naturais",
+    "texto": "Compatibilidade transfusional critica.",
+    "ameaca": "ABO",
+    "alternativas": [
+      "So Rh",
+      "So HLA",
+      "Antigenos na membrana do eritrocito; anticorpos naturais",
+      "So plaquetas"
+    ]
+  },
+  {
+    "inimigo": "Fator Rh",
+    "correta": "Antigeno D; importancia na doenca hemolitica do RN",
+    "texto": "Mãe Rh- com feto Rh+.",
+    "ameaca": "RH",
+    "alternativas": [
+      "Sistema ABO apenas",
+      "So HLA",
+      "Antigeno D; importancia na doenca hemolitica do RN",
+      "So MNS"
+    ]
+  },
+  {
+    "inimigo": "Pressao coloidosmotica plasmatica",
+    "correta": "Principalmente pela albumina; retém liquido no vaso",
+    "texto": "Hipoalbuminemia → edema.",
+    "ameaca": "ONCOTICA",
+    "alternativas": [
+      "So Na+",
+      "So glicose",
+      "Principalmente pela albumina; retém liquido no vaso",
+      "So K+"
+    ]
+  },
+  {
+    "inimigo": "Osmolaridade plasmatica",
+    "correta": "Principalmente por Na+ e anions acompanhantes; tambem glicose e ureia",
+    "texto": "Regulada por sede e ADH.",
+    "ameaca": "OSMOLARIDADE",
+    "alternativas": [
+      "So proteinas",
+      "So lipídios",
+      "Principalmente por Na+ e anions acompanhantes; tambem glicose e ureia",
+      "So Ca2+"
+    ]
+  },
+  {
+    "inimigo": "Sede",
+    "correta": "Estimulada por hiperosmolaridade e hipovolemia (via angiotensina II)",
+    "texto": "Centro no hipotálamo.",
+    "ameaca": "SEDE",
+    "alternativas": [
+      "So hipoosmolaridade",
+      "So hipervolemia",
+      "Estimulada por hiperosmolaridade e hipovolemia (via angiotensina II)",
+      "So hiperglicemia isolada sem osm"
+    ]
+  },
+  {
+    "inimigo": "Controle da fome",
+    "correta": "Hipotálamo (nucleos); grelina (fome), leptina (saciedade)",
+    "texto": "Integracao com glicose e nutrient sensing.",
+    "ameaca": "FOME",
+    "alternativas": [
+      "So estomago local",
+      "So intestino sem cerebro",
+      "Hipotálamo (nucleos); grelina (fome), leptina (saciedade)",
+      "So tireoide"
+    ]
+  },
+  {
+    "inimigo": "Grelina",
+    "correta": "Hormonio orexigeno produzido no estomago",
+    "texto": "Aumenta antes das refeicoes.",
+    "ameaca": "GRELINA",
+    "alternativas": [
+      "Leptina",
+      "Insulina apenas",
+      "Hormonio orexigeno produzido no estomago",
+      "CCK"
+    ]
+  },
+  {
+    "inimigo": "Leptina",
+    "correta": "Produzida pelo tecido adiposo; sinaliza saciedade e reservas energeticas",
+    "texto": "Resistencia na obesidade.",
+    "ameaca": "LEPTINA",
+    "alternativas": [
+      "Grelina",
+      "Ocitocina",
+      "Produzida pelo tecido adiposo; sinaliza saciedade e reservas energeticas",
+      "ADH"
+    ]
+  },
+  {
+    "inimigo": "Ciclo circadiano",
+    "correta": "Relogio biologico no nucleo supraquiasmatico; sincronizado pela luz",
+    "texto": "Afeta sono, hormonios e metabolismo.",
+    "ameaca": "CIRCADIANO",
+    "alternativas": [
+      "So aleatorio",
+      "So pela alimentacao",
+      "Relogio biologico no nucleo supraquiasmatico; sincronizado pela luz",
+      "So pela temperatura externa"
+    ]
+  },
+  {
+    "inimigo": "Sono NREM e REM",
+    "correta": "NREM: reparo; REM: sonhos e atividade cerebral semelhante a vigilia",
+    "texto": "Ciclos de ~90 min.",
+    "ameaca": "SONO",
+    "alternativas": [
+      "So um estagio",
+      "REM sem sonhos sempre",
+      "NREM: reparo; REM: sonhos e atividade cerebral semelhante a vigilia",
+      "So coma"
+    ]
+  },
+  {
+    "inimigo": "Memoria de curto vs longo prazo",
+    "correta": "Curto: labile; longo: consolidacao (hipocampo envolvido)",
+    "texto": "LTP e plasticidade sinaptica.",
+    "ameaca": "MEMORIA",
+    "alternativas": [
+      "So no cerebelo",
+      "Identicas",
+      "Curto: labile; longo: consolidacao (hipocampo envolvido)",
+      "So na medula"
+    ]
+  },
+  {
+    "inimigo": "Reflexo pupilar a luz",
+    "correta": "Aferente II; eferente III (parassimpatico) → miose",
+    "texto": "Teste de tronco encefalico.",
+    "ameaca": "PUPILA",
+    "alternativas": [
+      "Aferente III",
+      "Eferente II",
+      "Aferente II; eferente III (parassimpatico) → miose",
+      "So simpatico causa miose"
+    ]
+  },
+  {
+    "inimigo": "Acomodacao visual",
+    "correta": "Contracao do musculo ciliar (III) → cristalino mais esferico para perto",
+    "texto": "Presbiopia: perda com a idade.",
+    "ameaca": "ACOMODACAO",
+    "alternativas": [
+      "So dilatacao pupilar",
+      "So retina",
+      "Contracao do musculo ciliar (III) → cristalino mais esferico para perto",
+      "So corneia"
+    ]
+  },
+  {
+    "inimigo": "Fototransducao",
+    "correta": "Luz → isomerizacao do retinal → cascata → fechamento de canais Na nos fotorreceptores",
+    "texto": "Hiperpolarizacao do bastonete/cone.",
+    "ameaca": "FOTOTRANSDUCAO",
+    "alternativas": [
+      "Despolarizacao sempre a luz",
+      "So potencial de acao no fotorreceptor igual nervo",
+      "Luz → isomerizacao do retinal → cascata → fechamento de canais Na nos fotorreceptores",
+      "So no cortex"
+    ]
+  },
+  {
+    "inimigo": "Orelha interna: orgao de Corti",
+    "correta": "Celulas ciliadas transformam vibracao em sinal neural",
+    "texto": "Endolinfa e perilinfa com composicoes ionicas distintas.",
+    "ameaca": "CORTI",
+    "alternativas": [
+      "So membrana timpanica",
+      "So ossiculos",
+      "Celulas ciliadas transformam vibracao em sinal neural",
+      "So cortex auditivo"
+    ]
+  },
+  {
+    "inimigo": "Equilibrio: canais semicirculares e otolitos",
+    "correta": "Aceleracao angular (canais) e linear/gravidade (utriculo/saculo)",
+    "texto": "Reflexo vestibulo-ocular.",
+    "ameaca": "VESTIBULAR",
+    "alternativas": [
+      "So coclea",
+      "So corti",
+      "Aceleracao angular (canais) e linear/gravidade (utriculo/saculo)",
+      "So nervo optico"
+    ]
+  },
+  {
+    "inimigo": "Paladar: sabores basicos",
+    "correta": "Doce, salgado, azedo, amargo, umami",
+    "texto": "Receptores em botões gustativos.",
+    "ameaca": "PALADAR",
+    "alternativas": [
+      "So doce e salgado",
+      "So no nariz",
+      "Doce, salgado, azedo, amargo, umami",
+      "So textura"
+    ]
+  },
+  {
+    "inimigo": "Olfato",
+    "correta": "Neuronios olfatorios na mucosa; unico sentido que nao passa pelo tálamo primeiro",
+    "texto": "Adaptacao rapida.",
+    "ameaca": "OLFATO",
+    "alternativas": [
+      "Passa pelo tálamo primeiro sempre",
+      "So na lingua",
+      "Neuronios olfatorios na mucosa; unico sentido que nao passa pelo tálamo primeiro",
+      "So cortex motor"
+    ]
+  },
+  {
+    "inimigo": "Dor: vias",
+    "correta": "Nociceptores → tratos espinotalamicos → tálamo → cortex",
+    "texto": "Modulacao descendente (opioides endogenos).",
+    "ameaca": "DOR",
+    "alternativas": [
+      "So no cerebelo",
+      "Sem via ascendente",
+      "Nociceptores → tratos espinotalamicos → tálamo → cortex",
+      "So no nervo olfatorio"
+    ]
+  },
+  {
+    "inimigo": "Dor referida",
+    "correta": "Dor visceral percebida em area somatica compartilhando dermatomo",
+    "texto": "Ex.: isquemia miocardica no braco/mandibula.",
+    "ameaca": "DOR REFERIDA",
+    "alternativas": [
+      "Sempre no orgao exato",
+      "So cutanea local",
+      "Dor visceral percebida em area somatica compartilhando dermatomo",
+      "So psicogenica"
+    ]
+  },
+  {
+    "inimigo": "Controle voluntario da miccao",
+    "correta": "Centros corticais e pontinos modulam o reflexo sacral",
+    "texto": "Lesao medular: bexiga neurogenica.",
+    "ameaca": "MICCAO",
+    "alternativas": [
+      "So esfincter externo automatico sem cortex",
+      "So rim",
+      "Centros corticais e pontinos modulam o reflexo sacral",
+      "So ADH"
+    ]
+  },
+  {
+    "inimigo": "Ereção e ejaculacao",
+    "correta": "Ereção: parassimpatico; ejaculacao: simpatico",
+    "texto": "Integracao medular e cerebral.",
+    "ameaca": "ERECAO",
+    "alternativas": [
+      "So simpatico na ereção",
+      "So parassimpatico na ejaculacao",
+      "Ereção: parassimpatico; ejaculacao: simpatico",
+      "So hormonal sem nervo"
+    ]
+  },
+  {
+    "inimigo": "Ciclo ovariano: fase folicular",
+    "correta": "FSH → crescimento folicular e estrogenio",
+    "texto": "Pico de estrogenio → pico de LH → ovulacao.",
+    "ameaca": "FASE FOLICULAR",
+    "alternativas": [
+      "So progesterona alta",
+      "So corpo luteo desde o inicio",
+      "FSH → crescimento folicular e estrogenio",
+      "So LH baixo sempre"
+    ]
+  },
+  {
+    "inimigo": "Ciclo ovariano: fase lutea",
+    "correta": "Corpo luteo → progesterona (+ estrogenio)",
+    "texto": "Sem gravidez: luteólise e menstruacao.",
+    "ameaca": "FASE LUTEA",
+    "alternativas": [
+      "So FSH alto",
+      "So foliculos novos apenas",
+      "Corpo luteo → progesterona (+ estrogenio)",
+      "So ovulacao continua"
+    ]
+  },
+  {
+    "inimigo": "hCG",
+    "correta": "Mantem o corpo luteo no inicio da gravidez",
+    "texto": "Base do teste de gravidez.",
+    "ameaca": "HCG",
+    "alternativas": [
+      "So FSH",
+      "So LH sem acao",
+      "Mantem o corpo luteo no inicio da gravidez",
+      "So progesterona placentaria desde o dia 1"
+    ]
+  },
+  {
+    "inimigo": "Adaptacoes fisiologicas na gravidez",
+    "correta": "↑DC, ↑volume sanguineo, hipercoagulabilidade, ↑TFG, alcalose respiratoria leve",
+    "texto": "Preparacao para perda sanguinea e demanda fetal.",
+    "ameaca": "GRAVIDEZ FISIO",
+    "alternativas": [
+      "↓DC",
+      "↓volume",
+      "↑DC, ↑volume sanguineo, hipercoagulabilidade, ↑TFG, alcalose respiratoria leve",
+      "Acidose metabolica obrigatoria"
+    ]
+  },
+  {
+    "inimigo": "Lactacao: hormonios",
+    "correta": "Prolactina (producao) e ocitocina (ejeção)",
+    "texto": "Succao mantém a producao.",
+    "ameaca": "LACTACAO",
+    "alternativas": [
+      "So estrogenio",
+      "So progesterona alta inibindo sempre",
+      "Prolactina (producao) e ocitocina (ejeção)",
+      "So GH"
+    ]
+  },
+  {
+    "inimigo": "Puberdade: inicio",
+    "correta": "Reativacao do eixo GnRH → FSH/LH → esteroides sexuais",
+    "texto": "Caracteres secundarios e estirão.",
+    "ameaca": "PUBERDADE",
+    "alternativas": [
+      "So GH isolado",
+      "So tireoide",
+      "Reativacao do eixo GnRH → FSH/LH → esteroides sexuais",
+      "So adrenalina"
+    ]
+  },
+  {
+    "inimigo": "Menopausa",
+    "correta": "Esgotamento folicular → ↓estrogenio → ↑FSH/LH",
+    "texto": "Sintomas vasomotores, osteoporose, atrofia urogenital.",
+    "ameaca": "MENOPAUSA",
+    "alternativas": [
+      "↑estrogenio",
+      "↓FSH",
+      "Esgotamento folicular → ↓estrogenio → ↑FSH/LH",
+      "So prolactina alta"
+    ]
+  },
+  {
+    "inimigo": "Resposta de fase aguda",
+    "correta": "IL-6, PCR, febre, leucocitose em inflamacao/infeccao",
+    "texto": "Integracao imune-endocrina.",
+    "ameaca": "FASE AGUDA",
+    "alternativas": [
+      "So hormonal tireoidiano",
+      "So ADH isolado",
+      "IL-6, PCR, febre, leucocitose em inflamacao/infeccao",
+      "So anemia ferropiva aguda"
+    ]
+  },
+  {
+    "inimigo": "Febre",
+    "correta": "Reajuste do set-point hipotalamico por pirogenios (IL-1, PGE2)",
+    "texto": "Tremor na subida; sudorese na defervescência.",
+    "ameaca": "FEBRE",
+    "alternativas": [
+      "Hipertermia igual a febre",
+      "Sem hipotálamo",
+      "Reajuste do set-point hipotalamico por pirogenios (IL-1, PGE2)",
+      "So por exercicio"
+    ]
+  },
+  {
+    "inimigo": "Estresse: eixos",
+    "correta": "Simpatico-adrenal e HPA (cortisol)",
+    "texto": "Adaptacao alostatica; cronico prejudica.",
+    "ameaca": "ESTRESSE",
+    "alternativas": [
+      "So parassimpatico",
+      "So tireoide",
+      "Simpatico-adrenal e HPA (cortisol)",
+      "So ADH isolado"
+    ]
+  },
+  {
+    "inimigo": "Pressao venosa central (PVC)",
+    "correta": "Reflete pre-carga do ventriculo direito / volume intravascular",
+    "texto": "Elevada em hipervolemia e falencia direita.",
+    "ameaca": "PVC",
+    "alternativas": [
+      "So pressao aortica",
+      "So TFG",
+      "Reflete pre-carga do ventriculo direito / volume intravascular",
+      "So PaO2"
+    ]
+  },
+  {
+    "inimigo": "Pressao de oclusao da arteria pulmonar (POAP)",
+    "correta": "Estima pressao atrial esquerda / pre-carga do VE",
+    "texto": "Cateter de Swan-Ganz.",
+    "ameaca": "POAP",
+    "alternativas": [
+      "PVC igual sempre",
+      "So pressao arterial",
+      "Estima pressao atrial esquerda / pre-carga do VE",
+      "So TFG"
+    ]
+  },
+  {
+    "inimigo": "Shunt intrapulmonar",
+    "correta": "Sangue que passa pelos pulmoes sem oxigenar",
+    "texto": "Baixa PaO2 que responde pouco a O2 suplementar.",
+    "ameaca": "SHUNT",
+    "alternativas": [
+      "Espaco morto puro",
+      "Hipoventilacao global apenas",
+      "Sangue que passa pelos pulmoes sem oxigenar",
+      "Anemia"
+    ]
+  },
+  {
+    "inimigo": "Espaco morto alveolar",
+    "correta": "Alveolos ventilados sem perfusao adequada",
+    "texto": "Aumenta em embolia pulmonar.",
+    "ameaca": "ESPACO MORTO ALV",
+    "alternativas": [
+      "Shunt",
+      "Hipoventilacao",
+      "Alveolos ventilados sem perfusao adequada",
+      "Anemia"
+    ]
+  },
+  {
+    "inimigo": "Relacao V/Q",
+    "correta": "Equilibrio entre ventilacao e perfusao alveolar",
+    "texto": "Ideal ~1; desigualdades prejudicam trocas.",
+    "ameaca": "VQ",
+    "alternativas": [
+      "Sempre 0",
+      "Sempre infinito",
+      "Equilibrio entre ventilacao e perfusao alveolar",
+      "So FC"
+    ]
+  },
+  {
+    "inimigo": "Resposta ventilatória ao exercicio",
+    "correta": "Aumento proporcional da ventilacao ao consumo de O2 e producao de CO2",
+    "texto": "PaO2 e PaCO2 tendem a permanecer estaveis.",
+    "ameaca": "VENT EXERCICIO",
+    "alternativas": [
+      "Sempre hipercapnia",
+      "Sempre hipoxemia grave",
+      "Aumento proporcional da ventilacao ao consumo de O2 e producao de CO2",
+      "Apneia"
+    ]
+  },
+  {
+    "inimigo": "Limiar anaerobico",
+    "correta": "Ponto em que o metabolismo anaerobico aumenta e o lactato sobe",
+    "texto": "Ventilacao sobe desproporcionalmente ao VO2.",
+    "ameaca": "LIMIAR ANAEROBICO",
+    "alternativas": [
+      "So no repouso",
+      "So em apnea",
+      "Ponto em que o metabolismo anaerobico aumenta e o lactato sobe",
+      "So na morte celular"
+    ]
+  },
+  {
+    "inimigo": "Consumo de oxigenio (VO2)",
+    "correta": "DC × diferenca arteriovenosa de O2 (principio de Fick)",
+    "texto": "Aumenta no exercicio.",
+    "ameaca": "VO2",
+    "alternativas": [
+      "So ventilacao",
+      "So Hb",
+      "DC × diferenca arteriovenosa de O2 (principio de Fick)",
+      "So PVC"
+    ]
+  },
+  {
+    "inimigo": "Extracao de O2 pelos tecidos",
+    "correta": "Aumenta quando o aporte cai ou a demanda sobe",
+    "texto": "Sangue venoso misto mais dessaturado.",
+    "ameaca": "EXTRACAO O2",
+    "alternativas": [
+      "Sempre fixa em 25%",
+      "Nunca muda",
+      "Aumenta quando o aporte cai ou a demanda sobe",
+      "So no pulmao"
+    ]
+  },
+  {
+    "inimigo": "Autorregulacao do fluxo sanguineo cerebral",
+    "correta": "Mantem fluxo constante em ampla faixa de PAM",
+    "texto": "Perdida em lesao cerebral grave.",
+    "ameaca": "AUTORREG CEREBRAL",
+    "alternativas": [
+      "Fluxo sempre proporcional a PAM linear",
+      "So depende de FC",
+      "Mantem fluxo constante em ampla faixa de PAM",
+      "So de hematocrito"
+    ]
+  },
+  {
+    "inimigo": "Acoplamento fluxo-metabolismo cerebral",
+    "correta": "Regioes ativas recebem mais sangue (CO2, K, adenosina)",
+    "texto": "Base da fMRI.",
+    "ameaca": "ACOPLAMENTO CEREBRAL",
+    "alternativas": [
+      "Fluxo fixo em todas as areas",
+      "So por nervos simpaticos",
+      "Regioes ativas recebem mais sangue (CO2, K, adenosina)",
+      "So por ADH"
+    ]
+  },
+  {
+    "inimigo": "Barreira hematoencefalica",
+    "correta": "Endotelio com juncoes oclusivas; protege o SNC",
+    "texto": "Permeavel a lipidios e pequenas moleculas lipofilicas.",
+    "ameaca": "BHE",
+    "alternativas": [
+      "Ausente no cerebro",
+      "Permeavel a todas as proteinas",
+      "Endotelio com juncoes oclusivas; protege o SNC",
+      "So no nervo periferico"
+    ]
+  },
+  {
+    "inimigo": "LCR: producao e absorcao",
+    "correta": "Plexos coroides produzem; vilosidades arachnoides absorvem",
+    "texto": "Volume e pressao estabilizados.",
+    "ameaca": "LCR",
+    "alternativas": [
+      "Produzido nos ventriculos por urina",
+      "Absorvido so no rim",
+      "Plexos coroides produzem; vilosidades arachnoides absorvem",
+      "So no plasma"
+    ]
+  },
+  {
+    "inimigo": "Reflexo de Hering-Breuer",
+    "correta": "Estiramento pulmonar inibe inspiracao (vias vagais)",
+    "texto": "Mais relevante em volumes altos / recem-nascidos.",
+    "ameaca": "HERING BREUER",
+    "alternativas": [
+      "Estimula inspiracao profunda sempre",
+      "So cardíaco",
+      "Estiramento pulmonar inibe inspiracao (vias vagais)",
+      "So renal"
+    ]
+  },
+  {
+    "inimigo": "Padrao respiratorio de Cheyne-Stokes",
+    "correta": "Ciclos de hiperpneia e apnea; instabilidade do controle",
+    "texto": "ICC, lesoes neurologicas, altitude.",
+    "ameaca": "CHEYNE STOKES",
+    "alternativas": [
+      "Respiracao sempre regular",
+      "So em exercicio",
+      "Ciclos de hiperpneia e apnea; instabilidade do controle",
+      "So em febre"
+    ]
+  },
+  {
+    "inimigo": "Respiracao de Kussmaul",
+    "correta": "Respiracao profunda e rapida na acidose metabolica",
+    "texto": "Compensacao respiratoria.",
+    "ameaca": "KUSSMAUL",
+    "alternativas": [
+      "Apneia",
+      "Cheyne-Stokes igual",
+      "Respiracao profunda e rapida na acidose metabolica",
+      "So em alcalose"
+    ]
+  },
+  {
+    "inimigo": "Reflexo da tosse",
+    "correta": "Receptores das vias aereas → expulsao forcada de ar",
+    "texto": "Protege contra aspiracao e secrecoes.",
+    "ameaca": "TOSSE",
+    "alternativas": [
+      "So voluntaria",
+      "So no alveolo",
+      "Receptores das vias aereas → expulsao forcada de ar",
+      "So no intestino"
+    ]
+  },
+  {
+    "inimigo": "Reflexo da degluticao",
+    "correta": "Fases oral, faringea e esofagica; protege via aerea",
+    "texto": "Coordenacao de nervos cranianos.",
+    "ameaca": "DEGLUTICAO",
+    "alternativas": [
+      "So esofago sem faringe",
+      "So voluntaria total",
+      "Fases oral, faringea e esofagica; protege via aerea",
+      "So respiratoria"
+    ]
+  },
+  {
+    "inimigo": "Peristaltismo esofagico",
+    "correta": "Onda propulsiva que leva o bolo ao estomago",
+    "texto": "Primario (degluticao) e secundario (distensao).",
+    "ameaca": "PERISTALTISMO",
+    "alternativas": [
+      "So segmentacao",
+      "So no colon",
+      "Onda propulsiva que leva o bolo ao estomago",
+      "So no estomago misturando"
+    ]
+  },
+  {
+    "inimigo": "Complexo motor migratorio (MMC)",
+    "correta": "Ondas de contracao no jejum que limpam o intestino delgado",
+    "texto": "Fase III associada a motilina.",
+    "ameaca": "MMC",
+    "alternativas": [
+      "So no periodo pos-prandial",
+      "So no colon",
+      "Ondas de contracao no jejum que limpam o intestino delgado",
+      "So esofago"
+    ]
+  },
+  {
+    "inimigo": "Reflexo gastrocolico",
+    "correta": "Distensao gastrica aumenta motilidade do colon",
+    "texto": "Desejo de defecar apos refeicao.",
+    "ameaca": "GASTROCOLICO",
+    "alternativas": [
+      "Inibe o colon",
+      "So no jejum",
+      "Distensao gastrica aumenta motilidade do colon",
+      "So no esofago"
+    ]
+  },
+  {
+    "inimigo": "Flora intestinal (microbiota)",
+    "correta": "Sintese de vitaminas, fermentacao, imunomodulacao, barreira",
+    "texto": "Disbiose associada a varias doencas.",
+    "ameaca": "MICROBIOTA",
+    "alternativas": [
+      "Ausente no intestino saudavel",
+      "So patogenica",
+      "Sintese de vitaminas, fermentacao, imunomodulacao, barreira",
+      "So no estomago"
+    ]
+  },
+  {
+    "inimigo": "Entero-hepatica da bile",
+    "correta": "Acidos biliares reabsorvidos no ileo e recirculados ao figado",
+    "texto": "Interrupcao causa diarreia e deficit de absorcao de gordura.",
+    "ameaca": "ENTEROHEPATICA",
+    "alternativas": [
+      "Bile eliminada 100% nas fezes",
+      "So no duodeno sem recirculacao",
+      "Acidos biliares reabsorvidos no ileo e recirculados ao figado",
+      "So no rim"
+    ]
+  },
+  {
+    "inimigo": "Funcao do figado na glicose",
+    "correta": "Glicogenio, glicogenolise, gliconeogenese; tampao glicemico",
+    "texto": "Insulina e glucagon regulam.",
+    "ameaca": "FIGADO GLICOSE",
+    "alternativas": [
+      "So armazena gordura",
+      "Nao participa da glicose",
+      "Glicogenio, glicogenolise, gliconeogenese; tampao glicemico",
+      "So produz insulina"
+    ]
+  },
+  {
+    "inimigo": "Funcao do figado em proteinas",
+    "correta": "Sintese de albumina, fatores de coagulacao, ureia a partir de amonia",
+    "texto": "Insuficiencia: coagulopatia e hiperamonemia.",
+    "ameaca": "FIGADO PTN",
+    "alternativas": [
+      "So degrada proteinas alimentares no lumen",
+      "So produz hemoglobina",
+      "Sintese de albumina, fatores de coagulacao, ureia a partir de amonia",
+      "So filtra creatinina"
+    ]
+  },
+  {
+    "inimigo": "Circulacao portal hepatica",
+    "correta": "Sangue do intestino chega ao figado antes da sistemica",
+    "texto": "1a passagem de nutrientes e farmacos.",
+    "ameaca": "PORTAL",
+    "alternativas": [
+      "Sangue intestinal vai direto a veia cava",
+      "So arteria hepatica nutre",
+      "Sangue do intestino chega ao figado antes da sistemica",
+      "So linfatico"
+    ]
+  },
+  {
+    "inimigo": "Bilirrubina",
+    "correta": "Produto da degradacao do heme; conjugada no figado e excretada na bile",
+    "texto": "Icterícia quando acumula.",
+    "ameaca": "BILIRRUBINA",
+    "alternativas": [
+      "Produzida no rim",
+      "So da dieta",
+      "Produto da degradacao do heme; conjugada no figado e excretada na bile",
+      "So da hemoglobina livre no plasma sem metabolismo"
+    ]
+  },
+  {
+    "inimigo": "Jejum: adaptacoes",
+    "correta": "Glicogenolise → gliconeogenese → cetogenese",
+    "texto": "Poupam glicose para o cerebro.",
+    "ameaca": "JEJUM",
+    "alternativas": [
+      "So usa glicose muscular indefinidamente",
+      "Sem lipolise",
+      "Glicogenolise → gliconeogenese → cetogenese",
+      "So proteolise cerebral"
+    ]
+  },
+  {
+    "inimigo": "Cetogenese",
+    "correta": "Figado produz corpos cetonicos a partir de acidos graxos no jejum",
+    "texto": "Cerebro pode usa-los; excesso na cetoacidose diabetica.",
+    "ameaca": "CETOSE",
+    "alternativas": [
+      "So no musculo",
+      "So no rim",
+      "Figado produz corpos cetonicos a partir de acidos graxos no jejum",
+      "So no adipose sem figado"
+    ]
+  },
+  {
+    "inimigo": "Termogenese sem tremor",
+    "correta": "Tecido adiposo marrom (UCP1); importante em RN",
+    "texto": "Tambem hormonios tireoidianos.",
+    "ameaca": "TERMÓGENESE",
+    "alternativas": [
+      "So tremor",
+      "So sudorese",
+      "Tecido adiposo marrom (UCP1); importante em RN",
+      "So vasodilatacao"
+    ]
+  },
+  {
+    "inimigo": "Resposta ao calor",
+    "correta": "Vasodilatacao cutanea e sudorese",
+    "texto": "Risco de desidratacao e insolacao.",
+    "ameaca": "RESPOSTA CALOR",
+    "alternativas": [
+      "Tremor",
+      "Vasoconstricao cutanea",
+      "Vasodilatacao cutanea e sudorese",
+      "Piloereção"
+    ]
+  },
+  {
+    "inimigo": "Aclimatacao a altitude",
+    "correta": "Hiperventilacao, ↑2,3-BPG, ↑eritropoetina e hematocrito",
+    "texto": "Dias a semanas.",
+    "ameaca": "ALTITUDE",
+    "alternativas": [
+      "Hipoventilacao",
+      "↓hematocrito",
+      "Hiperventilacao, ↑2,3-BPG, ↑eritropoetina e hematocrito",
+      "↓2,3-BPG"
+    ]
+  },
+  {
+    "inimigo": "Mergulho e reflexo de imersao",
+    "correta": "Bradircardia e vasoconstricao periferica ao mergulhar a face",
+    "texto": "Conserva O2.",
+    "ameaca": "IMERSAO",
+    "alternativas": [
+      "Taquicardia sempre",
+      "Vasodilatacao periferica",
+      "Bradircardia e vasoconstricao periferica ao mergulhar a face",
+      "So em peixes"
+    ]
+  },
+  {
+    "inimigo": "Gravidez: consumo de O2 e ventilacao",
+    "correta": "Aumentam; alcalose respiratoria cronica leve por estimulo progesteronico",
+    "texto": "PaCO2 materna mais baixa.",
+    "ameaca": "GRAVIDEZ RESP",
+    "alternativas": [
+      "↓ventilacao",
+      "Acidose respiratoria",
+      "Aumentam; alcalose respiratoria cronica leve por estimulo progesteronico",
+      "Sem mudanca"
+    ]
+  },
+  {
+    "inimigo": "Trabalho de parto: hormonios",
+    "correta": "Ocitocina e prostaglandinas → contracoes; relaxina e estrogenio preparam",
+    "texto": "Feedback positivo na expulsão.",
+    "ameaca": "PARTO",
+    "alternativas": [
+      "So prolactina",
+      "So ADH",
+      "Ocitocina e prostaglandinas → contracoes; relaxina e estrogenio preparam",
+      "So adrenalina"
+    ]
+  },
+  {
+    "inimigo": "Recem-nascido: primeiras respiracoes",
+    "correta": "Geram pressao negativa alta; liquido pulmonar e absorvido/expulso",
+    "texto": "Surfactante critico.",
+    "ameaca": "RN RESP",
+    "alternativas": [
+      "Sem esforco",
+      "So dependente de O2 materno continuo",
+      "Geram pressao negativa alta; liquido pulmonar e absorvido/expulso",
+      "So apos 1 hora"
+    ]
+  },
+  {
+    "inimigo": "Fechamento do forame oval ao nascer",
+    "correta": "↑pressao atrial esquerda com o inicio da respiracao",
+    "texto": "Fecha funcionalmente; anatomicamente depois.",
+    "ameaca": "FORAME OVAL RN",
+    "alternativas": [
+      "↓pressao esquerda",
+      "Permanece aberto sempre",
+      "↑pressao atrial esquerda com o inicio da respiracao",
+      "So com cirurgia"
+    ]
+  },
+  {
+    "inimigo": "Fechamento do ducto arterioso",
+    "correta": "↑PaO2 e ↓prostaglandinas apos o nascimento",
+    "texto": "PCA se permanece aberto.",
+    "ameaca": "DUCTO RN",
+    "alternativas": [
+      "↓PaO2",
+      "↑prostaglandinas",
+      "↑PaO2 e ↓prostaglandinas apos o nascimento",
+      "So com cirurgia sempre"
+    ]
+  },
+  {
+    "inimigo": "Envelhecimento cardiovascular",
+    "correta": "Arterias mais rigidas, ↑PAS, ↓complacencia, ↓FC maxima",
+    "texto": "Reserva cardiovascular menor.",
+    "ameaca": "ENVELHECIMENTO CV",
+    "alternativas": [
+      "Arterias mais elasticas",
+      "↑FC maxima",
+      "Arterias mais rigidas, ↑PAS, ↓complacencia, ↓FC maxima",
+      "Sem mudanca"
+    ]
+  },
+  {
+    "inimigo": "Envelhecimento pulmonar",
+    "correta": "↓elasticidade, ↑VR, ↓CV, menor resposta a hipoxia/hipercapnia",
+    "texto": "Maior risco de atelectasia.",
+    "ameaca": "ENVELHECIMENTO PULM",
+    "alternativas": [
+      "↑CV",
+      "↓VR",
+      "↓elasticidade, ↑VR, ↓CV, menor resposta a hipoxia/hipercapnia",
+      "Melhora das trocas"
+    ]
+  },
+  {
+    "inimigo": "Envelhecimento renal",
+    "correta": "↓TFG e ↓capacidade de concentrar urina",
+    "texto": "Maior risco de desidratacao e toxicidade de farmacos.",
+    "ameaca": "ENVELHECIMENTO RENAL",
+    "alternativas": [
+      "↑TFG",
+      "Melhor concentracao",
+      "↓TFG e ↓capacidade de concentrar urina",
+      "Sem mudanca"
+    ]
+  },
+  {
+    "inimigo": "Plasticidade sinaptica",
+    "correta": "Potenciacao e depressao de longo prazo (LTP/LTD)",
+    "texto": "Base celular de aprendizado e memoria.",
+    "ameaca": "PLASTICIDADE",
+    "alternativas": [
+      "Sinapses fixas para sempre",
+      "So no periferico",
+      "Potenciacao e depressao de longo prazo (LTP/LTD)",
+      "So na medula óssea"
+    ]
+  },
+  {
+    "inimigo": "Neurogenesis adulta",
+    "correta": "Ocorre em regioes restritas (hipocampo, zona subventricular)",
+    "texto": "Influenciada por exercicio, estresse e ambiente.",
+    "ameaca": "NEUROGENESE",
+    "alternativas": [
+      "Inexistente apos o nascimento",
+      "Em todo o cortex igualmente",
+      "Ocorre em regioes restritas (hipocampo, zona subventricular)",
+      "So no cerebelo"
+    ]
+  },
+  {
+    "inimigo": "Sistema de recompensa",
+    "correta": "Via mesolimbica dopaminergica (VTA → nucleo accumbens)",
+    "texto": "Envolvida em motivacao e adicao.",
+    "ameaca": "RECOMPENSA",
+    "alternativas": [
+      "So serotoninergica",
+      "So no cerebelo",
+      "Via mesolimbica dopaminergica (VTA → nucleo accumbens)",
+      "So periferica"
+    ]
+  },
+  {
+    "inimigo": "Eixo intestino-cerebro",
+    "correta": "Microbiota e sinais enterico influenciam humor e comportamento",
+    "texto": "Via nervo vago, imunológica e metabolitos.",
+    "ameaca": "INTESTINO CEREBRO",
+    "alternativas": [
+      "Sem conexao",
+      "So mecanica",
+      "Microbiota e sinais enterico influenciam humor e comportamento",
+      "So renal"
+    ]
+  },
+  {
+    "inimigo": "Relogio molecular circadiano",
+    "correta": "Loops transcricionais de genes clock (CLOCK, BMAL, PER, CRY)",
+    "texto": "Presente em quase todas as celulas; sincronizado pelo NSC.",
+    "ameaca": "CLOCK GENES",
+    "alternativas": [
+      "So no figado",
+      "Inexistente",
+      "Loops transcricionais de genes clock (CLOCK, BMAL, PER, CRY)",
+      "So na pele"
+    ]
+  },
+  {
+    "inimigo": "Homeostase do calcio: resumo",
+    "correta": "PTH ↑Ca; calcitonina ↓Ca; vit D ↑absorcao intestinal",
+    "texto": "Ossos, rim e intestino como efetores.",
+    "ameaca": "Ca HOMEOSTASE",
+    "alternativas": [
+      "So albumina",
+      "So insulina",
+      "PTH ↑Ca; calcitonina ↓Ca; vit D ↑absorcao intestinal",
+      "So ADH"
+    ]
+  },
+  {
+    "inimigo": "Homeostase do potassio: resumo",
+    "correta": "Insulina e catecolaminas entram K nas celulas; aldosterona secreta K na urina",
+    "texto": "HiperK e hipoK alteram excitabilidade cardiaca.",
+    "ameaca": "K HOMEOSTASE",
+    "alternativas": [
+      "So PTH",
+      "So ADH",
+      "Insulina e catecolaminas entram K nas celulas; aldosterona secreta K na urina",
+      "So calcitonina"
+    ]
+  },
+  {
+    "inimigo": "Integracao cardiovascular-renal",
+    "correta": "Volume e pressao controlados por RAA, ANP, ADH e snsimpatico",
+    "texto": "Longo prazo o rim domina o controle da PA.",
+    "ameaca": "CV RENAL",
+    "alternativas": [
+      "So barorreceptor curto prazo eterno",
+      "So FC",
+      "Volume e pressao controlados por RAA, ANP, ADH e snsimpatico",
+      "So ventilacao"
+    ]
+  },
+  {
+    "inimigo": "Principio geral da fisiologia",
+    "correta": "Homeostase por feedback negativo (predominante) e positivo (raro)",
+    "texto": "Base de quase todos os sistemas reguladores.",
+    "ameaca": "PRINCIPIO GERAL",
+    "alternativas": [
+      "So feedback positivo",
+      "Sem regulacao",
+      "Homeostase por feedback negativo (predominante) e positivo (raro)",
+      "So acaso"
+    ]
+  },
+  {
+    "inimigo": "Feedback negativo classico",
+    "correta": "Resposta oposta a perturbacao restaura o set-point",
+    "texto": "Ex.: barorreceptor, glicemia, temperatura.",
+    "ameaca": "FEEDBACK NEG",
+    "alternativas": [
+      "Amplifica a perturbacao",
+      "So positivo",
+      "Resposta oposta a perturbacao restaura o set-point",
+      "Sem set-point"
+    ]
+  },
+  {
+    "inimigo": "Feedback positivo classico",
+    "correta": "Amplifica a mudanca ate um evento terminal",
+    "texto": "Ex.: ocitocina no parto, cascata de coagulacao.",
+    "ameaca": "FEEDBACK POS",
+    "alternativas": [
+      "Sempre homeostatico estavel",
+      "Inibe sempre",
+      "Amplifica a mudanca ate um evento terminal",
+      "So na tireoide"
+    ]
+  },
+  {
+    "inimigo": "Set-point",
+    "correta": "Valor de referencia regulado pelo sistema de controle",
+    "texto": "Pode ser ajustado (febre, exercicio).",
+    "ameaca": "SET POINT",
+    "alternativas": [
+      "Valor aleatorio",
+      "So fixo eterno",
+      "Valor de referencia regulado pelo sistema de controle",
+      "So pressao atmosferica"
+    ]
+  },
+  {
+    "inimigo": "Alostase",
+    "correta": "Estabilidade atraves da mudanca; adaptacao a demandas cronicas",
+    "texto": "Carga alostatica no estresse prolongado.",
+    "ameaca": "ALOSTASE",
+    "alternativas": [
+      "Homeostase estatica absoluta",
+      "Sem custo",
+      "Estabilidade atraves da mudanca; adaptacao a demandas cronicas",
+      "So no rim"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🩺 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA FISIOLÓGICO] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🧠`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE FISIOLÓGICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE FISIOLÓGICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

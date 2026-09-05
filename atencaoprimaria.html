@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Atenção Primária da Saúde - Um quiz abrangente sobre os pilares da atenção primária, prevenção e promoção da saúde.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Atenção Primária da Saúde</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Atenção Primária da Saúde</h1>
+  <p>Teste seus conhecimentos sobre a porta de entrada do cuidado em saúde! 🌱</p>
+
+  <div id="terminal">[SISTEMA DE ATENÇÃO PRIMÁRIA INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🌱 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR DESAFIO DE ATENÇÃO PRIMÁRIA</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE ATENÇÃO PRIMÁRIA DA SAÚDE</h2>
+      <p>Bem-vindo, Agente da Atenção Primária! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre os princípios e práticas da Atenção Primária à Saúde (APS).</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Avaliar seu entendimento sobre a APS, incluindo prevenção, promoção da saúde, manejo de condições comuns e organização dos serviços.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis, baseadas em princípios da saúde coletiva e diretrizes de APS.</li>
+        <li>Reforçar o raciocínio para o cuidado integral e contínuo no território.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão de Atenção Primária" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e o cenário ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada, e uma breve explicação será fornecida.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A Atenção Primária é a base de um sistema de saúde forte e equitativo. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Atenção Primária da Saúde foram elaboradas com base em documentos oficiais e literatura de referência da Saúde Coletiva e Medicina de Família e Comunidade, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas:</p>
+      <ul>
+        <li>**DOCUMENTO:** Política Nacional de Atenção Básica (PNAB) - Ministério da Saúde do Brasil.</li>
+        <li>**LIVRO:** Gusso, G.; Lopes, J. M. C. (Org.). Tratado de Medicina de Família e Comunidade: Princípios, Fundamentos e Prática. [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**DOCUMENTO:** Cadernos de Atenção Básica (CAB) - Ministério da Saúde do Brasil.</li>
+        <li>**DOCUMENTO:** Declaração de Alma-Ata (1978) e Declaração de Astana (2018) sobre Atenção Primária à Saúde.</li>
+        <li>**GUIAS CLÍNICOS:** Diretrizes e protocolos de atenção primária de sociedades médicas e órgãos de saúde nacionais e internacionais.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui a consulta a documentos oficiais, livros didáticos e a constante atualização científica sobre saúde da família e comunidade.</p>
+    </div>
+  </div>
+
+  
+  
+  <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+      {"inimigo":"Qual dos seguintes princípios é um pilar da APS?","correta":"Acesso de primeiro contato","texto":"O acesso de primeiro contato é pilar fundamental da APS. A resposta correta é «Acesso de primeiro contato». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"PRINCÍPIO DA APS","alternativas":["Alta complexidade", "Internação hospitalar", "Cuidado terciário", "Acesso de primeiro contato"]},
+      {"inimigo":"O atributo de integralidade na APS significa:","correta":"Considerar o indivíduo em suas dimensões bio-psico-sociais","texto":"Cuidado considera o indivíduo em sua totalidade. A resposta correta é 'Considerar o indivíduo em suas dimensões bio-psico-sociais'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"INTEGRALIDADE","alternativas":["Focar só na doença", "Só emergências", "Delegar a hospitais", "Considerar o indivíduo em suas dimensões bio-psico-sociais"]},
+      {"inimigo":"O acompanhamento contínuo pela mesma equipe é o atributo de:","correta":"Longitudinalidade","texto":"Vínculo e acompanhamento ao longo do tempo. A resposta correta é 'Longitudinalidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"LONGITUDINALIDADE","alternativas":["Acessibilidade", "Coordenação", "Orientação comunitária", "Longitudinalidade"]},
+      {"inimigo":"A coordenação do cuidado na APS consiste em:","correta":"Articular os diferentes serviços e níveis de atenção","texto":"Articula os pontos da rede para continuidade. A resposta correta é 'Articular os diferentes serviços e níveis de atenção'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"COORDENAÇÃO DO CUIDADO","alternativas":["Fazer tudo na UBS", "Evitar encaminhamentos", "Trabalhar isolado", "Articular os diferentes serviços e níveis de atenção"]},
+      {"inimigo":"Os atributos essenciais de Starfield são:","correta":"Primeiro contato, longitudinalidade, integralidade e coordenação","texto":"Quatro atributos essenciais definidos por Starfield. A alternativa correta é: Primeiro contato, longitudinalidade, integralidade e coordenação.","ameaca":"ATRIBUTOS DE STARFIELD","alternativas":["Alta tecnologia", "Internação e cirurgia", "Só pesquisa", "Primeiro contato, longitudinalidade, integralidade e coordenação"]},
+      {"inimigo":"A orientação familiar e comunitária implica:","correta":"Considerar o contexto familiar e comunitário no cuidado","texto":"Reconhece influência da família e território. A resposta correta é 'Considerar o contexto familiar e comunitário no cuidado'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ORIENTAÇÃO FAMILIAR","alternativas":["Atender só o indivíduo", "Ignorar o território", "Só procedimentos", "Considerar o contexto familiar e comunitário no cuidado"]},
+      {"inimigo":"A competência cultural na APS refere-se a:","correta":"Respeitar a diversidade cultural dos usuários","texto":"Respeito às diferenças culturais e sociais. A resposta correta é 'Respeitar a diversidade cultural dos usuários'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"COMPETÊNCIA CULTURAL","alternativas":["Impor cultura dominante", "Ignorar crenças", "Padronizar tudo", "Respeitar a diversidade cultural dos usuários"]},
+      {"inimigo":"A APS se diferencia por ser:","correta":"A porta de entrada preferencial do sistema de saúde","texto":"Porta de entrada e centro de coordenação. A resposta correta é 'A porta de entrada preferencial do sistema de saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CARACTERÍSTICA DA APS","alternativas":["Só cirurgias", "Só urgências", "Doenças raras", "A porta de entrada preferencial do sistema de saúde"]},
+      {"inimigo":"Resolutividade na APS significa capacidade de:","correta":"Resolver a maior parte dos problemas de saúde","texto":"Solucionar maioria das necessidades sem encaminhamento. A alternativa correta é: Resolver a maior parte dos problemas de saúde.","ameaca":"RESOLUTIVIDADE","alternativas":["Encaminhar todos", "Só diagnosticar", "Sem protocolo", "Resolver a maior parte dos problemas de saúde"]},
+      {"inimigo":"Equidade na APS busca:","correta":"Tratar desigualmente os desiguais, priorizando quem mais precisa","texto":"Prioriza maior vulnerabilidade. A resposta correta é 'Tratar desigualmente os desiguais, priorizando quem mais precisa'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"EQUIDADE","alternativas":["Tratar todos iguais", "Priorizar quem paga", "Ordem de chegada", "Tratar desigualmente os desiguais, priorizando quem mais precisa"]},
+      {"inimigo":"Territorialização","correta":"Responsabilização da equipe por população adscrita","texto":"Define área e população sob responsabilidade. A resposta correta é 'Responsabilização da equipe por população adscrita'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TERRITORIALIZAÇÃO","alternativas":["Atender qualquer um", "Sem área definida", "Só hospital", "Responsabilização da equipe por população adscrita"]},
+      {"inimigo":"Adscrição de clientela","correta":"Vínculo de população a uma equipe específica","texto":"Vínculo formal população-equipe. A resposta correta é 'Vínculo de população a uma equipe específica'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ADSCRIÇÃO","alternativas":["Livre escolha", "Atendimento aleatório", "Só urgência", "Vínculo de população a uma equipe específica"]},
+      {"inimigo":"Declaração de Alma-Ata (1978)","correta":"Marco internacional da Atenção Primária à Saúde","texto":"Definiu APS como estratégia fundamental. A resposta correta é 'Marco internacional da Atenção Primária à Saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ALMA-ATA","alternativas":["Astana", "Ottawa", "Flexner", "Marco internacional da Atenção Primária à Saúde"]},
+      {"inimigo":"Declaração de Astana (2018)","correta":"Reforço da APS para cobertura universal de saúde","texto":"Reafirmou compromisso com APS. A resposta correta é 'Reforço da APS para cobertura universal de saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ASTANA","alternativas":["Só hospitais", "Privatização", "Só transmissíveis", "Reforço da APS para cobertura universal de saúde"]},
+      {"inimigo":"Carta de Ottawa (1986)","correta":"Marco da promoção da saúde","texto":"Definiu promoção da saúde. A resposta correta é 'Marco da promoção da saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"OTTAWA","alternativas":["Hospitalar", "Cirurgia", "Imagem", "Marco da promoção da saúde"]},
+      {"inimigo":"Universalidade no SUS","correta":"Acesso à saúde para toda a população sem discriminação","texto":"Direito independente de contribuição. A resposta correta é 'Acesso à saúde para toda a população sem discriminação'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"UNIVERSALIDADE","alternativas":["Só quem contribui", "Só pobres", "Só plano de saúde", "Acesso à saúde para toda a população sem discriminação"]},
+      {"inimigo":"Intersetorialidade","correta":"Articulação com educação, assistência social e outros setores","texto":"Saúde determinada por fatores sociais. A resposta correta é 'Articulação com educação, assistência social e outros setores'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"INTERSETORIALIDADE","alternativas":["Só dentro da UBS", "Ignorar setores", "Só clínico", "Articulação com educação, assistência social e outros setores"]},
+      {"inimigo":"Participação social","correta":"Conselhos e Conferências de Saúde","texto":"Espaços de controle social. A resposta correta é 'Conselhos e Conferências de Saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PARTICIPAÇÃO SOCIAL","alternativas":["Só gestão", "Só médicos", "Empresas", "Conselhos e Conferências de Saúde"]},
+      {"inimigo":"Humanização","correta":"Acolhimento, vínculo e respeito à dignidade","texto":"Qualifica relação profissional-usuário. A resposta correta é 'Acolhimento, vínculo e respeito à dignidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"HUMANIZAÇÃO","alternativas":["Só técnica", "Velocidade", "Custos", "Acolhimento, vínculo e respeito à dignidade"]},
+      {"inimigo":"Acolhimento","correta":"Receber o usuário com escuta qualificada","texto":"Postura receptiva e responsável. A resposta correta é 'Receber o usuário com escuta qualificada'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ACOLHIMENTO","alternativas":["Só triagem", "Só hora marcada", "Negar sem documento", "Receber o usuário com escuta qualificada"]},
+      {"inimigo":"Papel principal da eSF","correta":"Cuidado integral e longitudinal à população adscrita","texto":"Cuidado integral e contínuo. A resposta correta é 'Cuidado integral e longitudinal à população adscrita'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PAPEL DA eSF","alternativas":["Cirurgias complexas", "Doenças raras", "Só urgências", "Cuidado integral e longitudinal à população adscrita"]},
+      {"inimigo":"Composição mínima da eSF","correta":"Médico, enfermeiro, técnicos de enfermagem e ACS","texto":"Definida pela PNAB. A resposta correta é 'Médico, enfermeiro, técnicos de enfermagem e ACS'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"COMPOSIÇÃO eSF","alternativas":["Só médico e enfermeiro", "Só ACS", "Médico e dentista", "Médico, enfermeiro, técnicos de enfermagem e ACS"]},
+      {"inimigo":"Função principal do ACS","correta":"Visitas domiciliares e cadastro das famílias","texto":"Elo comunidade-equipe. A resposta correta é 'Visitas domiciliares e cadastro das famílias'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"FUNÇÃO DO ACS","alternativas":["Prescrever", "Cirurgias", "Diagnosticar complexos", "Visitas domiciliares e cadastro das famílias"]},
+      {"inimigo":"Visita domiciliar do ACS fortalece","correta":"Orientação familiar e comunitária","texto":"Cuidado com família e comunidade. A resposta correta é 'Orientação familiar e comunitária'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"VISITA DOMICILIAR","alternativas":["Tecnologia", "Hospitalar", "Transplantes", "Orientação familiar e comunitária"]},
+      {"inimigo":"Objetivo da equipe de Saúde Bucal","correta":"Integrar saúde bucal ao cuidado da eSF","texto":"Trabalho integrado. A resposta correta é 'Integrar saúde bucal ao cuidado da eSF'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SAÚDE BUCAL","alternativas":["Isolada", "Só extrações", "Só urgências", "Integrar saúde bucal ao cuidado da eSF"]},
+      {"inimigo":"Função do NASF-AB/eMulti","correta":"Apoiar eSF com profissionais de diferentes áreas","texto":"Apoio matricial. A resposta correta é 'Apoiar eSF com profissionais de diferentes áreas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"NASF/eMulti","alternativas":["Substituir eSF", "Só hospital", "Só cirurgias", "Apoiar eSF com profissionais de diferentes áreas"]},
+      {"inimigo":"O que é a UBS","correta":"Estabelecimento que oferece ações de APS","texto":"Unidade de Atenção Primária. A resposta correta é 'Estabelecimento que oferece ações de APS'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"UBS","alternativas":["Hospital", "Pronto-socorro", "Laboratório", "Estabelecimento que oferece ações de APS"]},
+      {"inimigo":"Função do Conselho Local de Saúde","correta":"Controle social e participação da comunidade","texto":"Fiscalização e participação. A resposta correta é 'Controle social e participação da comunidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CONSELHO LOCAL","alternativas":["Orçamento hospitalar", "Cirurgia cardíaca", "Pesquisa", "Controle social e participação da comunidade"]},
+      {"inimigo":"Carga horária mínima do médico da eSF","correta":"40 horas semanais","texto":"Estabelecida pela PNAB. A resposta correta é '40 horas semanais'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CARGA HORÁRIA MÉDICO","alternativas":["20h", "30h", "10h", "40 horas semanais"]},
+      {"inimigo":"Base do processo de trabalho da eSF","correta":"Território, população adscrita e necessidades de saúde","texto":"Organizado a partir do território. A resposta correta é 'Território, população adscrita e necessidades de saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PROCESSO DE TRABALHO","alternativas":["Só demanda espontânea", "Protocolos hospitalares", "Interesses individuais", "Território, população adscrita e necessidades de saúde"]},
+      {"inimigo":"Vacinação é exemplo de","correta":"Prevenção primária","texto":"Protege antes da doença. A resposta correta é 'Prevenção primária'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"VACINAÇÃO","alternativas":["Secundária", "Terciária", "Quaternária", "Prevenção primária"]},
+      {"inimigo":"Papanicolau em assintomáticas é","correta":"Prevenção secundária","texto":"Diagnóstico precoce. A resposta correta é 'Prevenção secundária'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PAPANICOLAU","alternativas":["Primária", "Terciária", "Quaternária", "Prevenção secundária"]},
+      {"inimigo":"Reabilitação pós-AVC é","correta":"Prevenção terciária","texto":"Reduz incapacidades. A resposta correta é 'Prevenção terciária'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"REABILITAÇÃO","alternativas":["Primária", "Secundária", "Quaternária", "Prevenção terciária"]},
+      {"inimigo":"Prevenção quaternária busca","correta":"Evitar medicalização excessiva e iatrogenia","texto":"Protege de intervenções desnecessárias. A resposta correta é 'Evitar medicalização excessiva e iatrogenia'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"QUATERNÁRIA","alternativas":["Vacinar", "Rastrear", "Reabilitar", "Evitar medicalização excessiva e iatrogenia"]},
+      {"inimigo":"Educação alimentar para hipertensos é","correta":"Promoção da saúde","texto":"Capacita para melhorar saúde. A resposta correta é 'Promoção da saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"EDUCAÇÃO ALIMENTAR","alternativas":["Reabilitação", "Cura", "Diagnóstico", "Promoção da saúde"]},
+      {"inimigo":"NÃO é responsabilidade da APS","correta":"Realização de transplantes de órgãos","texto":"Alta complexidade terciária. A resposta correta é 'Realização de transplantes de órgãos'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"NÃO É DA APS","alternativas":["Gestantes", "Imunização", "Crônicas", "Realização de transplantes de órgãos"]},
+      {"inimigo":"Objetivo do PSE","correta":"Promover saúde e desenvolvimento integral de crianças e adolescentes","texto":"Articula saúde e educação. A resposta correta é 'Promover saúde e desenvolvimento integral de crianças e adolescentes'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PSE","alternativas":["Só vacinar", "Substituir UBS", "Doenças complexas", "Promover saúde e desenvolvimento integral de crianças e adolescentes"]},
+      {"inimigo":"Carta de Ottawa inclui","correta":"Políticas públicas saudáveis e reforço da ação comunitária","texto":"Campos de ação da promoção. A resposta correta é 'Políticas públicas saudáveis e reforço da ação comunitária'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"OTTAWA CAMPOS","alternativas":["Só vacinação", "Só médico", "Só remédios", "Políticas públicas saudáveis e reforço da ação comunitária"]},
+      {"inimigo":"Aconselhamento para parar de fumar é","correta":"Prevenção e promoção na APS","texto":"Intervenção eficaz na APS. A resposta correta é 'Prevenção e promoção na APS'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TABAGISMO","alternativas":["Alta complexidade", "Só hospital", "Cirurgia", "Prevenção e promoção na APS"]},
+      {"inimigo":"Atividade física na UBS é","correta":"Promoção da saúde e prevenção de DCNT","texto":"Previne doenças crônicas. A resposta correta é 'Promoção da saúde e prevenção de DCNT'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ATIVIDADE FÍSICA","alternativas":["Só reabilitação", "Fraturas", "Lesões", "Promoção da saúde e prevenção de DCNT"]},
+      {"inimigo":"Acompanhamento de crescimento e desenvolvimento","correta":"Prevenção e promoção da saúde infantil","texto":"Identifica desvios precocemente. A resposta correta é 'Prevenção e promoção da saúde infantil'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CD INFANTIL","alternativas":["Só tratamento", "Alta complexidade", "Emergência", "Prevenção e promoção da saúde infantil"]},
+      {"inimigo":"Suplementação de ferro e ácido fólico na gestação","correta":"Prevenção primária de anemia e defeitos do tubo neural","texto":"Previne anemia e defeitos. A resposta correta é 'Prevenção primária de anemia e defeitos do tubo neural'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SUPLEMENTAÇÃO GESTAÇÃO","alternativas":["Secundária", "Terciária", "Quaternária", "Prevenção primária de anemia e defeitos do tubo neural"]},
+      {"inimigo":"Teste do pezinho","correta":"Prevenção secundária","texto":"Triagem neonatal. A resposta correta é 'Prevenção secundária'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TESTE DO PEZINHO","alternativas":["Primária", "Terciária", "Quaternária", "Prevenção secundária"]},
+      {"inimigo":"Mamografia de rastreamento","correta":"Prevenção secundária do câncer de mama","texto":"Detecção precoce. A resposta correta é 'Prevenção secundária do câncer de mama'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"MAMOGRAFIA","alternativas":["Primária", "Terciária", "Quaternária", "Prevenção secundária do câncer de mama"]},
+      {"inimigo":"Controle de vetores (Aedes)","correta":"Prevenção primária e vigilância em saúde","texto":"Previne dengue, zika, chikungunya. A resposta correta é 'Prevenção primária e vigilância em saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CONTROLE DE VETORES","alternativas":["Tratamento", "Reabilitação", "Alta complexidade", "Prevenção primária e vigilância em saúde"]},
+      {"inimigo":"Prevenção de quedas em idosos","correta":"Avaliação de risco, orientação e adaptações no domicílio","texto":"Identifica riscos e adapta ambiente. A resposta correta é 'Avaliação de risco, orientação e adaptações no domicílio'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"QUEDAS EM IDOSOS","alternativas":["Internação", "Só remédios", "Imobilização", "Avaliação de risco, orientação e adaptações no domicílio"]},
+      {"inimigo":"Imunização de adultos e idosos","correta":"Prevenção primária de doenças imunopreveníveis","texto":"Previne doenças graves. A resposta correta é 'Prevenção primária de doenças imunopreveníveis'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"IMUNIZAÇÃO ADULTOS","alternativas":["Secundária", "Terciária", "Quaternária", "Prevenção primária de doenças imunopreveníveis"]},
+      {"inimigo":"Uso de preservativo","correta":"Prevenção primária de ISTs e HIV","texto":"Previne infecções sexualmente transmissíveis. A resposta correta é 'Prevenção primária de ISTs e HIV'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PRESERVATIVO","alternativas":["Secundária", "Terciária", "Quaternária", "Prevenção primária de ISTs e HIV"]},
+      {"inimigo":"Detecção precoce de hanseníase e TB","correta":"Prevenção secundária","texto":"Busca ativa e diagnóstico precoce. A resposta correta é 'Prevenção secundária'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"HANSENÍASE E TB","alternativas":["Primária", "Terciária", "Quaternária", "Prevenção secundária"]},
+      {"inimigo":"Aleitamento materno exclusivo até 6 meses","correta":"Prevenção primária e promoção da saúde","texto":"Previne infecções e promove desenvolvimento. A resposta correta é 'Prevenção primária e promoção da saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ALEITAMENTO","alternativas":["Tratamento", "Reabilitação", "Alta complexidade", "Prevenção primária e promoção da saúde"]},
+      {"inimigo":"Redução de danos em álcool e drogas","correta":"Minimizar prejuízos sem exigir abstinência imediata","texto":"Reconhece complexidade do uso. A resposta correta é 'Minimizar prejuízos sem exigir abstinência imediata'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"REDUÇÃO DE DANOS","alternativas":["Abstinência forçada", "Internação compulsória", "Ignorar", "Minimizar prejuízos sem exigir abstinência imediata"]},
+      {"inimigo":"Abordagem familiar na asma infantil","correta":"Educação da família, controle ambiental e adesão","texto":"Educação e identificação de gatilhos. A resposta correta é 'Educação da família, controle ambiental e adesão'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ASMA INFANTIL","alternativas":["Só alívio", "Internação", "Evitar escola", "Educação da família, controle ambiental e adesão"]},
+      {"inimigo":"Prevenção do suicídio na APS","correta":"Identificação de risco, acolhimento e articulação com a rede","texto":"Identifica e acolhe pessoas em risco. A resposta correta é 'Identificação de risco, acolhimento e articulação com a rede'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SUICÍDIO","alternativas":["Só medicação", "Isolamento", "Negar", "Identificação de risco, acolhimento e articulação com a rede"]},
+      {"inimigo":"Violência doméstica na APS","correta":"Acolhimento, notificação e articulação com rede de proteção","texto":"Acolhe, notifica e articula. A resposta correta é 'Acolhimento, notificação e articulação com rede de proteção'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"VIOLÊNCIA DOMÉSTICA","alternativas":["Ignorar", "Só medicar", "Confrontar sozinho", "Acolhimento, notificação e articulação com rede de proteção"]},
+      {"inimigo":"Saúde do trabalhador na APS","correta":"Identificação de riscos ocupacionais e promoção de ambientes saudáveis","texto":"Trabalho como determinante. A resposta correta é 'Identificação de riscos ocupacionais e promoção de ambientes saudáveis'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SAÚDE DO TRABALHADOR","alternativas":["Só atestado", "Afastamento sem avaliação", "Ignorar", "Identificação de riscos ocupacionais e promoção de ambientes saudáveis"]},
+      {"inimigo":"Abordagem da obesidade na APS","correta":"Integral, sem estigma, com foco em hábitos e determinantes sociais","texto":"Cuidado respeitoso e integral. A resposta correta é 'Integral, sem estigma, com foco em hábitos e determinantes sociais'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"OBESIDADE","alternativas":["Restrição severa", "Culpar", "Só cirurgia", "Integral, sem estigma, com foco em hábitos e determinantes sociais"]},
+      {"inimigo":"Prevenção de DST/HIV em adolescentes","correta":"Educação sexual, acesso a preservativos e testagem","texto":"Educação e acesso a métodos. A resposta correta é 'Educação sexual, acesso a preservativos e testagem'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DST/HIV ADOLESCENTES","alternativas":["Só abstinência", "Proibir", "Ignorar", "Educação sexual, acesso a preservativos e testagem"]},
+      {"inimigo":"SISVAN na APS","correta":"Acompanhar estado nutricional e subsidiar ações","texto":"Monitora estado nutricional. A resposta correta é 'Acompanhar estado nutricional e subsidiar ações'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SISVAN","alternativas":["Só pesar", "Controlar vendas", "Punir", "Acompanhar estado nutricional e subsidiar ações"]},
+      {"inimigo":"Promoção da saúde mental na APS","correta":"Acolhimento, escuta e ações de promoção do bem-estar","texto":"Espaço de promoção da saúde mental. A resposta correta é 'Acolhimento, escuta e ações de promoção do bem-estar'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SAÚDE MENTAL","alternativas":["Só CAPS", "Medicalizar todos", "Ignorar", "Acolhimento, escuta e ações de promoção do bem-estar"]},
+      {"inimigo":"Pré-natal de risco habitual","correta":"Realizado preferencialmente na APS","texto":"Responsabilidade da APS. A resposta correta é 'Realizado preferencialmente na APS'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PRÉ-NATAL","alternativas":["Só hospital", "Particular", "Pronto-socorro", "Realizado preferencialmente na APS"]},
+      {"inimigo":"Número mínimo de consultas de pré-natal","correta":"6 consultas","texto":"Recomendação do MS. A resposta correta é '6 consultas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CONSULTAS PRÉ-NATAL","alternativas":["3", "4", "10", "6 consultas"]},
+      {"inimigo":"Consulta de puerpério até","correta":"O 42º dia após o parto","texto":"Preferencialmente nos primeiros 10 dias. A resposta correta é 'O 42º dia após o parto'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PUERPÉRIO","alternativas":["6 meses", "Só se complicação", "1 ano", "O 42º dia após o parto"]},
+      {"inimigo":"Caderneta de acompanhamento da criança","correta":"Caderneta de Saúde da Criança","texto":"Registra CD, vacinas e orientações. A resposta correta é 'Caderneta de Saúde da Criança'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CADERNETA CRIANÇA","alternativas":["Idoso", "Cartão SUS", "Prontuário hospitalar", "Caderneta de Saúde da Criança"]},
+      {"inimigo":"Teste da orelhinha","correta":"Preferencialmente na maternidade, com seguimento na APS","texto":"Triagem auditiva neonatal. A resposta correta é 'Preferencialmente na maternidade, com seguimento na APS'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ORELHINHA","alternativas":["Aos 2 anos", "Só se suspeita", "Após 1 ano", "Preferencialmente na maternidade, com seguimento na APS"]},
+      {"inimigo":"Manejo da hipertensão na APS","correta":"Mudança de estilo de vida, medicação e acompanhamento","texto":"Estilo de vida + medicação + seguimento. A resposta correta é 'Mudança de estilo de vida, medicação e acompanhamento'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"HAS","alternativas":["Só emergência", "Internação obrigatória", "Ignorar leves", "Mudança de estilo de vida, medicação e acompanhamento"]},
+      {"inimigo":"Meta pressórica para maioria dos adultos","correta":"Menos de 140/90 mmHg","texto":"Meta padrão. A resposta correta é 'Menos de 140/90 mmHg'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"META PA","alternativas":["160/100", "120/60", "180/110", "Menos de 140/90 mmHg"]},
+      {"inimigo":"Manejo do diabetes tipo 2 na APS","correta":"Educação, estilo de vida e controle glicêmico individualizado","texto":"Educação e metas individualizadas. A resposta correta é 'Educação, estilo de vida e controle glicêmico individualizado'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DM2","alternativas":["Insulina para todos", "Internação", "Dieta extrema", "Educação, estilo de vida e controle glicêmico individualizado"]},
+      {"inimigo":"Hemoglobina glicada serve para","correta":"Avaliar controle glicêmico dos últimos 2-3 meses","texto":"Média da glicemia. A resposta correta é 'Avaliar controle glicêmico dos últimos 2-3 meses'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"HbA1c","alternativas":["Anemia", "Função renal", "Colesterol", "Avaliar controle glicêmico dos últimos 2-3 meses"]},
+      {"inimigo":"Cuidado ao idoso na APS","correta":"Avaliação multidimensional e prevenção de síndromes geriátricas","texto":"Identifica fragilidade. A resposta correta é 'Avaliação multidimensional e prevenção de síndromes geriátricas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"IDOSO","alternativas":["Só agudas", "Ignorar funcionalidade", "Só medicação", "Avaliação multidimensional e prevenção de síndromes geriátricas"]},
+      {"inimigo":"Caderneta do Idoso serve para","correta":"Registrar informações de saúde e facilitar acompanhamento","texto":"Dados de saúde e orientações. A resposta correta é 'Registrar informações de saúde e facilitar acompanhamento'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CADERNETA IDOSO","alternativas":["Só consultas", "Substituir prontuário", "Só hospital", "Registrar informações de saúde e facilitar acompanhamento"]},
+      {"inimigo":"Faixa etária do Papanicolau","correta":"25 a 64 anos","texto":"Recomendação nacional. A resposta correta é '25 a 64 anos'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"FAIXA PAP","alternativas":["15-20", "70-80", "Qualquer", "25 a 64 anos"]},
+      {"inimigo":"Periodicidade do Papanicolau após 2 normais","correta":"A cada 3 anos","texto":"Após dois anuais normais. A resposta correta é 'A cada 3 anos'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PERIODICIDADE PAP","alternativas":["Anual", "5 anos", "10 anos", "A cada 3 anos"]},
+      {"inimigo":"Faixa etária da mamografia de rastreamento","correta":"50 a 69 anos","texto":"Bienalmente. A resposta correta é '50 a 69 anos'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"FAIXA MAMOGRAFIA","alternativas":["20-30", "30-40", "80-90", "50 a 69 anos"]},
+      {"inimigo":"Manejo da tuberculose na APS","correta":"Diagnóstico, TDO e busca de contatos","texto":"Diagnóstico e tratamento diretamente observado. A resposta correta é 'Diagnóstico, TDO e busca de contatos'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TB","alternativas":["Só hospital", "Isolamento sem tratamento", "Sem acompanhamento", "Diagnóstico, TDO e busca de contatos"]},
+      {"inimigo":"TDO na tuberculose significa","correta":"Observar a tomada da medicação pelo paciente","texto":"Supervisão da ingestão. A resposta correta é 'Observar a tomada da medicação pelo paciente'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TDO","alternativas":["Sem supervisão", "Só entregar", "Internação", "Observar a tomada da medicação pelo paciente"]},
+      {"inimigo":"Manejo da hanseníase na APS","correta":"Diagnóstico, PQT e prevenção de incapacidades","texto":"Diagnóstico e poliquimioterapia. A resposta correta é 'Diagnóstico, PQT e prevenção de incapacidades'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"HANSENÍASE","alternativas":["Só isolamento", "Só hospital", "Negar", "Diagnóstico, PQT e prevenção de incapacidades"]},
+      {"inimigo":"Saúde sexual e reprodutiva na APS","correta":"Planejamento familiar, prevenção de ISTs e pré-natal","texto":"Abrange planejamento e prevenção. A resposta correta é 'Planejamento familiar, prevenção de ISTs e pré-natal'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SAÚDE SEXUAL","alternativas":["Só contracepção", "Só aborto", "Só gestantes", "Planejamento familiar, prevenção de ISTs e pré-natal"]},
+      {"inimigo":"Planejamento familiar deve oferecer","correta":"Informação, acesso a métodos e respeito à autonomia","texto":"Informação e escolha. A resposta correta é 'Informação, acesso a métodos e respeito à autonomia'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PLANEJAMENTO FAMILIAR","alternativas":["Só um método", "Impor filhos", "Negar a solteiros", "Informação, acesso a métodos e respeito à autonomia"]},
+      {"inimigo":"Saúde do homem na APS busca","correta":"Ampliar acesso e cuidado integral à saúde masculina","texto":"Política de atenção integral. A resposta correta é 'Ampliar acesso e cuidado integral à saúde masculina'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SAÚDE DO HOMEM","alternativas":["Só próstata", "Só idosos", "Ignorar mental", "Ampliar acesso e cuidado integral à saúde masculina"]},
+      {"inimigo":"Abordagem da depressão na APS","correta":"Identificação, acolhimento, manejo e articulação com a rede","texto":"Identifica e maneja maioria dos casos. A resposta correta é 'Identificação, acolhimento, manejo e articulação com a rede'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DEPRESSÃO","alternativas":["Só psiquiatra", "Negar", "Só internação", "Identificação, acolhimento, manejo e articulação com a rede"]},
+      {"inimigo":"Antidepressivos na APS devem acompanhar","correta":"Escuta, apoio psicossocial e monitoramento","texto":"Associado a escuta e monitoramento. A resposta correta é 'Escuta, apoio psicossocial e monitoramento'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ANTIDEPRESSIVOS","alternativas":["Só receita", "Sem acompanhamento", "Só aumentar dose", "Escuta, apoio psicossocial e monitoramento"]},
+      {"inimigo":"Atenção à pessoa com deficiência","correta":"Inclusiva, acessível e centrada nas necessidades","texto":"Acessibilidade e inclusão. A resposta correta é 'Inclusiva, acessível e centrada nas necessidades'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DEFICIÊNCIA","alternativas":["Só especializada", "Negar acesso", "Tratar como incapaz", "Inclusiva, acessível e centrada nas necessidades"]},
+      {"inimigo":"Cuidado à população LGBTQIA+","correta":"Respeito à identidade de gênero e orientação sexual","texto":"Sem discriminação. A resposta correta é 'Respeito à identidade de gênero e orientação sexual'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"LGBTQIA+","alternativas":["Ignorar identidade", "Impor normas", "Negar", "Respeito à identidade de gênero e orientação sexual"]},
+      {"inimigo":"População em situação de rua","correta":"Acolhimento, flexibilidade e articulação intersetorial","texto":"Estratégias flexíveis. A resposta correta é 'Acolhimento, flexibilidade e articulação intersetorial'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SITUAÇÃO DE RUA","alternativas":["Exigir comprovante", "Negar", "Só abrigo", "Acolhimento, flexibilidade e articulação intersetorial"]},
+      {"inimigo":"Manejo da asma na APS","correta":"Educação, plano de ação, controle ambiental e inalatórios","texto":"Educação e plano de ação. A resposta correta é 'Educação, plano de ação, controle ambiental e inalatórios'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ASMA","alternativas":["Só resgate", "Internação", "Evitar exercício", "Educação, plano de ação, controle ambiental e inalatórios"]},
+      {"inimigo":"Suspeita de DPOC","correta":"Fumantes ou ex-fumantes com dispneia e tosse crônica","texto":"Tabagismo + sintomas. A resposta correta é 'Fumantes ou ex-fumantes com dispneia e tosse crônica'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DPOC","alternativas":["Só crianças", "Não fumantes", "Só asma", "Fumantes ou ex-fumantes com dispneia e tosse crônica"]},
+      {"inimigo":"Cuidado à pessoa com HIV na APS","correta":"Acolhimento, testagem, tratamento e prevenção combinada","texto":"Testagem e tratamento. A resposta correta é 'Acolhimento, testagem, tratamento e prevenção combinada'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"HIV","alternativas":["Só SAE", "Negar", "Isolamento", "Acolhimento, testagem, tratamento e prevenção combinada"]},
+      {"inimigo":"PrEP pode ser oferecida na","correta":"Atenção Primária e serviços especializados","texto":"Início e acompanhamento na APS. A resposta correta é 'Atenção Primária e serviços especializados'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PrEP","alternativas":["Só hospital", "Só pesquisa", "Só privado", "Atenção Primária e serviços especializados"]},
+      {"inimigo":"Sífilis na gestação","correta":"Testagem, tratamento imediato e acompanhamento do parceiro","texto":"Tratamento imediato. A resposta correta é 'Testagem, tratamento imediato e acompanhamento do parceiro'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SÍFILIS GESTAÇÃO","alternativas":["Após parto", "Ignorar parceiro", "Só se sintomática", "Testagem, tratamento imediato e acompanhamento do parceiro"]},
+      {"inimigo":"Avaliação no puerpério","correta":"Saúde da mãe, aleitamento, planejamento familiar e vínculo","texto":"Recuperação e vínculo. A resposta correta é 'Saúde da mãe, aleitamento, planejamento familiar e vínculo'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"AVALIAÇÃO PUERPÉRIO","alternativas":["Só cicatriz", "Só peso bebê", "Só vacina", "Saúde da mãe, aleitamento, planejamento familiar e vínculo"]},
+      {"inimigo":"Crianças com condições crônicas","correta":"Cuidado coordenado, educação da família e articulação","texto":"Coordenação e articulação. A resposta correta é 'Cuidado coordenado, educação da família e articulação'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CRÔNICAS INFANTIS","alternativas":["Só urgência", "Internação", "Negar", "Cuidado coordenado, educação da família e articulação"]},
+      {"inimigo":"Dor crônica na APS","correta":"Multidimensional, uso racional de medicamentos e não farmacológicas","texto":"Avaliação multidimensional. A resposta correta é 'Multidimensional, uso racional de medicamentos e não farmacológicas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DOR CRÔNICA","alternativas":["Só opioides", "Ignorar", "Só repouso", "Multidimensional, uso racional de medicamentos e não farmacológicas"]},
+      {"inimigo":"Cuidado paliativo na APS","correta":"Cuidado que visa qualidade de vida em doenças graves","texto":"Pode ser oferecido na APS. A resposta correta é 'Cuidado que visa qualidade de vida em doenças graves'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PALIATIVO","alternativas":["Só final no hospital", "Desistência", "Só sedação", "Cuidado que visa qualidade de vida em doenças graves"]},
+      {"inimigo":"Demência na APS","correta":"Identificação precoce, suporte à família e manejo de sintomas","texto":"Identifica e oferece suporte. A resposta correta é 'Identificação precoce, suporte à família e manejo de sintomas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DEMÊNCIA","alternativas":["Só neurologista", "Negar", "Internação", "Identificação precoce, suporte à família e manejo de sintomas"]},
+      {"inimigo":"Osteoartrite na APS","correta":"Educação, atividade física, controle de peso e analgesia","texto":"Educação e exercício. A resposta correta é 'Educação, atividade física, controle de peso e analgesia'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"OSTEOARTRITE","alternativas":["Só cirurgia", "Repouso absoluto", "Corticoides altos", "Educação, atividade física, controle de peso e analgesia"]},
+      {"inimigo":"Saúde da pessoa privada de liberdade","correta":"Responsabilidade do sistema de saúde, incluindo APS","texto":"Direito e dever do Estado. A resposta correta é 'Responsabilidade do sistema de saúde, incluindo APS'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PRIVADA DE LIBERDADE","alternativas":["Só família", "Só segurança", "Só o preso", "Responsabilidade do sistema de saúde, incluindo APS"]},
+      {"inimigo":"Populações do campo, floresta e águas","correta":"Considerar especificidades territoriais, culturais e de acesso","texto":"Estratégias específicas. A resposta correta é 'Considerar especificidades territoriais, culturais e de acesso'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CAMPO FLORESTA ÁGUAS","alternativas":["Protocolo urbano", "Ignorar cultura", "Só itinerante", "Considerar especificidades territoriais, culturais e de acesso"]},
+      {"inimigo":"Hanseníase em crianças","correta":"Diagnóstico precoce e prevenção de incapacidades","texto":"Atenção especial. A resposta correta é 'Diagnóstico precoce e prevenção de incapacidades'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"HANSENÍASE CRIANÇA","alternativas":["Ignorar", "Só adultos", "Isolamento", "Diagnóstico precoce e prevenção de incapacidades"]},
+      {"inimigo":"Transtorno mental grave na APS","correta":"Compartilhado com o CAPS e centrado no território","texto":"Cuidado compartilhado. A resposta correta é 'Compartilhado com o CAPS e centrado no território'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TMG","alternativas":["Só hospital", "Só CAPS", "Sem articulação", "Compartilhado com o CAPS e centrado no território"]},
+      {"inimigo":"PNAB atual regida pela","correta":"Portaria nº 2.436/2017","texto":"Diretrizes vigentes. A resposta correta é 'Portaria nº 2.436/2017'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PNAB PORTARIA","alternativas":["399/2006", "154/2008", "4279/2010", "Portaria nº 2.436/2017"]},
+      {"inimigo":"PNI é coordenado pelo","correta":"Ministério da Saúde","texto":"Política nacional. A resposta correta é 'Ministério da Saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PNI","alternativas":["OMS", "Estados", "Municípios", "Ministério da Saúde"]},
+      {"inimigo":"ESF é","correta":"Modelo prioritário de reorganização da APS no Brasil","texto":"Estratégia prioritária. A resposta correta é 'Modelo prioritário de reorganização da APS no Brasil'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ESF","alternativas":["Hospitalar", "Alta complexidade", "Privado", "Modelo prioritário de reorganização da APS no Brasil"]},
+      {"inimigo":"Condicionalidades de saúde do Bolsa Família","correta":"Pré-natal, vacinação e crescimento das crianças","texto":"Condicionalidades de saúde. A resposta correta é 'Pré-natal, vacinação e crescimento das crianças'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"BOLSA FAMÍLIA","alternativas":["Só trabalho", "Só educação", "Nenhuma", "Pré-natal, vacinação e crescimento das crianças"]},
+      {"inimigo":"PMAQ-AB visava","correta":"Avaliar e incentivar melhoria da qualidade da APS","texto":"Avaliação e incentivos. A resposta correta é 'Avaliar e incentivar melhoria da qualidade da APS'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PMAQ","alternativas":["Reduzir UBS", "Privatizar", "Punir", "Avaliar e incentivar melhoria da qualidade da APS"]},
+      {"inimigo":"Previne Brasil é modelo de","correta":"Financiamento da Atenção Primária à Saúde","texto":"Financiamento da APS. A resposta correta é 'Financiamento da Atenção Primária à Saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PREVINE BRASIL","alternativas":["Vacinação", "Informação", "Protocolo", "Financiamento da Atenção Primária à Saúde"]},
+      {"inimigo":"Indicadores do Previne Brasil","correta":"Pré-natal, saúde da mulher, criança e doenças crônicas","texto":"Indicadores prioritários. A resposta correta é 'Pré-natal, saúde da mulher, criança e doenças crônicas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"INDICADORES PREVINE","alternativas":["Só internações", "Só cirurgias", "Mortalidade hospitalar", "Pré-natal, saúde da mulher, criança e doenças crônicas"]},
+      {"inimigo":"PNH propõe","correta":"Acolhimento, clínica ampliada e gestão participativa","texto":"Humanização das práticas. A resposta correta é 'Acolhimento, clínica ampliada e gestão participativa'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PNH","alternativas":["Só filas", "Só tecnologia", "Custos", "Acolhimento, clínica ampliada e gestão participativa"]},
+      {"inimigo":"Eixo da PNPS","correta":"Alimentação saudável, práticas corporais e prevenção da violência","texto":"Eixos da promoção. A resposta correta é 'Alimentação saudável, práticas corporais e prevenção da violência'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PNPS","alternativas":["Cirurgias", "Remédios", "Internações", "Alimentação saudável, práticas corporais e prevenção da violência"]},
+      {"inimigo":"SUS criado pela","correta":"Constituição de 1988 e Leis 8.080 e 8.142/1990","texto":"CF 1988 e Leis Orgânicas. A resposta correta é 'Constituição de 1988 e Leis 8.080 e 8.142/1990'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CRIAÇÃO SUS","alternativas":["1964", "1985", "2000", "Constituição de 1988 e Leis 8.080 e 8.142/1990"]},
+      {"inimigo":"Princípios doutrinários do SUS","correta":"Universalidade, equidade e integralidade","texto":"Princípios doutrinários. A resposta correta é 'Universalidade, equidade e integralidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DOUTRINÁRIOS SUS","alternativas":["Só hierarquização", "Só gratuidade", "Privatização", "Universalidade, equidade e integralidade"]},
+      {"inimigo":"Princípios organizativos do SUS","correta":"Descentralização, regionalização, hierarquização e participação social","texto":"Princípios organizativos. A resposta correta é 'Descentralização, regionalização, hierarquização e participação social'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ORGANIZATIVOS SUS","alternativas":["Centralização", "Hospitalocentrismo", "Competição", "Descentralização, regionalização, hierarquização e participação social"]},
+      {"inimigo":"Conferência de Saúde é espaço de","correta":"Participação social e definição de diretrizes","texto":"Participação na política de saúde. A resposta correta é 'Participação social e definição de diretrizes'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CONFERÊNCIA","alternativas":["Só gestores", "Só científico", "Empresas", "Participação social e definição de diretrizes"]},
+      {"inimigo":"Composição do Conselho de Saúde","correta":"Usuários 50% e demais segmentos 50%","texto":"Paritária. A resposta correta é 'Usuários 50% e demais segmentos 50%'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CONSELHO COMPOSIÇÃO","alternativas":["Só gestores", "Só profissionais", "Só usuários", "Usuários 50% e demais segmentos 50%"]},
+      {"inimigo":"CIB é espaço de","correta":"Negociação entre gestores estaduais e municipais","texto":"Pactuação estadual-municipal. A resposta correta é 'Negociação entre gestores estaduais e municipais'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CIB","alternativas":["Usuários", "MS", "Hospitalar", "Negociação entre gestores estaduais e municipais"]},
+      {"inimigo":"CIT envolve","correta":"Gestores federal, estaduais e municipais","texto":"Três esferas. A resposta correta é 'Gestores federal, estaduais e municipais'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CIT","alternativas":["Só MS", "Só estados", "Só municípios", "Gestores federal, estaduais e municipais"]},
+      {"inimigo":"COAP visa","correta":"Pactuar responsabilidades e metas entre esferas de gestão","texto":"Pactuação de responsabilidades. A resposta correta é 'Pactuar responsabilidades e metas entre esferas de gestão'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"COAP","alternativas":["Empresas", "Demitir", "Fechar UBS", "Pactuar responsabilidades e metas entre esferas de gestão"]},
+      {"inimigo":"Regionalização organiza","correta":"Regiões de saúde com rede de diferentes densidades tecnológicas","texto":"Regiões com oferta de serviços. A resposta correta é 'Regiões de saúde com rede de diferentes densidades tecnológicas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"REGIONALIZAÇÃO","alternativas":["Só APS", "Só hospitais", "Isolados", "Regiões de saúde com rede de diferentes densidades tecnológicas"]},
+      {"inimigo":"Mapa da saúde é instrumento de","correta":"Planejamento e regionalização da atenção à saúde","texto":"Apoia planejamento. A resposta correta é 'Planejamento e regionalização da atenção à saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"MAPA DA SAÚDE","alternativas":["Geolocalização", "Ponto", "Decoração", "Planejamento e regionalização da atenção à saúde"]},
+      {"inimigo":"Gestão do cuidado envolve","correta":"Organização do processo de trabalho, vínculo e coordenação","texto":"Organização e coordenação. A resposta correta é 'Organização do processo de trabalho, vínculo e coordenação'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"GESTÃO DO CUIDADO","alternativas":["Só pessoal", "Só finanças", "Só infraestrutura", "Organização do processo de trabalho, vínculo e coordenação"]},
+      {"inimigo":"Monitoramento e avaliação servem para","correta":"Acompanhar resultados e melhorar qualidade do cuidado","texto":"Melhorias contínuas. A resposta correta é 'Acompanhar resultados e melhorar qualidade do cuidado'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"MONITORAMENTO","alternativas":["Punir", "Relatórios sem uso", "Burocracia", "Acompanhar resultados e melhorar qualidade do cuidado"]},
+      {"inimigo":"Educação permanente busca","correta":"Transformar práticas a partir da análise do processo de trabalho","texto":"Trabalho como aprendizado. A resposta correta é 'Transformar práticas a partir da análise do processo de trabalho'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"EDUCAÇÃO PERMANENTE","alternativas":["Cursos isolados", "Só técnica", "Pontual", "Transformar práticas a partir da análise do processo de trabalho"]},
+      {"inimigo":"Apoio institucional facilita","correta":"Processos de mudança e gestão participativa","texto":"Facilita mudanças. A resposta correta é 'Processos de mudança e gestão participativa'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"APOIO INSTITUCIONAL","alternativas":["Fiscalizar", "Substituir gerente", "Só protocolos", "Processos de mudança e gestão participativa"]},
+      {"inimigo":"Integralidade na gestão significa","correta":"Garantir acesso a todos os níveis de forma coordenada","texto":"Acesso coordenado na rede. A resposta correta é 'Garantir acesso a todos os níveis de forma coordenada'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"INTEGRALIDADE GESTÃO","alternativas":["Só APS", "Só alta complexidade", "Fragmentar", "Garantir acesso a todos os níveis de forma coordenada"]},
+      {"inimigo":"Financiamento Previne Brasil composto por","correta":"Capitação ponderada, pagamento por desempenho e incentivos","texto":"Três componentes. A resposta correta é 'Capitação ponderada, pagamento por desempenho e incentivos'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"FINANCIAMENTO PREVINE","alternativas":["Teto histórico", "Só produção", "Só equipes", "Capitação ponderada, pagamento por desempenho e incentivos"]},
+      {"inimigo":"Capitação ponderada considera","correta":"Características demográficas e socioeconômicas da população","texto":"Ajusta por vulnerabilidades. A resposta correta é 'Características demográficas e socioeconômicas da população'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CAPITAÇÃO","alternativas":["Consultas", "Área", "Procedimentos", "Características demográficas e socioeconômicas da população"]},
+      {"inimigo":"Pagamento por desempenho avalia","correta":"Indicadores de qualidade e resultados em saúde","texto":"Vincula a indicadores. A resposta correta é 'Indicadores de qualidade e resultados em saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DESEMPENHO","alternativas":["Frequência", "Estrutura", "Nº ACS", "Indicadores de qualidade e resultados em saúde"]},
+      {"inimigo":"Transparência na gestão garantida por","correta":"Conselhos de Saúde, prestações de contas e acesso à informação","texto":"Controle social. A resposta correta é 'Conselhos de Saúde, prestações de contas e acesso à informação'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TRANSPARÊNCIA","alternativas":["Sigilo", "Só internas", "Sem contas", "Conselhos de Saúde, prestações de contas e acesso à informação"]},
+      {"inimigo":"Gestão do trabalho deve valorizar","correta":"Vínculo, educação permanente e condições adequadas","texto":"Vínculo estável. A resposta correta é 'Vínculo, educação permanente e condições adequadas'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"GESTÃO DO TRABALHO","alternativas":["Rotatividade", "Precários", "Só produtividade", "Vínculo, educação permanente e condições adequadas"]},
+      {"inimigo":"Planejamento em saúde deve ser","correta":"Participativo, baseado em dados e necessidades do território","texto":"Participativo e baseado em dados. A resposta correta é 'Participativo, baseado em dados e necessidades do território'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PLANEJAMENTO","alternativas":["Só centralizado", "Sem dados", "Impositivo", "Participativo, baseado em dados e necessidades do território"]},
+      {"inimigo":"Vigilância em saúde inclui","correta":"Epidemiológica, sanitária, ambiental e saúde do trabalhador","texto":"Articula vigilâncias. A resposta correta é 'Epidemiológica, sanitária, ambiental e saúde do trabalhador'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"VIGILÂNCIA","alternativas":["Só notificação", "Só inspeção", "Só vetores", "Epidemiológica, sanitária, ambiental e saúde do trabalhador"]},
+      {"inimigo":"Notificação compulsória é obrigação de","correta":"Todos os profissionais de saúde","texto":"Dever de todos. A resposta correta é 'Todos os profissionais de saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"NOTIFICAÇÃO","alternativas":["Só médico", "Só ACS", "Só vigilância", "Todos os profissionais de saúde"]},
+      {"inimigo":"Ética na APS exige","correta":"Sigilo, respeito à autonomia e não maleficência","texto":"Princípios éticos. A resposta correta é 'Sigilo, respeito à autonomia e não maleficência'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ÉTICA","alternativas":["Revelar dados", "Impor tratamentos", "Discriminar", "Sigilo, respeito à autonomia e não maleficência"]},
+      {"inimigo":"Sigilo pode ser quebrado em","correta":"Risco à vida de terceiros ou determinação legal","texto":"Risco ou ordem judicial. A resposta correta é 'Risco à vida de terceiros ou determinação legal'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SIGILO","alternativas":["Gestor pedir", "Curiosidade", "Qualquer familiar", "Risco à vida de terceiros ou determinação legal"]},
+      {"inimigo":"Consentimento informado significa","correta":"Usuário informado e decidir livremente sobre o cuidado","texto":"Informação e autonomia. A resposta correta é 'Usuário informado e decidir livremente sobre o cuidado'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CONSENTIMENTO","alternativas":["Assinar sem explicação", "Aceitar tudo", "Sem direito a recusar", "Usuário informado e decidir livremente sobre o cuidado"]},
+      {"inimigo":"Comunicação de más notícias deve ser","correta":"Empática, clara, em ambiente adequado e com suporte","texto":"Empatia e suporte. A resposta correta é 'Empática, clara, em ambiente adequado e com suporte'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"MÁS NOTÍCIAS","alternativas":["Telefone", "Rápida e impessoal", "Só escrito", "Empática, clara, em ambiente adequado e com suporte"]},
+      {"inimigo":"Erro na assistência deve ser abordado com","correta":"Cultura de segurança, análise de causas e aprendizado","texto":"Análise sistêmica. A resposta correta é 'Cultura de segurança, análise de causas e aprendizado'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ERRO","alternativas":["Punição individual", "Esconder", "Culpar paciente", "Cultura de segurança, análise de causas e aprendizado"]},
+      {"inimigo":"Segurança do paciente inclui","correta":"Identificação correta, comunicação efetiva e uso seguro de medicamentos","texto":"Metas de segurança. A resposta correta é 'Identificação correta, comunicação efetiva e uso seguro de medicamentos'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SEGURANÇA","alternativas":["Só tecnologia", "Só hospital", "Ignorar", "Identificação correta, comunicação efetiva e uso seguro de medicamentos"]},
+      {"inimigo":"Direito à saúde na CF é","correta":"Direito de todos e dever do Estado","texto":"Art. 196. A resposta correta é 'Direito de todos e dever do Estado'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DIREITO À SAÚDE","alternativas":["Só quem contribui", "Só família", "Poucos", "Direito de todos e dever do Estado"]},
+      {"inimigo":"Participação social no SUS é","correta":"Direito e princípio organizativo","texto":"Princípio e direito. A resposta correta é 'Direito e princípio organizativo'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PARTICIPAÇÃO","alternativas":["Favor do gestor", "Só usuários", "Só denúncia", "Direito e princípio organizativo"]},
+      {"inimigo":"Território na APS inclui","correta":"Relações sociais, culturais e de poder que influenciam a saúde","texto":"Território vivo. A resposta correta é 'Relações sociais, culturais e de poder que influenciam a saúde'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"TERRITÓRIO","alternativas":["Só mapa", "Só casas", "Só distância", "Relações sociais, culturais e de poder que influenciam a saúde"]},
+      {"inimigo":"ASIS utiliza","correta":"Dados demográficos, epidemiológicos e de serviços do território","texto":"Orienta planejamento. A resposta correta é 'Dados demográficos, epidemiológicos e de serviços do território'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ASIS","alternativas":["Só opinião", "Só nacionais", "Só hospitalares", "Dados demográficos, epidemiológicos e de serviços do território"]},
+      {"inimigo":"Diagnóstico local de saúde com","correta":"Participação da equipe e da comunidade","texto":"Coletivo. A resposta correta é 'Participação da equipe e da comunidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"DIAGNÓSTICO LOCAL","alternativas":["Só gestor", "Só externos", "Só secundários", "Participação da equipe e da comunidade"]},
+      {"inimigo":"Priorização de problemas considera","correta":"Magnitude, transcendência, vulnerabilidade e factibilidade","texto":"Critérios de priorização. A resposta correta é 'Magnitude, transcendência, vulnerabilidade e factibilidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"PRIORIZAÇÃO","alternativas":["Só gestor", "Mais fácil", "Mais recurso", "Magnitude, transcendência, vulnerabilidade e factibilidade"]},
+      {"inimigo":"Cuidado centrado na pessoa significa","correta":"Respeitar valores, preferências e necessidades do usuário","texto":"Usuário no centro. A resposta correta é 'Respeitar valores, preferências e necessidades do usuário'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"CENTRADO NA PESSOA","alternativas":["Profissional decide", "Ignorar opinião", "Só protocolo", "Respeitar valores, preferências e necessidades do usuário"]},
+      {"inimigo":"Longitudinalidade fortalece","correta":"Vínculo, confiança e qualidade do acompanhamento","texto":"Constrói vínculo. A resposta correta é 'Vínculo, confiança e qualidade do acompanhamento'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"LONGITUDINALIDADE FORTELECE","alternativas":["Rotatividade", "Fragmentação", "Falta de vínculo", "Vínculo, confiança e qualidade do acompanhamento"]},
+      {"inimigo":"Coordenação do cuidado evita","correta":"Fragmentação, duplicidade de exames e descontinuidade","texto":"Reduz fragmentação. A resposta correta é 'Fragmentação, duplicidade de exames e descontinuidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"COORDENAÇÃO EVITA","alternativas":["Acesso", "Vínculo", "Integralidade", "Fragmentação, duplicidade de exames e descontinuidade"]},
+      {"inimigo":"APS como ordenadora significa","correta":"Coordena o fluxo do usuário e articula demais pontos de atenção","texto":"Coordena na rede. A resposta correta é 'Coordena o fluxo do usuário e articula demais pontos de atenção'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"ORDENADORA","alternativas":["Só triar", "Evitar encaminhamentos", "Isolada", "Coordena o fluxo do usuário e articula demais pontos de atenção"]},
+      {"inimigo":"Sucesso da APS depende de","correta":"Equipes resolutivas, vínculo com a população e apoio da rede","texto":"Equipes + vínculo + rede. A resposta correta é 'Equipes resolutivas, vínculo com a população e apoio da rede'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"SUCESSO APS","alternativas":["Só tecnologia", "Só hospitais", "Só especialistas", "Equipes resolutivas, vínculo com a população e apoio da rede"]},
+      {"inimigo":"APS é base de sistema de saúde","correta":"Universal, equitativo e de qualidade","texto":"Sistemas com APS forte são melhores. A resposta correta é 'Universal, equitativo e de qualidade'. Este conhecimento é fundamental para a prática na Atenção Primária à Saúde, conforme diretrizes do Ministério da Saúde e princípios da APS.","ameaca":"BASE DO SISTEMA","alternativas":["Fragmentado", "Privado", "Alta complexidade", "Universal, equitativo e de qualidade"]},
+      {"inimigo":"Microárea na ESF é","correta":"Território sob responsabilidade de um ACS","texto":"Subdivisão do território. A resposta correta é «Território sob responsabilidade de um ACS». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"MICROÁREA","alternativas":["Hospital", "Município", "Especialista", "Território sob responsabilidade de um ACS"]},
+      {"inimigo":"População média por eSF","correta":"2.000 a 3.500 pessoas","texto":"Recomendação PNAB. A resposta correta é «2.000 a 3.500 pessoas». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"POPULAÇÃO eSF","alternativas":["500-1000", "5000-10000", "10000-20000", "2.000 a 3.500 pessoas"]},
+      {"inimigo":"Funcionamento mínimo da UBS","correta":"5 dias por semana e 8 horas diárias","texto":"Mínimo PNAB. A resposta correta é «5 dias por semana e 8 horas diárias». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"FUNCIONAMENTO UBS","alternativas":["2 dias", "Só plantões", "24h", "5 dias por semana e 8 horas diárias"]},
+      {"inimigo":"Classificação de risco visa","correta":"Organizar fluxo e priorizar conforme necessidade","texto":"Prioriza por gravidade. A resposta correta é «Organizar fluxo e priorizar conforme necessidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CLASSIFICAÇÃO DE RISCO","alternativas":["Ordem de chegada", "Negar", "Só sinais vitais", "Organizar fluxo e priorizar conforme necessidade"]},
+      {"inimigo":"ACE atua em","correta":"Controle de vetores e prevenção de doenças por vetores","texto":"Prevenção de dengue etc. A resposta correta é «Controle de vetores e prevenção de doenças por vetores». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"ACE","alternativas":["Prescrever", "Cirurgias", "Clínico", "Controle de vetores e prevenção de doenças por vetores"]},
+      {"inimigo":"Integração ACE à APS busca","correta":"Fortalecer vigilância e promoção no território","texto":"Potencializa ações. A resposta correta é «Fortalecer vigilância e promoção no território». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"INTEGRAÇÃO ACE","alternativas":["Substituir ACS", "Eliminar vigilância", "Só laboratório", "Fortalecer vigilância e promoção no território"]},
+      {"inimigo":"Gerente da UBS coordena","correta":"Processo de trabalho e gestão da unidade","texto":"Gestão administrativa e assistencial. A resposta correta é «Processo de trabalho e gestão da unidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"GERENTE UBS","alternativas":["Só atender", "Prescrever", "Exames", "Processo de trabalho e gestão da unidade"]},
+      {"inimigo":"Educação em saúde deve ser","correta":"Participativa, dialógica e baseada nas necessidades","texto":"Valoriza saber popular. A resposta correta é «Participativa, dialógica e baseada nas necessidades». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"EDUCAÇÃO EM SAÚDE","alternativas":["Só transmissora", "Impositiva", "Só profissionais", "Participativa, dialógica e baseada nas necessidades"]},
+      {"inimigo":"Grupo operativo é","correta":"Cuidado coletivo e educação em saúde","texto":"Espaço coletivo. A resposta correta é «Cuidado coletivo e educação em saúde». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"GRUPO OPERATIVO","alternativas":["Administrativa", "Individual", "Cirúrgico", "Cuidado coletivo e educação em saúde"]},
+      {"inimigo":"Consulta compartilhada favorece","correta":"Aprendizado mútuo e integralidade","texto":"Integralidade e aprendizado. A resposta correta é «Aprendizado mútuo e integralidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CONSULTA COMPARTILHADA","alternativas":["Economia de tempo", "Reduzir profissionais", "Superficial", "Aprendizado mútuo e integralidade"]},
+      {"inimigo":"PEC no e-SUS permite","correta":"Registro longitudinal e compartilhamento de informações","texto":"Histórico longitudinal. A resposta correta é «Registro longitudinal e compartilhamento de informações». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"PEC","alternativas":["Só agendamento", "Só prescrição", "Exclusão", "Registro longitudinal e compartilhamento de informações"]},
+      {"inimigo":"Busca ativa serve para","correta":"Localizar faltosos e vulneráveis","texto":"Identifica quem não acessa. A resposta correta é «Localizar faltosos e vulneráveis». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"BUSCA ATIVA","alternativas":["Aumentar números", "Punir", "Só vacina", "Localizar faltosos e vulneráveis"]},
+      {"inimigo":"Mapa da área serve para","correta":"Visualizar território, riscos e recursos","texto":"Conhecer o território. A resposta correta é «Visualizar território, riscos e recursos». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"MAPA ÁREA","alternativas":["Decoração", "Só ACS", "Ponto", "Visualizar território, riscos e recursos"]},
+      {"inimigo":"Clínica ampliada propõe","correta":"Olhar o sujeito além da doença","texto":"Complexidade do sujeito. A resposta correta é «Olhar o sujeito além da doença». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CLÍNICA AMPLIADA","alternativas":["Só diagnóstico", "Só remédios", "Ignorar história", "Olhar o sujeito além da doença"]},
+      {"inimigo":"PTS é ferramenta de","correta":"Cuidado individualizado construído em equipe","texto":"Propostas terapêuticas articuladas. A resposta correta é «Cuidado individualizado construído em equipe». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"PTS","alternativas":["Prescrição isolada", "Protocolo", "Encaminhamento", "Cuidado individualizado construído em equipe"]},
+      {"inimigo":"Matriciamento consiste em","correta":"Apoio técnico-pedagógico de especialistas às eSF","texto":"Apoio compartilhado. A resposta correta é «Apoio técnico-pedagógico de especialistas às eSF». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"MATRICIAMENTO","alternativas":["Substituir eSF", "Encaminhar todos", "Sem comunicação", "Apoio técnico-pedagógico de especialistas às eSF"]},
+      {"inimigo":"Rede de atenção tem APS como","correta":"Centro de comunicação e coordenação do cuidado","texto":"Centro de coordenação. A resposta correta é «Centro de comunicação e coordenação do cuidado». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"REDE DE ATENÇÃO","alternativas":["Triagem", "Alta complexidade", "Hospital", "Centro de comunicação e coordenação do cuidado"]},
+      {"inimigo":"Determinação social da saúde reconhece","correta":"Condições de vida e trabalho influenciam a saúde","texto":"Fatores sociais são determinantes. A resposta correta é «Condições de vida e trabalho influenciam a saúde». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"DETERMINAÇÃO SOCIAL","alternativas":["Só genética", "Só comportamento", "Só médicos", "Condições de vida e trabalho influenciam a saúde"]},
+      {"inimigo":"Vulnerabilidade em saúde é","correta":"Maior probabilidade de adoecer por fatores sociais","texto":"Aspectos individuais e sociais. A resposta correta é «Maior probabilidade de adoecer por fatores sociais». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"VULNERABILIDADE","alternativas":["Doença grave", "Genética", "Falta de vontade", "Maior probabilidade de adoecer por fatores sociais"]},
+      {"inimigo":"Estratificação de risco serve para","correta":"Identificar e priorizar quem mais precisa de cuidado","texto":"Cuidado proporcional. A resposta correta é «Identificar e priorizar quem mais precisa de cuidado». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"ESTRATIFICAÇÃO","alternativas":["Todos iguais", "Negar", "Só classificar", "Identificar e priorizar quem mais precisa de cuidado"]},
+      {"inimigo":"e-SUS APS é","correta":"Sistema de informação e informática para a APS","texto":"Sistema oficial do MS. A resposta correta é «Sistema de informação e informática para a APS». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"E-SUS","alternativas":["Hospital digital", "Laboratório", "Particular", "Sistema de informação e informática para a APS"]},
+      {"inimigo":"Reunião de equipe serve para","correta":"Planejar, avaliar e discutir casos","texto":"Planejamento e discussão. A resposta correta é «Planejar, avaliar e discutir casos». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"REUNIÃO DE EQUIPE","alternativas":["Confraternização", "Plantão", "Só administrativo", "Planejar, avaliar e discutir casos"]},
+      {"inimigo":"Cadastramento de famílias permite","correta":"Conhecer a população e planejar ações","texto":"Informações para planejamento. A resposta correta é «Conhecer a população e planejar ações». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CADASTRAMENTO","alternativas":["Burocracia", "Estatística", "Negar não cadastrados", "Conhecer a população e planejar ações"]},
+      {"inimigo":"Educação permanente visa","correta":"Aprendizado contínuo a partir da prática","texto":"Trabalho como aprendizado. A resposta correta é «Aprendizado contínuo a partir da prática». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"EDUCAÇÃO PERMANENTE","alternativas":["Cursos isolados", "Só universidade", "Pontual", "Aprendizado contínuo a partir da prática"]},
+      {"inimigo":"Projeto Terapêutico Singular","correta":"Cuidado singular construído pela equipe interdisciplinar","texto":"Propostas articuladas. A resposta correta é «Cuidado singular construído pela equipe interdisciplinar». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"PTS DEFINIÇÃO","alternativas":["Prescrição isolada", "Protocolo padrão", "Encaminhamento simples", "Cuidado singular construído pela equipe interdisciplinar"]},
+      {"inimigo":"Acolhimento com classificação de risco","correta":"Organiza demanda e prioriza por gravidade e necessidade","texto":"Organiza fluxo. A resposta correta é «Organiza demanda e prioriza por gravidade e necessidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"ACOLHIMENTO CLASSIFICAÇÃO","alternativas":["Ordem de chegada", "Negar", "Só PA", "Organiza demanda e prioriza por gravidade e necessidade"]},
+      {"inimigo":"Atenção à saúde mental na APS","correta":"Acolhimento, identificação e manejo compartilhado com a rede","texto":"Cuidado compartilhado. A resposta correta é «Acolhimento, identificação e manejo compartilhado com a rede». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"SAÚDE MENTAL APS","alternativas":["Só CAPS", "Só hospital", "Ignorar", "Acolhimento, identificação e manejo compartilhado com a rede"]},
+      {"inimigo":"Uso racional de medicamentos na APS","correta":"Prescrever conforme necessidade, evidências e segurança","texto":"Uso apropriado. A resposta correta é «Prescrever conforme necessidade, evidências e segurança». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"USO RACIONAL","alternativas":["Sempre o mais caro", "Sem avaliação", "Automedicação", "Prescrever conforme necessidade, evidências e segurança"]},
+      {"inimigo":"Notificação de violência","correta":"Obrigatória e essencial para proteção e políticas públicas","texto":"Notificar para proteger. A resposta correta é «Obrigatória e essencial para proteção e políticas públicas». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"NOTIFICAÇÃO VIOLÊNCIA","alternativas":["Opcional", "Só se grave", "Sigilo absoluto", "Obrigatória e essencial para proteção e políticas públicas"]},
+      {"inimigo":"Trabalho multiprofissional requer","correta":"Comunicação, respeito às competências e objetivo comum","texto":"Trabalho em equipe. A resposta correta é «Comunicação, respeito às competências e objetivo comum». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"MULTIPROFISSIONAL","alternativas":["Hierarquia rígida", "Isolado", "Competição", "Comunicação, respeito às competências e objetivo comum"]},
+      {"inimigo":"Clínica do sujeito propõe","correta":"Considerar singularidade e história de cada pessoa","texto":"Além da doença. A resposta correta é «Considerar singularidade e história de cada pessoa». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CLÍNICA DO SUJEITO","alternativas":["Padronizar", "Só doença", "Ignorar história", "Considerar singularidade e história de cada pessoa"]},
+      {"inimigo":"Cuidado centrado na pessoa","correta":"Respeitar valores, preferências e necessidades","texto":"Usuário no centro. A resposta correta é «Respeitar valores, preferências e necessidades». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CENTRADO NA PESSOA","alternativas":["Profissional decide", "Ignorar opinião", "Só protocolo", "Respeitar valores, preferências e necessidades"]},
+      {"inimigo":"Coordenação evita","correta":"Fragmentação, duplicidade e descontinuidade","texto":"Continuidade do cuidado. A resposta correta é «Fragmentação, duplicidade e descontinuidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"COORDENAÇÃO","alternativas":["Acesso", "Vínculo", "Integralidade", "Fragmentação, duplicidade e descontinuidade"]},
+      {"inimigo":"APS ordenadora da rede","correta":"Coordena fluxo do usuário e articula pontos de atenção","texto":"Coordena na rede. A resposta correta é «Coordena fluxo do usuário e articula pontos de atenção». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"ORDENADORA","alternativas":["Só triar", "Evitar encaminhar", "Isolada", "Coordena fluxo do usuário e articula pontos de atenção"]},
+      {"inimigo":"APS base de sistema","correta":"Universal, equitativo e de qualidade","texto":"Melhores resultados. A resposta correta é «Universal, equitativo e de qualidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"BASE SISTEMA","alternativas":["Fragmentado", "Privado", "Alta complexidade", "Universal, equitativo e de qualidade"]},
+      {"inimigo":"Bioética na APS dialoga com","correta":"Valores e direitos dos usuários e justiça social","texto":"Princípios e justiça. A resposta correta é «Valores e direitos dos usuários e justiça social». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"BIOÉTICA","alternativas":["Só técnica", "Só lei", "Só mercado", "Valores e direitos dos usuários e justiça social"]},
+      {"inimigo":"Eventos adversos notificação serve para","correta":"Aprender e melhorar segurança do cuidado","texto":"Prevenir novos. A resposta correta é «Aprender e melhorar segurança do cuidado». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"EVENTOS ADVERSOS","alternativas":["Punir", "Esconder", "Burocracia", "Aprender e melhorar segurança do cuidado"]},
+      {"inimigo":"Conflitos éticos devem ser","correta":"Dialogados, respeitosos e baseados em princípios éticos","texto":"Discussão ética. A resposta correta é «Dialogados, respeitosos e baseados em princípios éticos». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CONFLITOS ÉTICOS","alternativas":["Imposição", "Ignorar", "Público", "Dialogados, respeitosos e baseados em princípios éticos"]},
+      {"inimigo":"Intersetorialidade exige","correta":"Articulação saúde, educação, assistência social e outros","texto":"Ações articuladas. A resposta correta é «Articulação saúde, educação, assistência social e outros». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"INTERSETORIALIDADE","alternativas":["Isolada", "Só privado", "Só federal", "Articulação saúde, educação, assistência social e outros"]},
+      {"inimigo":"Avaliação de tecnologias ajuda a","correta":"Incorporar práticas de forma racional e baseada em evidências","texto":"Decisão racional. A resposta correta é «Incorporar práticas de forma racional e baseada em evidências». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"AVALIAÇÃO TECNOLOGIAS","alternativas":["Tudo novo", "Rejeitar inovação", "Só custos", "Incorporar práticas de forma racional e baseada em evidências"]},
+      {"inimigo":"Pesquisa na APS deve ser","correta":"Relevante para o território e ética","texto":"Relevante e ética. A resposta correta é «Relevante para o território e ética». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"PESQUISA","alternativas":["Só acadêmica", "Sem consentimento", "Só publicar", "Relevante para o território e ética"]},
+      {"inimigo":"Educação popular valoriza","correta":"Saber popular e construção compartilhada do conhecimento","texto":"Diálogo e transformação. A resposta correta é «Saber popular e construção compartilhada do conhecimento». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"EDUCAÇÃO POPULAR","alternativas":["Só técnico", "Vertical", "Passividade", "Saber popular e construção compartilhada do conhecimento"]},
+      {"inimigo":"Análise de situação de saúde usa","correta":"Dados demográficos, epidemiológicos e de serviços","texto":"Orienta planejamento. A resposta correta é «Dados demográficos, epidemiológicos e de serviços». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"ASIS","alternativas":["Opinião", "Nacionais", "Hospitalares", "Dados demográficos, epidemiológicos e de serviços"]},
+      {"inimigo":"Diagnóstico local construído com","correta":"Participação da equipe e da comunidade","texto":"Coletivo. A resposta correta é «Participação da equipe e da comunidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"DIAGNÓSTICO","alternativas":["Só gestor", "Externos", "Secundários", "Participação da equipe e da comunidade"]},
+      {"inimigo":"Priorização considera","correta":"Magnitude, transcendência, vulnerabilidade e factibilidade","texto":"Critérios. A resposta correta é «Magnitude, transcendência, vulnerabilidade e factibilidade». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"PRIORIZAÇÃO","alternativas":["Gestor", "Fácil", "Recurso", "Magnitude, transcendência, vulnerabilidade e factibilidade"]},
+      {"inimigo":"Erro na assistência com","correta":"Cultura de segurança, análise de causas e aprendizado","texto":"Sistêmico. A resposta correta é «Cultura de segurança, análise de causas e aprendizado». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"ERRO ASSISTÊNCIA","alternativas":["Punição", "Esconder", "Culpar paciente", "Cultura de segurança, análise de causas e aprendizado"]},
+      {"inimigo":"Comunicação de más notícias","correta":"Empática, clara, ambiente adequado e com suporte","texto":"Empatia. A resposta correta é «Empática, clara, ambiente adequado e com suporte». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"MÁS NOTÍCIAS","alternativas":["Telefone", "Impessoal", "Escrito", "Empática, clara, ambiente adequado e com suporte"]},
+      {"inimigo":"Consentimento informado","correta":"Usuário informado decide livremente","texto":"Autonomia. A resposta correta é «Usuário informado decide livremente». Este conceito é essencial na prática da Atenção Primária à Saúde, alinhado às diretrizes do Ministério da Saúde e aos atributos da APS.","ameaca":"CONSENTIMENTO","alternativas":["Assinar sem explicação", "Aceitar tudo", "Sem recusa", "Usuário informado decide livremente"]}
+    ];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🌱 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA APS] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[CENÁRIO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) {
+        finalizarQuiz();
+        return;
+      }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🌱`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) {
+        btn.disabled = true;
+        btn.style.cursor = 'not-allowed';
+      }
+      clickedButton.classList.add('selected');
+
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`A questão sobre '${desafioAtual.inimigo}' foi respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) {
+                btn.classList.add('correct');
+            }
+        }
+      }
+
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) {
+          await novoDesafio();
+        } else {
+          await finalizarQuiz();
+        }
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE AVALIAÇÃO DE ATENÇÃO PRIMÁRIA CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0;
+      acertos = 0;
+      erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE ATENÇÃO PRIMÁRIA INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => {
+        await novoDesafio();
+      }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() {
+      manualModal.style.display = "block";
+    }
+
+    function showReferences() {
+      referencesModal.style.display = "block";
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+    }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) {
+        manualModal.style.display = "none";
+      }
+      if (event.target == referencesModal) {
+        referencesModal.style.display = "none";
+      }
+    }
+
+    window.onload = () => {
+      reiniciarQuiz();
+    };
+  </script>
+</body>
+</html>

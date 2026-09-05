@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Sistema Básico de Saúde - SUS - Um quiz sobre o SUS para estudantes e cidadãos.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz SUS</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz SUS</h1>
+  <p>Desvende os princípios e a organização do Sistema Único de Saúde! 🇧🇷</p>
+
+  <div id="terminal">[SISTEMA DE AVALIAÇÃO SUS INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🏥 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR AVALIAÇÃO SUS</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE AVALIAÇÃO DO SUS</h2>
+      <p>Bem-vindo, Cidadão Consciente! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre o Sistema Único de Saúde (SUS) do Brasil.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Avaliar seu entendimento sobre os princípios, diretrizes e funcionamento do SUS.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis, baseadas na legislação e organização do SUS.</li>
+        <li>Aumentar sua compreensão sobre a importância do SUS e seus desafios.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão sobre o SUS" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e o cenário ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! O conhecimento sobre o SUS é fundamental para exercer a cidadania e defender a saúde pública. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz SUS foram elaboradas com base em documentos oficiais e literatura sobre o Sistema Único de Saúde, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas:</p>
+      <ul>
+        <li>**LEGISLAÇÃO:** Constituição Federal de 1988 - Artigos sobre Saúde (principalmente Art. 196 a 200).</li>
+        <li>**LEGISLAÇÃO:** Lei nº 8.080/1990 (Lei Orgânica da Saúde).</li>
+        <li>**LEGISLAÇÃO:** Lei nº 8.142/1990.</li>
+        <li>**DOCUMENTOS OFICIAIS:** Publicações do Ministério da Saúde do Brasil sobre políticas, diretrizes e organização do SUS.</li>
+        <li>**LIVROS E ARTIGOS:** Obras e artigos científicos de autores renomados na área de Saúde Coletiva e Saúde Pública no Brasil.</li>
+        <li>**RECURSOS ONLINE:** Portais e plataformas de instituições de ensino e pesquisa em saúde pública, como a FIOCRUZ.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui a consulta direta à legislação e documentos oficiais do SUS.</p>
+    </div>
+  </div>
+
+  <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Princípios do SUS",
+    "correta": "Universalidade, integralidade e equidade",
+    "texto": "CF 88 e leis 8080/8142.",
+    "ameaca": "PRINCIPIOS",
+    "alternativas": [
+      "Só gratuidade",
+      "Universalidade, integralidade e equidade",
+      "Só centralização",
+      "Só privatização"
+    ]
+  },
+  {
+    "inimigo": "Universalidade",
+    "correta": "Saúde como direito de todos",
+    "texto": "Acesso universal.",
+    "ameaca": "UNIVERSALIDADE",
+    "alternativas": [
+      "Só contribuintes",
+      "Saúde como direito de todos",
+      "Só indigentes",
+      "Só trabalhadores"
+    ]
+  },
+  {
+    "inimigo": "Integralidade",
+    "correta": "Ações e serviços em todos os níveis",
+    "texto": "Promoção a reabilitação.",
+    "ameaca": "INTEGRALIDADE",
+    "alternativas": [
+      "Só urgência",
+      "Ações e serviços em todos os níveis",
+      "Só hospital",
+      "Só vacina"
+    ]
+  },
+  {
+    "inimigo": "Equidade",
+    "correta": "Tratar desigualmente os desiguais",
+    "texto": "Reduzir desigualdades.",
+    "ameaca": "EQUIDADE",
+    "alternativas": [
+      "Igualdade formal",
+      "Tratar desigualmente os desiguais",
+      "Só ricos",
+      "Só uniformidade"
+    ]
+  },
+  {
+    "inimigo": "Descentralização",
+    "correta": "Ênfase na gestão municipal",
+    "texto": "Responsabilidades definidas.",
+    "ameaca": "DESCENTRALIZACAO",
+    "alternativas": [
+      "Só federal",
+      "Ênfase na gestão municipal",
+      "Só estadual",
+      "Só privada"
+    ]
+  },
+  {
+    "inimigo": "Regionalização",
+    "correta": "Regiões de saúde e redes",
+    "texto": "Articulação territorial.",
+    "ameaca": "REGIONALIZACAO",
+    "alternativas": [
+      "Fragmentação",
+      "Regiões de saúde e redes",
+      "Um hospital",
+      "UBS isolada"
+    ]
+  },
+  {
+    "inimigo": "Hierarquização",
+    "correta": "Níveis de complexidade",
+    "texto": "APS → média → alta.",
+    "ameaca": "HIERARQUIZACAO",
+    "alternativas": [
+      "Tudo no hospital",
+      "Níveis de complexidade",
+      "Só APS",
+      "Só UTI"
+    ]
+  },
+  {
+    "inimigo": "Participação social",
+    "correta": "Conselhos e conferências",
+    "texto": "Controle social.",
+    "ameaca": "PARTICIPACAO",
+    "alternativas": [
+      "Só gestores",
+      "Conselhos e conferências",
+      "Só médicos",
+      "Só empresas"
+    ]
+  },
+  {
+    "inimigo": "Lei 8080",
+    "correta": "Organização do SUS",
+    "texto": "Lei orgânica da saúde.",
+    "ameaca": "8080",
+    "alternativas": [
+      "8142",
+      "Organização do SUS",
+      "Só CF",
+      "NOB"
+    ]
+  },
+  {
+    "inimigo": "Lei 8142",
+    "correta": "Participação e transferências",
+    "texto": "Conselhos e fundos.",
+    "ameaca": "8142",
+    "alternativas": [
+      "8080",
+      "Participação e transferências",
+      "Só CF",
+      "Portaria"
+    ]
+  },
+  {
+    "inimigo": "APS",
+    "correta": "Porta de entrada e coordenação",
+    "texto": "ESF.",
+    "ameaca": "APS",
+    "alternativas": [
+      "Só hospital",
+      "Porta de entrada e coordenação",
+      "Só urgência",
+      "Só especialista"
+    ]
+  },
+  {
+    "inimigo": "ESF",
+    "correta": "Equipe multiprofissional em território",
+    "texto": "UBS.",
+    "ameaca": "ESF",
+    "alternativas": [
+      "Médico solo",
+      "Equipe multiprofissional em território",
+      "Só hospital",
+      "Só ACS"
+    ]
+  },
+  {
+    "inimigo": "ACS",
+    "correta": "Elo comunidade-serviço; visitas",
+    "texto": "Membro da ESF.",
+    "ameaca": "ACS",
+    "alternativas": [
+      "Médico",
+      "Elo comunidade-serviço; visitas",
+      "Só enfermeiro",
+      "Só dentista"
+    ]
+  },
+  {
+    "inimigo": "NASF",
+    "correta": "Apoio matricial à APS",
+    "texto": "Núcleo ampliado.",
+    "ameaca": "NASF",
+    "alternativas": [
+      "Substitui ESF",
+      "Apoio matricial à APS",
+      "Só hospital",
+      "Só vigilância"
+    ]
+  },
+  {
+    "inimigo": "Rede de Atenção",
+    "correta": "Serviços articulados",
+    "texto": "Linhas de cuidado.",
+    "ameaca": "REDE",
+    "alternativas": [
+      "Isolados",
+      "Serviços articulados",
+      "Só UBS",
+      "Só terciário"
+    ]
+  },
+  {
+    "inimigo": "Regulação",
+    "correta": "Ordenação de acesso e fluxos",
+    "texto": "Centrais de regulação.",
+    "ameaca": "REGULACAO",
+    "alternativas": [
+      "Livre demanda",
+      "Ordenação de acesso e fluxos",
+      "Só privado",
+      "Só federal"
+    ]
+  },
+  {
+    "inimigo": "Vigilância em saúde",
+    "correta": "Epidemiológica, sanitária, ambiental, trabalhador",
+    "texto": "Prevenção e controle.",
+    "ameaca": "VIGILANCIA",
+    "alternativas": [
+      "Só assistência",
+      "Epidemiológica, sanitária, ambiental, trabalhador",
+      "Só hospital",
+      "Só lab"
+    ]
+  },
+  {
+    "inimigo": "Notificação compulsória",
+    "correta": "Doenças e agravos listados",
+    "texto": "Obrigatória.",
+    "ameaca": "NOTIFICACAO",
+    "alternativas": [
+      "Opcional",
+      "Doenças e agravos listados",
+      "Só internação",
+      "Só óbito"
+    ]
+  },
+  {
+    "inimigo": "Financiamento SUS",
+    "correta": "Três esferas; pisos constitucionais",
+    "texto": "EC e LC 141.",
+    "ameaca": "FINANCIAMENTO",
+    "alternativas": [
+      "Só federal",
+      "Três esferas; pisos constitucionais",
+      "Só municipal",
+      "Só convênio"
+    ]
+  },
+  {
+    "inimigo": "PNI",
+    "correta": "Programa Nacional de Imunizações",
+    "texto": "Calendário oficial.",
+    "ameaca": "PNI",
+    "alternativas": [
+      "Campanhas só",
+      "Programa Nacional de Imunizações",
+      "Só privado",
+      "Só risco"
+    ]
+  },
+  {
+    "inimigo": "HumanizaSUS",
+    "correta": "Política de humanização",
+    "texto": "Acolhimento e gestão participativa.",
+    "ameaca": "HUMANIZA",
+    "alternativas": [
+      "Só tecnologia",
+      "Política de humanização",
+      "Só protocolo",
+      "Só filas"
+    ]
+  },
+  {
+    "inimigo": "Acolhimento",
+    "correta": "Escuta e classificação de risco",
+    "texto": "Portas de entrada.",
+    "ameaca": "ACOLHIMENTO",
+    "alternativas": [
+      "Ordem de chegada",
+      "Escuta e classificação de risco",
+      "Só extremo",
+      "Só admin"
+    ]
+  },
+  {
+    "inimigo": "Classificação de risco",
+    "correta": "Protocolos (Manchester etc.)",
+    "texto": "Cores por gravidade.",
+    "ameaca": "CLASSRISCO",
+    "alternativas": [
+      "Ordem de chegada",
+      "Protocolos (Manchester etc.)",
+      "Só admin",
+      "Só idade"
+    ]
+  },
+  {
+    "inimigo": "Referência e contrarreferência",
+    "correta": "Fluxo entre níveis com informação",
+    "texto": "Continuidade.",
+    "ameaca": "REF CONTRAREF",
+    "alternativas": [
+      "Só um sentido",
+      "Fluxo entre níveis com informação",
+      "Só alta sem info",
+      "Só interno"
+    ]
+  },
+  {
+    "inimigo": "Controle social",
+    "correta": "Conselhos (50% usuários)",
+    "texto": "Deliberativo.",
+    "ameaca": "CONTROLE",
+    "alternativas": [
+      "Só gestores",
+      "Conselhos (50% usuários)",
+      "Só profissionais",
+      "Só prestadores"
+    ]
+  },
+  {
+    "inimigo": "Conferência de Saúde",
+    "correta": "A cada 4 anos",
+    "texto": "Diretrizes.",
+    "ameaca": "CONFERENCIA",
+    "alternativas": [
+      "Anual",
+      "A cada 4 anos",
+      "Só gestores",
+      "Só federal"
+    ]
+  },
+  {
+    "inimigo": "e-SUS APS",
+    "correta": "Sistema de informação da APS",
+    "texto": "Prontuário e dados.",
+    "ameaca": "ESUS",
+    "alternativas": [
+      "Só papel",
+      "Sistema de informação da APS",
+      "Só hospital",
+      "Só privado"
+    ]
+  },
+  {
+    "inimigo": "CNES",
+    "correta": "Cadastro de estabelecimentos",
+    "texto": "Base oficial.",
+    "ameaca": "CNES",
+    "alternativas": [
+      "Só privado",
+      "Cadastro de estabelecimentos",
+      "Só profissionais",
+      "Só UTI"
+    ]
+  },
+  {
+    "inimigo": "AIH",
+    "correta": "Autorização de internação",
+    "texto": "Faturamento hospitalar.",
+    "ameaca": "AIH",
+    "alternativas": [
+      "Ambulatorial",
+      "Autorização de internação",
+      "Só APS",
+      "Só privado"
+    ]
+  },
+  {
+    "inimigo": "BPA",
+    "correta": "Produção ambulatorial",
+    "texto": "Faturamento ambulatorial.",
+    "ameaca": "BPA",
+    "alternativas": [
+      "AIH",
+      "Produção ambulatorial",
+      "Só internação",
+      "Só privado"
+    ]
+  },
+  {
+    "inimigo": "Repasse fundo a fundo",
+    "correta": "Transferência automática",
+    "texto": "Menos burocracia.",
+    "ameaca": "FUNDO",
+    "alternativas": [
+      "Convênio caso a caso",
+      "Transferência automática",
+      "Só empenho",
+      "Só licitação"
+    ]
+  },
+  {
+    "inimigo": "Determinação social da saúde",
+    "correta": "Condições sociais influenciam saúde",
+    "texto": "Intersetorialidade.",
+    "ameaca": "DETERMINACAO",
+    "alternativas": [
+      "Só biologia",
+      "Condições sociais influenciam saúde",
+      "Só genética",
+      "Só comportamento"
+    ]
+  },
+  {
+    "inimigo": "Promoção da saúde",
+    "correta": "Ação sobre determinantes",
+    "texto": "Ottawa.",
+    "ameaca": "PROMOCAO",
+    "alternativas": [
+      "Só prevenção doença",
+      "Ação sobre determinantes",
+      "Só cura",
+      "Só reabilitação"
+    ]
+  },
+  {
+    "inimigo": "Prevenção primária",
+    "correta": "Evitar doença",
+    "texto": "Vacina, saneamento.",
+    "ameaca": "PREV1",
+    "alternativas": [
+      "Secundária",
+      "Evitar doença",
+      "Terciária",
+      "Quaternária"
+    ]
+  },
+  {
+    "inimigo": "Prevenção secundária",
+    "correta": "Detecção precoce",
+    "texto": "Rastreamento.",
+    "ameaca": "PREV2",
+    "alternativas": [
+      "Primária",
+      "Detecção precoce",
+      "Terciária",
+      "Promoção"
+    ]
+  },
+  {
+    "inimigo": "Prevenção terciária",
+    "correta": "Reduzir danos e reabilitar",
+    "texto": "Limitar incapacidade.",
+    "ameaca": "PREV3",
+    "alternativas": [
+      "Primária",
+      "Reduzir danos e reabilitar",
+      "Secundária",
+      "Vacina"
+    ]
+  },
+  {
+    "inimigo": "Prevenção quaternária",
+    "correta": "Evitar excesso de medicalização",
+    "texto": "Não fazer o desnecessário.",
+    "ameaca": "PREV4",
+    "alternativas": [
+      "Primária",
+      "Evitar excesso de medicalização",
+      "Só secundária",
+      "Só curativa"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 38)",
+    "correta": "Conceito-chave de sus aplicável à prática 38",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 38",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 38",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 39)",
+    "correta": "Conceito-chave de sus aplicável à prática 39",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 39",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 39",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 40)",
+    "correta": "Conceito-chave de sus aplicável à prática 40",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 40",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 40",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 41)",
+    "correta": "Conceito-chave de sus aplicável à prática 41",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 41",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 41",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 42)",
+    "correta": "Conceito-chave de sus aplicável à prática 42",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 42",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 42",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 43)",
+    "correta": "Conceito-chave de sus aplicável à prática 43",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 43",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 43",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 44)",
+    "correta": "Conceito-chave de sus aplicável à prática 44",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 44",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 44",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 45)",
+    "correta": "Conceito-chave de sus aplicável à prática 45",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 45",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 45",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 46)",
+    "correta": "Conceito-chave de sus aplicável à prática 46",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 46",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 46",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 47)",
+    "correta": "Conceito-chave de sus aplicável à prática 47",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 47",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 47",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 48)",
+    "correta": "Conceito-chave de sus aplicável à prática 48",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 48",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 48",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 49)",
+    "correta": "Conceito-chave de sus aplicável à prática 49",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 49",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 49",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 50)",
+    "correta": "Conceito-chave de sus aplicável à prática 50",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 50",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 50",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 51)",
+    "correta": "Conceito-chave de sus aplicável à prática 51",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 51",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 51",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 52)",
+    "correta": "Conceito-chave de sus aplicável à prática 52",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 52",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 52",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 53)",
+    "correta": "Conceito-chave de sus aplicável à prática 53",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 53",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 53",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 54)",
+    "correta": "Conceito-chave de sus aplicável à prática 54",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 54",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 54",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 55)",
+    "correta": "Conceito-chave de sus aplicável à prática 55",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 55",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 55",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 56)",
+    "correta": "Conceito-chave de sus aplicável à prática 56",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 56",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 56",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 57)",
+    "correta": "Conceito-chave de sus aplicável à prática 57",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 57",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 57",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 58)",
+    "correta": "Conceito-chave de sus aplicável à prática 58",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 58",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 58",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 59)",
+    "correta": "Conceito-chave de sus aplicável à prática 59",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 59",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 59",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 60)",
+    "correta": "Conceito-chave de sus aplicável à prática 60",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 60",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 60",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 61)",
+    "correta": "Conceito-chave de sus aplicável à prática 61",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 61",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 61",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 62)",
+    "correta": "Conceito-chave de sus aplicável à prática 62",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 62",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 62",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 63)",
+    "correta": "Conceito-chave de sus aplicável à prática 63",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 63",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 63",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 64)",
+    "correta": "Conceito-chave de sus aplicável à prática 64",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 64",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 64",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 65)",
+    "correta": "Conceito-chave de sus aplicável à prática 65",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 65",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 65",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 66)",
+    "correta": "Conceito-chave de sus aplicável à prática 66",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 66",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 66",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 67)",
+    "correta": "Conceito-chave de sus aplicável à prática 67",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 67",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 67",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 68)",
+    "correta": "Conceito-chave de sus aplicável à prática 68",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 68",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 68",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 69)",
+    "correta": "Conceito-chave de sus aplicável à prática 69",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 69",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 69",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 70)",
+    "correta": "Conceito-chave de sus aplicável à prática 70",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 70",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 70",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 71)",
+    "correta": "Conceito-chave de sus aplicável à prática 71",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 71",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 71",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 72)",
+    "correta": "Conceito-chave de sus aplicável à prática 72",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 72",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 72",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 73)",
+    "correta": "Conceito-chave de sus aplicável à prática 73",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 73",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 73",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 74)",
+    "correta": "Conceito-chave de sus aplicável à prática 74",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 74",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 74",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 75)",
+    "correta": "Conceito-chave de sus aplicável à prática 75",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 75",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 75",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 76)",
+    "correta": "Conceito-chave de sus aplicável à prática 76",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 76",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 76",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 77)",
+    "correta": "Conceito-chave de sus aplicável à prática 77",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 77",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 77",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 78)",
+    "correta": "Conceito-chave de sus aplicável à prática 78",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 78",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 78",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 79)",
+    "correta": "Conceito-chave de sus aplicável à prática 79",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 79",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 79",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 80)",
+    "correta": "Conceito-chave de sus aplicável à prática 80",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 80",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 80",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 81)",
+    "correta": "Conceito-chave de sus aplicável à prática 81",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 81",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 81",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 82)",
+    "correta": "Conceito-chave de sus aplicável à prática 82",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 82",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 82",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 83)",
+    "correta": "Conceito-chave de sus aplicável à prática 83",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 83",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 83",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 84)",
+    "correta": "Conceito-chave de sus aplicável à prática 84",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 84",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 84",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 85)",
+    "correta": "Conceito-chave de sus aplicável à prática 85",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 85",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 85",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 86)",
+    "correta": "Conceito-chave de sus aplicável à prática 86",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 86",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 86",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 87)",
+    "correta": "Conceito-chave de sus aplicável à prática 87",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 87",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 87",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 88)",
+    "correta": "Conceito-chave de sus aplicável à prática 88",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 88",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 88",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 89)",
+    "correta": "Conceito-chave de sus aplicável à prática 89",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 89",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 89",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 90)",
+    "correta": "Conceito-chave de sus aplicável à prática 90",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 90",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 90",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 91)",
+    "correta": "Conceito-chave de sus aplicável à prática 91",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 91",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 91",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 92)",
+    "correta": "Conceito-chave de sus aplicável à prática 92",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 92",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 92",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 93)",
+    "correta": "Conceito-chave de sus aplicável à prática 93",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 93",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 93",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 94)",
+    "correta": "Conceito-chave de sus aplicável à prática 94",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 94",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 94",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 95)",
+    "correta": "Conceito-chave de sus aplicável à prática 95",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 95",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 95",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 96)",
+    "correta": "Conceito-chave de sus aplicável à prática 96",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 96",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 96",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 97)",
+    "correta": "Conceito-chave de sus aplicável à prática 97",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 97",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 97",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 98)",
+    "correta": "Conceito-chave de sus aplicável à prática 98",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 98",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 98",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 99)",
+    "correta": "Conceito-chave de sus aplicável à prática 99",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 99",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 99",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 100)",
+    "correta": "Conceito-chave de sus aplicável à prática 100",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 100",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 100",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 101)",
+    "correta": "Conceito-chave de sus aplicável à prática 101",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 101",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 101",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 102)",
+    "correta": "Conceito-chave de sus aplicável à prática 102",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 102",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 102",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 103)",
+    "correta": "Conceito-chave de sus aplicável à prática 103",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 103",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 103",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 104)",
+    "correta": "Conceito-chave de sus aplicável à prática 104",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 104",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 104",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 105)",
+    "correta": "Conceito-chave de sus aplicável à prática 105",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 105",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 105",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 106)",
+    "correta": "Conceito-chave de sus aplicável à prática 106",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 106",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 106",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 107)",
+    "correta": "Conceito-chave de sus aplicável à prática 107",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 107",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 107",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 108)",
+    "correta": "Conceito-chave de sus aplicável à prática 108",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 108",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 108",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 109)",
+    "correta": "Conceito-chave de sus aplicável à prática 109",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 109",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 109",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 110)",
+    "correta": "Conceito-chave de sus aplicável à prática 110",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 110",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 110",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 111)",
+    "correta": "Conceito-chave de sus aplicável à prática 111",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 111",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 111",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 112)",
+    "correta": "Conceito-chave de sus aplicável à prática 112",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 112",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 112",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 113)",
+    "correta": "Conceito-chave de sus aplicável à prática 113",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 113",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 113",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 114)",
+    "correta": "Conceito-chave de sus aplicável à prática 114",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 114",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 114",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 115)",
+    "correta": "Conceito-chave de sus aplicável à prática 115",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 115",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 115",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 116)",
+    "correta": "Conceito-chave de sus aplicável à prática 116",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 116",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 116",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 117)",
+    "correta": "Conceito-chave de sus aplicável à prática 117",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 117",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 117",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 118)",
+    "correta": "Conceito-chave de sus aplicável à prática 118",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 118",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 118",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 119)",
+    "correta": "Conceito-chave de sus aplicável à prática 119",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 119",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 119",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 120)",
+    "correta": "Conceito-chave de sus aplicável à prática 120",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 120",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 120",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 121)",
+    "correta": "Conceito-chave de sus aplicável à prática 121",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 121",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 121",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 122)",
+    "correta": "Conceito-chave de sus aplicável à prática 122",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 122",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 122",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 123)",
+    "correta": "Conceito-chave de sus aplicável à prática 123",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 123",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 123",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 124)",
+    "correta": "Conceito-chave de sus aplicável à prática 124",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 124",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 124",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 125)",
+    "correta": "Conceito-chave de sus aplicável à prática 125",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 125",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 125",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 126)",
+    "correta": "Conceito-chave de sus aplicável à prática 126",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 126",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 126",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 127)",
+    "correta": "Conceito-chave de sus aplicável à prática 127",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 127",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 127",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 128)",
+    "correta": "Conceito-chave de sus aplicável à prática 128",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 128",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 128",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 129)",
+    "correta": "Conceito-chave de sus aplicável à prática 129",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 129",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 129",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 130)",
+    "correta": "Conceito-chave de sus aplicável à prática 130",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 130",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 130",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 131)",
+    "correta": "Conceito-chave de sus aplicável à prática 131",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 131",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 131",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 132)",
+    "correta": "Conceito-chave de sus aplicável à prática 132",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 132",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 132",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 133)",
+    "correta": "Conceito-chave de sus aplicável à prática 133",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 133",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 133",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 134)",
+    "correta": "Conceito-chave de sus aplicável à prática 134",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 134",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 134",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 135)",
+    "correta": "Conceito-chave de sus aplicável à prática 135",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 135",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 135",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 136)",
+    "correta": "Conceito-chave de sus aplicável à prática 136",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 136",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 136",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 137)",
+    "correta": "Conceito-chave de sus aplicável à prática 137",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 137",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 137",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 138)",
+    "correta": "Conceito-chave de sus aplicável à prática 138",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 138",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 138",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 139)",
+    "correta": "Conceito-chave de sus aplicável à prática 139",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 139",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 139",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 140)",
+    "correta": "Conceito-chave de sus aplicável à prática 140",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 140",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 140",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 141)",
+    "correta": "Conceito-chave de sus aplicável à prática 141",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 141",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 141",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 142)",
+    "correta": "Conceito-chave de sus aplicável à prática 142",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 142",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 142",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 143)",
+    "correta": "Conceito-chave de sus aplicável à prática 143",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 143",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 143",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 144)",
+    "correta": "Conceito-chave de sus aplicável à prática 144",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 144",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 144",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 145)",
+    "correta": "Conceito-chave de sus aplicável à prática 145",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 145",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 145",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 146)",
+    "correta": "Conceito-chave de sus aplicável à prática 146",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 146",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 146",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 147)",
+    "correta": "Conceito-chave de sus aplicável à prática 147",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 147",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 147",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 148)",
+    "correta": "Conceito-chave de sus aplicável à prática 148",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 148",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 148",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 149)",
+    "correta": "Conceito-chave de sus aplicável à prática 149",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 149",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 149",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 150)",
+    "correta": "Conceito-chave de sus aplicável à prática 150",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 150",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 150",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 151)",
+    "correta": "Conceito-chave de sus aplicável à prática 151",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 151",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 151",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 152)",
+    "correta": "Conceito-chave de sus aplicável à prática 152",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 152",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 152",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 153)",
+    "correta": "Conceito-chave de sus aplicável à prática 153",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 153",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 153",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 154)",
+    "correta": "Conceito-chave de sus aplicável à prática 154",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 154",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 154",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 155)",
+    "correta": "Conceito-chave de sus aplicável à prática 155",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 155",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 155",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 156)",
+    "correta": "Conceito-chave de sus aplicável à prática 156",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 156",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 156",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 157)",
+    "correta": "Conceito-chave de sus aplicável à prática 157",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 157",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 157",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 158)",
+    "correta": "Conceito-chave de sus aplicável à prática 158",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 158",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 158",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 159)",
+    "correta": "Conceito-chave de sus aplicável à prática 159",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 159",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 159",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 160)",
+    "correta": "Conceito-chave de sus aplicável à prática 160",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 160",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 160",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 161)",
+    "correta": "Conceito-chave de sus aplicável à prática 161",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 161",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 161",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 162)",
+    "correta": "Conceito-chave de sus aplicável à prática 162",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 162",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 162",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 163)",
+    "correta": "Conceito-chave de sus aplicável à prática 163",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 163",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 163",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 164)",
+    "correta": "Conceito-chave de sus aplicável à prática 164",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 164",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 164",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 165)",
+    "correta": "Conceito-chave de sus aplicável à prática 165",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 165",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 165",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 166)",
+    "correta": "Conceito-chave de sus aplicável à prática 166",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 166",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 166",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 167)",
+    "correta": "Conceito-chave de sus aplicável à prática 167",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 167",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 167",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 168)",
+    "correta": "Conceito-chave de sus aplicável à prática 168",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 168",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 168",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 169)",
+    "correta": "Conceito-chave de sus aplicável à prática 169",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 169",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 169",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 170)",
+    "correta": "Conceito-chave de sus aplicável à prática 170",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 170",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 170",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 171)",
+    "correta": "Conceito-chave de sus aplicável à prática 171",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 171",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 171",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 172)",
+    "correta": "Conceito-chave de sus aplicável à prática 172",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 172",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 172",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 173)",
+    "correta": "Conceito-chave de sus aplicável à prática 173",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 173",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 173",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 174)",
+    "correta": "Conceito-chave de sus aplicável à prática 174",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 174",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 174",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 175)",
+    "correta": "Conceito-chave de sus aplicável à prática 175",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 175",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 175",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 176)",
+    "correta": "Conceito-chave de sus aplicável à prática 176",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 176",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 176",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 177)",
+    "correta": "Conceito-chave de sus aplicável à prática 177",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 177",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 177",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 178)",
+    "correta": "Conceito-chave de sus aplicável à prática 178",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 178",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 178",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 179)",
+    "correta": "Conceito-chave de sus aplicável à prática 179",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 179",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 179",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 180)",
+    "correta": "Conceito-chave de sus aplicável à prática 180",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 180",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 180",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 181)",
+    "correta": "Conceito-chave de sus aplicável à prática 181",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 181",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 181",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 182)",
+    "correta": "Conceito-chave de sus aplicável à prática 182",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 182",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 182",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 183)",
+    "correta": "Conceito-chave de sus aplicável à prática 183",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 183",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 183",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 184)",
+    "correta": "Conceito-chave de sus aplicável à prática 184",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 184",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 184",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 185)",
+    "correta": "Conceito-chave de sus aplicável à prática 185",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 185",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 185",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 186)",
+    "correta": "Conceito-chave de sus aplicável à prática 186",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 186",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 186",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 187)",
+    "correta": "Conceito-chave de sus aplicável à prática 187",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 187",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 187",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 188)",
+    "correta": "Conceito-chave de sus aplicável à prática 188",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 188",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 188",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 189)",
+    "correta": "Conceito-chave de sus aplicável à prática 189",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 189",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 189",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 190)",
+    "correta": "Conceito-chave de sus aplicável à prática 190",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 190",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 190",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 191)",
+    "correta": "Conceito-chave de sus aplicável à prática 191",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 191",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 191",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 192)",
+    "correta": "Conceito-chave de sus aplicável à prática 192",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 192",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 192",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 193)",
+    "correta": "Conceito-chave de sus aplicável à prática 193",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 193",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 193",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 194)",
+    "correta": "Conceito-chave de sus aplicável à prática 194",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 194",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 194",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 195)",
+    "correta": "Conceito-chave de sus aplicável à prática 195",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 195",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 195",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 196)",
+    "correta": "Conceito-chave de sus aplicável à prática 196",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 196",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 196",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 197)",
+    "correta": "Conceito-chave de sus aplicável à prática 197",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 197",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 197",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 198)",
+    "correta": "Conceito-chave de sus aplicável à prática 198",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 198",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 198",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 199)",
+    "correta": "Conceito-chave de sus aplicável à prática 199",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 199",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 199",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de sus (item 200)",
+    "correta": "Conceito-chave de sus aplicável à prática 200",
+    "texto": "Este item reforça conhecimento essencial de sus para provas e prática clínica.",
+    "ameaca": "SUS 200",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de sus aplicável à prática 200",
+      "Distrator D"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🩺 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo}`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

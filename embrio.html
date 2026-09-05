@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Embriologia - Um quiz de Embriologia para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Embriologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Embriologia</h1>
+  <p>Desvende os mistérios do desenvolvimento humano! 🧬</p>
+
+  <div id="terminal">[SISTEMA DE TESTE EMBRIOLÓGICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 👶 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE EMBRIOLÓGICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE EMBRIOLOGIA</h2>
+      <p>Bem-vindo, Futuro Embriologista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre o desenvolvimento embrionário e fetal.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente estágios do desenvolvimento, estruturas embrionárias e eventos chave da embriogênese.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre os processos complexos que formam um novo ser.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Embriológica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A compreensão da embriologia é fascinante e crucial. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Embriologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica e biológica:</p>
+      <ul>
+        <li>**LIVRO:** Moore, Persaud & Torchia - Embriologia Clínica [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Sadler - Langman Embriologia Médica [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Carlson - Embriologia Humana e Biologia do Desenvolvimento [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Embriologia.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico e biológico reconhecidas, como sites de universidades com materiais e cursos de Embriologia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Primeira fase apos fertilizacao com divisoes celulares rapidas",
+    "correta": "Clivagem",
+    "texto": "Divisoes mitoticas que aumentam o numero de blastomeros sem aumentar o volume total.",
+    "ameaca": "CLIVAGEM",
+    "alternativas": [
+      "Gastrulacao",
+      "Organogenese",
+      "Nidacao",
+      "Clivagem"
+    ]
+  },
+  {
+    "inimigo": "Tres camadas germinativas primarias",
+    "correta": "Ectoderma, Mesoderma e Endoderma",
+    "texto": "Formadas na gastrulacao; dao origem a todos os tecidos e orgaos.",
+    "ameaca": "FOLHETOS GERMINATIVOS",
+    "alternativas": [
+      "Pro-amnion, Amnion e saco vitelino",
+      "Trofoblasto, Embrioblasto e blastocisto",
+      "Notocorda, tubo neural e crista neural",
+      "Ectoderma, Mesoderma e Endoderma"
+    ]
+  },
+  {
+    "inimigo": "Processo de formacao do tubo neural a partir do ectoderma",
+    "correta": "Neurulacao",
+    "texto": "Placa neural dobra-se formando sulco e depois tubo neural (SNC).",
+    "ameaca": "NEURULACAO",
+    "alternativas": [
+      "Gastrulacao",
+      "Organogenese",
+      "Clivagem",
+      "Neurulacao"
+    ]
+  },
+  {
+    "inimigo": "Estrutura que se implanta no utero",
+    "correta": "Blastocisto",
+    "texto": "Massa celular interna + trofoblasto; implantacao cerca do 6o-7o dia.",
+    "ameaca": "IMPLANTACAO",
+    "alternativas": [
+      "Zigoto",
+      "Morula",
+      "Gastrula",
+      "Blastocisto"
+    ]
+  },
+  {
+    "inimigo": "Periodo de formacao dos principais orgaos",
+    "correta": "Organogenese",
+    "texto": "Da 3a a 8a semana aproximadamente; alta susceptibilidade a teratogenos.",
+    "ameaca": "ORGANOGENESE",
+    "alternativas": [
+      "Periodo pre-embrionario",
+      "Periodo fetal",
+      "Clivagem",
+      "Organogenese"
+    ]
+  },
+  {
+    "inimigo": "Celulas precursoras dos gametas",
+    "correta": "Celulas germinativas primordiais",
+    "texto": "Migram para as gonadas em desenvolvimento.",
+    "ameaca": "CGP",
+    "alternativas": [
+      "Celulas-tronco embrionarias",
+      "Somaticas",
+      "Celulas de Sertoli",
+      "Celulas germinativas primordiais"
+    ]
+  },
+  {
+    "inimigo": "Membrana que forma o saco liquido protetor do embriao",
+    "correta": "Amnion",
+    "texto": "Cavidade amniotica com liquido amniotico amortece e protege.",
+    "ameaca": "AMNION",
+    "alternativas": [
+      "Saco vitelino",
+      "Corion",
+      "Alantoide",
+      "Amnion"
+    ]
+  },
+  {
+    "inimigo": "Periodo da 9a semana ate o nascimento",
+    "correta": "Periodo fetal",
+    "texto": "Crescimento e maturacao dos orgaos ja formados.",
+    "ameaca": "PERIODO FETAL",
+    "alternativas": [
+      "Periodo embrionario",
+      "Clivagem",
+      "Pre-embrionario",
+      "Periodo fetal"
+    ]
+  },
+  {
+    "inimigo": "Estrutura que conecta o feto a placenta",
+    "correta": "Cordao umbilical",
+    "texto": "Duas arterias e uma veia; troca de nutrientes e residuos.",
+    "ameaca": "CORDAO UMBILICAL",
+    "alternativas": [
+      "Ducto venoso",
+      "Forame oval",
+      "Ducto arterioso",
+      "Cordao umbilical"
+    ]
+  },
+  {
+    "inimigo": "Fusao dos gametas masculino e feminino",
+    "correta": "Fertilizacao",
+    "texto": "Forma o zigoto; geralmente na ampula da tuba.",
+    "ameaca": "FERTILIZACAO",
+    "alternativas": [
+      "Ovulation",
+      "Implantacao",
+      "Gastrulacao",
+      "Fertilizacao"
+    ]
+  },
+  {
+    "inimigo": "Zigoto",
+    "correta": "Celula diploide resultante da fertilizacao",
+    "texto": "23 cromossomos do espermatozoide + 23 do ovulo.",
+    "ameaca": "ZIGOTO",
+    "alternativas": [
+      "Morula",
+      "Blastocisto",
+      "Celula diploide resultante da fertilizacao",
+      "Gameta"
+    ]
+  },
+  {
+    "inimigo": "Morula",
+    "correta": "Macico de 12-32 blastomeros com aspecto de amora",
+    "texto": "Surge por volta do 3o-4o dia; entra no utero.",
+    "ameaca": "MORULA",
+    "alternativas": [
+      "Blastocisto",
+      "Gastrula",
+      "Macico de 12-32 blastomeros com aspecto de amora",
+      "Zigoto"
+    ]
+  },
+  {
+    "inimigo": "Trofoblasto",
+    "correta": "Camada externa do blastocisto que forma a parte fetal da placenta",
+    "texto": "Diferencia-se em citotrofoblasto e sinciciotrofoblasto.",
+    "ameaca": "TROFOBLASTO",
+    "alternativas": [
+      "Embrioblasto",
+      "Hipoblasto",
+      "Camada externa do blastocisto que forma a parte fetal da placenta",
+      "Epiblasto"
+    ]
+  },
+  {
+    "inimigo": "Embrioblasto (massa celular interna)",
+    "correta": "Da origem ao embriao propriamente dito",
+    "texto": "Separa-se em epiblasto e hipoblasto.",
+    "ameaca": "EMBRIOBLASTO",
+    "alternativas": [
+      "Trofoblasto",
+      "Corion",
+      "Da origem ao embriao propriamente dito",
+      "Alantoide"
+    ]
+  },
+  {
+    "inimigo": "Epiblasto",
+    "correta": "Camada do disco bilaminar que dara origem aos tres folhetos",
+    "texto": "Celulas do epiblasto migram na linha primitiva.",
+    "ameaca": "EPIBLASTO",
+    "alternativas": [
+      "Hipoblasto",
+      "Trofoblasto",
+      "Camada do disco bilaminar que dara origem aos tres folhetos",
+      "Citotrofoblasto"
+    ]
+  },
+  {
+    "inimigo": "Hipoblasto",
+    "correta": "Camada ventral do disco bilaminar",
+    "texto": "Contribui para o endoderma extraembrionario do saco vitelino.",
+    "ameaca": "HIPOBLASTO",
+    "alternativas": [
+      "Epiblasto",
+      "Mesoderma",
+      "Camada ventral do disco bilaminar",
+      "Ectoderma"
+    ]
+  },
+  {
+    "inimigo": "Linha primitiva",
+    "correta": "Espessamento no epiblasto que marca o inicio da gastrulacao",
+    "texto": "Define eixos craniocaudal e direita-esquerda.",
+    "ameaca": "LINHA PRIMITIVA",
+    "alternativas": [
+      "Notocorda",
+      "Tubo neural",
+      "Espessamento no epiblasto que marca o inicio da gastrulacao",
+      "Placa neural"
+    ]
+  },
+  {
+    "inimigo": "Gastrulacao",
+    "correta": "Formacao dos tres folhetos germinativos a partir do epiblasto",
+    "texto": "Ocorre na 3a semana; embriao torna-se trilaminar.",
+    "ameaca": "GASTRULACAO",
+    "alternativas": [
+      "Clivagem",
+      "Neurulacao",
+      "Formacao dos tres folhetos germinativos a partir do epiblasto",
+      "Implantacao"
+    ]
+  },
+  {
+    "inimigo": "Notocorda",
+    "correta": "Corda axial indutora derivada do mesoderma",
+    "texto": "Induz a formacao da placa neural; residuos nos nucleos pulposos.",
+    "ameaca": "NOTOCORDA",
+    "alternativas": [
+      "Tubo neural",
+      "Crista neural",
+      "Corda axial indutora derivada do mesoderma",
+      "Somito"
+    ]
+  },
+  {
+    "inimigo": "Somitos",
+    "correta": "Segmentos de mesoderma paraxial",
+    "texto": "Dao origem a esclerotomo, miotomo e dermatomo.",
+    "ameaca": "SOMITOS",
+    "alternativas": [
+      "Placodas",
+      "Arcos faringeos apenas",
+      "Segmentos de mesoderma paraxial",
+      "Vesiculas opticas"
+    ]
+  },
+  {
+    "inimigo": "Ectoderma da origem a",
+    "correta": "Sistema nervoso, epiderme, crista neural e anexos cutaneos",
+    "texto": "Tambem revestimento de cavidades em parte.",
+    "ameaca": "ECTODERMA",
+    "alternativas": [
+      "Musculos e ossos apenas",
+      "Epitelio intestinal apenas",
+      "Sistema nervoso, epiderme, crista neural e anexos cutaneos",
+      "Sistema cardiovascular apenas"
+    ]
+  },
+  {
+    "inimigo": "Mesoderma da origem a",
+    "correta": "Musculos, ossos, sistema cardiovascular, rins, gonadas, dermis",
+    "texto": "Mesoderma lateral, intermediario e paraxial.",
+    "ameaca": "MESODERMA",
+    "alternativas": [
+      "So epiderme",
+      "So SNC",
+      "Musculos, ossos, sistema cardiovascular, rins, gonadas, dermis",
+      "So figado"
+    ]
+  },
+  {
+    "inimigo": "Endoderma da origem a",
+    "correta": "Epitelio do tubo digestivo, figado, pancreas, respiratorio e tireoide",
+    "texto": "Revestimento interno de muitas visceras.",
+    "ameaca": "ENDODERMA",
+    "alternativas": [
+      "So musculo",
+      "So osso",
+      "Epitelio do tubo digestivo, figado, pancreas, respiratorio e tireoide",
+      "So pele"
+    ]
+  },
+  {
+    "inimigo": "Crista neural",
+    "correta": "Celulas que migram do ectoderma neural",
+    "texto": "Ganglios, melanocitos, medula adrenal, parte de ossos da face.",
+    "ameaca": "CRISTA NEURAL",
+    "alternativas": [
+      "Somitos",
+      "Notocorda",
+      "Celulas que migram do ectoderma neural",
+      "Hipoblasto"
+    ]
+  },
+  {
+    "inimigo": "Fechamento do neuroporo anterior",
+    "correta": "Cerca do 24o-25o dia",
+    "texto": "Falha: anencefalia.",
+    "ameaca": "NEUROPORO ANTERIOR",
+    "alternativas": [
+      "Dia 40",
+      "Dia 10",
+      "Cerca do 24o-25o dia",
+      "Dia 60"
+    ]
+  },
+  {
+    "inimigo": "Fechamento do neuroporo posterior",
+    "correta": "Cerca do 26o-28o dia",
+    "texto": "Falha: espinha bifida.",
+    "ameaca": "NEUROPORO POSTERIOR",
+    "alternativas": [
+      "Dia 15",
+      "Dia 40",
+      "Cerca do 26o-28o dia",
+      "Dia 7"
+    ]
+  },
+  {
+    "inimigo": "Anencefalia",
+    "correta": "Falha de fechamento do neuroporo anterior",
+    "texto": "Incompativel com a vida pos-natal na forma completa.",
+    "ameaca": "ANENCEFALIA",
+    "alternativas": [
+      "Espinha bifida oculta",
+      "Hidrocefalia apenas",
+      "Falha de fechamento do neuroporo anterior",
+      "Onfalocele"
+    ]
+  },
+  {
+    "inimigo": "Espinha bifida",
+    "correta": "Falha de fechamento do neuroporo posterior / arco vertebral",
+    "texto": "Oculta, meningocele ou mielomeningocele.",
+    "ameaca": "ESPINHA BIFIDA",
+    "alternativas": [
+      "Anencefalia",
+      "Gastrosquise",
+      "Falha de fechamento do neuroporo posterior / arco vertebral",
+      "Fenda palatina"
+    ]
+  },
+  {
+    "inimigo": "Acido folico na prevencao",
+    "correta": "Reduz defeitos de fechamento do tubo neural",
+    "texto": "Suplementar antes e no 1o trimestre.",
+    "ameaca": "ACIDO FOLICO",
+    "alternativas": [
+      "So ferro",
+      "So vitamina A",
+      "Reduz defeitos de fechamento do tubo neural",
+      "So calcio"
+    ]
+  },
+  {
+    "inimigo": "Placenta: parte fetal",
+    "correta": "Corion frondoso / vilosidades corionicas",
+    "texto": "Trofoblasto + mesoderma extraembrionario.",
+    "ameaca": "PLACENTA FETAL",
+    "alternativas": [
+      "Decidua basal apenas",
+      "Amnion apenas",
+      "Corion frondoso / vilosidades corionicas",
+      "Saco vitelino"
+    ]
+  },
+  {
+    "inimigo": "Placenta: parte materna",
+    "correta": "Decidua basal",
+    "texto": "Endometrio modificado sob o concepto.",
+    "ameaca": "PLACENTA MATERNA",
+    "alternativas": [
+      "Corion liso",
+      "Amnion",
+      "Decidua basal",
+      "Alantoide"
+    ]
+  },
+  {
+    "inimigo": "HCG",
+    "correta": "Hormonio produzido pelo sinciciotrofoblasto",
+    "texto": "Mantem o corpo luteo; base do teste de gravidez.",
+    "ameaca": "HCG",
+    "alternativas": [
+      "FSH",
+      "LH apenas",
+      "Hormonio produzido pelo sinciciotrofoblasto",
+      "Ocitocina"
+    ]
+  },
+  {
+    "inimigo": "Saco vitelino",
+    "correta": "Estrutura extraembrionaria envolvida na hematopoese precoce e CGP",
+    "texto": "Tambem contribui para o intestino primitivo.",
+    "ameaca": "SACO VITELINO",
+    "alternativas": [
+      "Amnion",
+      "Corion apenas",
+      "Estrutura extraembrionaria envolvida na hematopoese precoce e CGP",
+      "Placenta madura"
+    ]
+  },
+  {
+    "inimigo": "Alantoide",
+    "correta": "Diverticulo do saco vitelino ligado a formacao do uraco e vasos umbilicais",
+    "texto": "Residuo: ligamento umbilical mediano.",
+    "ameaca": "ALANTOIDE",
+    "alternativas": [
+      "Amnion",
+      "Notocorda",
+      "Diverticulo do saco vitelino ligado a formacao do uraco e vasos umbilicais",
+      "Tubo neural"
+    ]
+  },
+  {
+    "inimigo": "Corion",
+    "correta": "Membrana extraembrionaria mais externa (trofoblasto + mesoderma)",
+    "texto": "Vilosidades trocam gases e nutrientes.",
+    "ameaca": "CORION",
+    "alternativas": [
+      "Amnion",
+      "Zona pelucida",
+      "Membrana extraembrionaria mais externa (trofoblasto + mesoderma)",
+      "Disco embrionario"
+    ]
+  },
+  {
+    "inimigo": "Zona pelucida",
+    "correta": "Envelope glicoproteico do ovocito e zigoto precoce",
+    "texto": "Deve ser eliminada (hatching) para implantacao.",
+    "ameaca": "ZONA PELUCIDA",
+    "alternativas": [
+      "Corona radiata apenas",
+      "Membrana vitelina apenas",
+      "Envelope glicoproteico do ovocito e zigoto precoce",
+      "Amnion"
+    ]
+  },
+  {
+    "inimigo": "Capacitacao",
+    "correta": "Maturacao funcional dos espermatozoides no trato genital feminino",
+    "texto": "Necessaria para a reacao acrossomica.",
+    "ameaca": "CAPACITACAO",
+    "alternativas": [
+      "Espermiogenese",
+      "Ovulation",
+      "Maturacao funcional dos espermatozoides no trato genital feminino",
+      "Fertilizacao em si"
+    ]
+  },
+  {
+    "inimigo": "Reacao acrossomica",
+    "correta": "Liberacao de enzimas do acrossomo para penetrar as barreiras do ovocito",
+    "texto": "Permite atravessar corona e zona pelucida.",
+    "ameaca": "REACAO ACROSSOMICA",
+    "alternativas": [
+      "Reacao cortical",
+      "Capacitacao apenas",
+      "Liberacao de enzimas do acrossomo para penetrar as barreiras do ovocito",
+      "Clivagem"
+    ]
+  },
+  {
+    "inimigo": "Reacao cortical",
+    "correta": "Liberacao de granulos corticais que bloqueiam poliespermia",
+    "texto": "Altera a zona pelucida apos a entrada do 1o espermatozoide.",
+    "ameaca": "REACAO CORTICAL",
+    "alternativas": [
+      "Acrossomica",
+      "Capacitacao",
+      "Liberacao de granulos corticais que bloqueiam poliespermia",
+      "Gastrulacao"
+    ]
+  },
+  {
+    "inimigo": "Ovulation",
+    "correta": "Liberacao do ovocito secundario do folliculo maduro",
+    "texto": "Estimulada pelo pico de LH; captura pela fimbria.",
+    "ameaca": "OVULACAO",
+    "alternativas": [
+      "Fertilizacao",
+      "Implantacao",
+      "Liberacao do ovocito secundario do folliculo maduro",
+      "Menstruacao"
+    ]
+  },
+  {
+    "inimigo": "Local mais comum de fertilizacao",
+    "correta": "Ampula da tuba uterina",
+    "texto": "Encontro dos gametas no terco lateral da tuba.",
+    "ameaca": "LOCAL FERTILIZACAO",
+    "alternativas": [
+      "Utero",
+      "Ovario",
+      "Ampula da tuba uterina",
+      "Vagina"
+    ]
+  },
+  {
+    "inimigo": "Gravidez ectopica mais frequente",
+    "correta": "Tuba uterina (ampular)",
+    "texto": "Risco de ruptura e hemorragia; emergencia.",
+    "ameaca": "ECTOPICA",
+    "alternativas": [
+      "Ovario",
+      "Abdome",
+      "Tuba uterina (ampular)",
+      "Cervix"
+    ]
+  },
+  {
+    "inimigo": "Gemelares monozigoticos",
+    "correta": "Um zigoto que se divide; geneticamente identicos",
+    "texto": "Tipo de placenta depende de quando ocorreu a divisao.",
+    "ameaca": "MONOZIGOTICOS",
+    "alternativas": [
+      "Dois ovulos",
+      "Sempre dicorionicos",
+      "Um zigoto que se divide; geneticamente identicos",
+      "Sempre com duas placentas separadas"
+    ]
+  },
+  {
+    "inimigo": "Gemelares dizigoticos",
+    "correta": "Dois ovulos fertilizados por dois espermatozoides",
+    "texto": "Geneticamente como irmaos; sempre dicorionicos/diamnioticos.",
+    "ameaca": "DIZIGOTICOS",
+    "alternativas": [
+      "Um zigoto",
+      "Sempre identicos",
+      "Dois ovulos fertilizados por dois espermatozoides",
+      "Sempre monoamnioticos"
+    ]
+  },
+  {
+    "inimigo": "Divisao do zigoto nos 3 primeiros dias",
+    "correta": "Dicorionicos diamnioticos",
+    "texto": "Como dizigoticos na membrana.",
+    "ameaca": "DIVISAO CEDO",
+    "alternativas": [
+      "Monocorionicos monoamnioticos",
+      "Siameses",
+      "Dicorionicos diamnioticos",
+      "Sem placenta"
+    ]
+  },
+  {
+    "inimigo": "Divisao no blastocisto (apos massa celular interna formada)",
+    "correta": "Monocorionicos diamnioticos",
+    "texto": "Cenario mais comum nos monozigoticos.",
+    "ameaca": "DIVISAO BLASTOCISTO",
+    "alternativas": [
+      "Dicorionicos",
+      "Monoamnioticos sempre",
+      "Monocorionicos diamnioticos",
+      "Siameses sempre"
+    ]
+  },
+  {
+    "inimigo": "Divisao tardia do disco embrionario",
+    "correta": "Monocorionicos monoamnioticos ou siameses",
+    "texto": "Alto risco perinatal.",
+    "ameaca": "DIVISAO TARDIA",
+    "alternativas": [
+      "Dicorionicos",
+      "Sempre saudaveis",
+      "Monocorionicos monoamnioticos ou siameses",
+      "Dizigoticos"
+    ]
+  },
+  {
+    "inimigo": "Arcos faringeos (branquiais)",
+    "correta": "Estruturas que dao origem a face, pescoco e alguns ossos/musculos/nervos",
+    "texto": "Cada arco tem nervo, arteria e cartilagem proprios.",
+    "ameaca": "ARCOS FARINGEOS",
+    "alternativas": [
+      "Somitos apenas",
+      "Placodas apenas",
+      "Estruturas que dao origem a face, pescoco e alguns ossos/musculos/nervos",
+      "Notocorda"
+    ]
+  },
+  {
+    "inimigo": "1o arco faringeo",
+    "correta": "Musculos da mastigacao, malar, mandibula, nervo trigemeo (V)",
+    "texto": "Cartilagem de Meckel.",
+    "ameaca": "1O ARCO",
+    "alternativas": [
+      "Nervo vago",
+      "Musculos da face (expressao)",
+      "Musculos da mastigacao, malar, mandibula, nervo trigemeo (V)",
+      "Laringe apenas"
+    ]
+  },
+  {
+    "inimigo": "2o arco faringeo",
+    "correta": "Musculos da expressao facial, nervo facial (VII), estribo",
+    "texto": "Cartilagem de Reichert.",
+    "ameaca": "2O ARCO",
+    "alternativas": [
+      "Trigemeo",
+      "Mastigacao",
+      "Musculos da expressao facial, nervo facial (VII), estribo",
+      "Hipoglosso"
+    ]
+  },
+  {
+    "inimigo": "3o arco faringeo",
+    "correta": "Nervo glossofareingeo (IX), parte do hioide",
+    "texto": "Tambem contribui para carotidas.",
+    "ameaca": "3O ARCO",
+    "alternativas": [
+      "Facial",
+      "Trigemeo",
+      "Nervo glossofareingeo (IX), parte do hioide",
+      "Vago apenas"
+    ]
+  },
+  {
+    "inimigo": "4o e 6o arcos",
+    "correta": "Nervo vago (X), cartilagens da laringe, musculos laringeos",
+    "texto": "Importantes para degluticao e fonacao.",
+    "ameaca": "4O E 6O ARCOS",
+    "alternativas": [
+      "Trigemeo",
+      "Facial",
+      "Nervo vago (X), cartilagens da laringe, musculos laringeos",
+      "Hipoglosso"
+    ]
+  },
+  {
+    "inimigo": "Bolsa faringea 1",
+    "correta": "Tubo auditivo e cavidade timpanica",
+    "texto": "Recesso tubotimpanico.",
+    "ameaca": "BOLSA 1",
+    "alternativas": [
+      "Tonsila",
+      "Paratireoide inferior",
+      "Tubo auditivo e cavidade timpanica",
+      "Timo"
+    ]
+  },
+  {
+    "inimigo": "Bolsa faringea 3",
+    "correta": "Paratireoide inferior e timo",
+    "texto": "Migração caudal do timo.",
+    "ameaca": "BOLSA 3",
+    "alternativas": [
+      "Timpanica",
+      "Ultimobranquial",
+      "Paratireoide inferior e timo",
+      "Tonsila palatina"
+    ]
+  },
+  {
+    "inimigo": "Bolsa faringea 4",
+    "correta": "Paratireoide superior e corpo ultimobranquial (celulas C)",
+    "texto": "Celulas C produzem calcitonina.",
+    "ameaca": "BOLSA 4",
+    "alternativas": [
+      "Timo",
+      "Tubo auditivo",
+      "Paratireoide superior e corpo ultimobranquial (celulas C)",
+      "Tonsila"
+    ]
+  },
+  {
+    "inimigo": "Fenda palatina",
+    "correta": "Falha de fusao dos processos palatinos",
+    "texto": "Pode associar-se a labio leporino.",
+    "ameaca": "FENDA PALATINA",
+    "alternativas": [
+      "Anencefalia",
+      "Espinha bifida",
+      "Falha de fusao dos processos palatinos",
+      "Gastrosquise"
+    ]
+  },
+  {
+    "inimigo": "Labio leporino",
+    "correta": "Falha de fusao do processo maxilar com o processo nasal medial",
+    "texto": "Unilateral ou bilateral.",
+    "ameaca": "LABIO LEPORINO",
+    "alternativas": [
+      "Fenda apenas posterior",
+      "Anencefalia",
+      "Falha de fusao do processo maxilar com o processo nasal medial",
+      "Onfalocele"
+    ]
+  },
+  {
+    "inimigo": "Septacao cardiaca",
+    "correta": "Divisao do tubo cardiaco em quatro camadas / quatro camaras",
+    "texto": "Septos interatrial, interventricular e tronco-conal.",
+    "ameaca": "SEPTACAO CARDIACA",
+    "alternativas": [
+      "So valvas",
+      "So coronarias",
+      "Divisao do tubo cardiaco em quatro camadas / quatro camaras",
+      "So pericardio"
+    ]
+  },
+  {
+    "inimigo": "Forame oval",
+    "correta": "Comunicacao interatrial fetal que desvia sangue da D para E",
+    "texto": "Fecha apos o nascimento formando a fossa oval.",
+    "ameaca": "FORAME OVAL",
+    "alternativas": [
+      "Ducto arterioso",
+      "Ducto venoso",
+      "Comunicacao interatrial fetal que desvia sangue da D para E",
+      "Cordao"
+    ]
+  },
+  {
+    "inimigo": "Ducto arterioso",
+    "correta": "Conexao entre arteria pulmonar e aorta no feto",
+    "texto": "Desvia sangue do pulmao nao funcional; vira ligamento arterioso.",
+    "ameaca": "DUCTO ARTERIOSO",
+    "alternativas": [
+      "Forame oval",
+      "Ducto venoso",
+      "Conexao entre arteria pulmonar e aorta no feto",
+      "Veia cava"
+    ]
+  },
+  {
+    "inimigo": "Ducto venoso",
+    "correta": "Desvia sangue da veia umbilical para a veia cava inferior",
+    "texto": "Evita passar pelo figado; vira ligamento venoso.",
+    "ameaca": "DUCTO VENOSO",
+    "alternativas": [
+      "Arterioso",
+      "Forame oval",
+      "Desvia sangue da veia umbilical para a veia cava inferior",
+      "Umbilical arterial"
+    ]
+  },
+  {
+    "inimigo": "Circulacao fetal: sangue mais oxigenado vai preferencialmente para",
+    "correta": "Coracao esquerdo / cerebro / miocardio via forame oval",
+    "texto": "Prioridade para orgaos vitais.",
+    "ameaca": "CIRCULACAO FETAL",
+    "alternativas": [
+      "Pulmoes",
+      "Membros inferiores apenas",
+      "Coracao esquerdo / cerebro / miocardio via forame oval",
+      "Rim apenas"
+    ]
+  },
+  {
+    "inimigo": "Mudanca na respiracao ao nascer",
+    "correta": "Pulmoes expandem, resistencia pulmonar cai, forame oval e ducto arterioso fecham",
+    "texto": "Transicao para circulacao neonatal.",
+    "ameaca": "TRANSICAO AO NASCER",
+    "alternativas": [
+      "Aumenta resistencia pulmonar",
+      "Abre mais o forame oval",
+      "Pulmoes expandem, resistencia pulmonar cai, forame oval e ducto arterioso fecham",
+      "Ducto venoso dilata"
+    ]
+  },
+  {
+    "inimigo": "Persistencia do ducto arterioso",
+    "correta": "Comunicacao anormal aorta-pulmonar apos o nascimento",
+    "texto": "Tratar com inibidor de prostaglandina ou cirurgia/cateter.",
+    "ameaca": "PCA",
+    "alternativas": [
+      "CIV",
+      "CIA",
+      "Comunicacao anormal aorta-pulmonar apos o nascimento",
+      "Coarctacao"
+    ]
+  },
+  {
+    "inimigo": "Tetralogia de Fallot: componentes",
+    "correta": "CIV, obstrucao da via de saida direita, aorta a cavaleiro, hipertrofia de VD",
+    "texto": "Cianose classica da infancia.",
+    "ameaca": "FALLOT",
+    "alternativas": [
+      "So CIA",
+      "So PCA",
+      "CIV, obstrucao da via de saida direita, aorta a cavaleiro, hipertrofia de VD",
+      "So estenose mitral"
+    ]
+  },
+  {
+    "inimigo": "Tubo digestivo primitivo: partes",
+    "correta": "Foregut, midgut e hindgut",
+    "texto": "Cada uma com irrigacao e derivados proprios.",
+    "ameaca": "TUBO DIGESTIVO",
+    "alternativas": [
+      "So intestino delgado",
+      "So colon",
+      "Foregut, midgut e hindgut",
+      "So estomago"
+    ]
+  },
+  {
+    "inimigo": "Rotacao do intestino medio",
+    "correta": "270 graus anti-horario em torno da arteria mesenterica superior",
+    "texto": "Falhas: ma-rotacao e volvulo.",
+    "ameaca": "ROTACAO INTESTINAL",
+    "alternativas": [
+      "90 horario",
+      "Sem rotacao nunca",
+      "270 graus anti-horario em torno da arteria mesenterica superior",
+      "360 horario"
+    ]
+  },
+  {
+    "inimigo": "Onfalocele",
+    "correta": "Visceras cobertas por membrana na base do cordao",
+    "texto": "Associada a anomalias geneticas com frequencia.",
+    "ameaca": "ONFALOCELE",
+    "alternativas": [
+      "Gastrosquise",
+      "Hernia inguinal",
+      "Visceras cobertas por membrana na base do cordao",
+      "Extrofia vesical"
+    ]
+  },
+  {
+    "inimigo": "Gastrosquise",
+    "correta": "Visceras expostas a direita do cordao sem saco membranoso",
+    "texto": "Defeito de parede abdominal; geralmente sem anomalia cromossomica.",
+    "ameaca": "GASTROSQUISE",
+    "alternativas": [
+      "Onfalocele",
+      "Hernia umbilical fisiologica",
+      "Visceras expostas a direita do cordao sem saco membranoso",
+      "Diaphragmatica"
+    ]
+  },
+  {
+    "inimigo": "Hernia diafragmatica congenita",
+    "correta": "Falha de fechamento do canal pleuralperitoneal",
+    "texto": "Pulmao hipoplasico; emergencia neonatal.",
+    "ameaca": "HERNIA DIAFRAGMATICA",
+    "alternativas": [
+      "Onfalocele",
+      "Eventracao apenas",
+      "Falha de fechamento do canal pleuralperitoneal",
+      "PCA"
+    ]
+  },
+  {
+    "inimigo": "Surfactante pulmonar",
+    "correta": "Produzido por pneumocitos tipo II a partir de ~24-28 semanas",
+    "texto": "Reduz tensao superficial; deficiencia = SDR neonatal.",
+    "ameaca": "SURFACTANTE",
+    "alternativas": [
+      "Tipo I apenas",
+      "Macrofagos",
+      "Produzido por pneumocitos tipo II a partir de ~24-28 semanas",
+      "Celulas C"
+    ]
+  },
+  {
+    "inimigo": "Periodo embrionario critico para teratogenos",
+    "correta": "3a a 8a semana (organogenese)",
+    "texto": "Maior risco de malformacoes maiores.",
+    "ameaca": "TERATOGENOS",
+    "alternativas": [
+      "So 3o trimestre",
+      "So trabalho de parto",
+      "3a a 8a semana (organogenese)",
+      "Apos o nascimento"
+    ]
+  },
+  {
+    "inimigo": "Talidomida",
+    "correta": "Teratogeno classico: reducao de membros (focomelia)",
+    "texto": "Usado historicamente para nauseas; hoje restrito.",
+    "ameaca": "TALIDOMIDA",
+    "alternativas": [
+      "So surdez",
+      "So cardiopatia isolada",
+      "Teratogeno classico: reducao de membros (focomelia)",
+      "So fenda labial"
+    ]
+  },
+  {
+    "inimigo": "Alcool (sindrome alcoolica fetal)",
+    "correta": "Defeitos faciais, restricao de crescimento e alteracao cognitiva",
+    "texto": "Principal causa evitavel de deficiencia intelectual.",
+    "ameaca": "SAF",
+    "alternativas": [
+      "So macrosomia",
+      "So diabetes",
+      "Defeitos faciais, restricao de crescimento e alteracao cognitiva",
+      "So anemia"
+    ]
+  },
+  {
+    "inimigo": "Rubeola congenita",
+    "correta": "Catarata, surdez, cardiopatia (PCA)",
+    "texto": "Vacinacao materna previne.",
+    "ameaca": "RUBEOLA CONGENITA",
+    "alternativas": [
+      "So ictericia fisiologica",
+      "So macrosomia",
+      "Catarata, surdez, cardiopatia (PCA)",
+      "So anencefalia"
+    ]
+  },
+  {
+    "inimigo": "Toxoplasmose congenita",
+    "correta": "Calcificacoes intracranianas, coriorretinite, hidrocefalia",
+    "texto": "Cuidado com fezes de gato e carne crua.",
+    "ameaca": "TOXO CONGENITA",
+    "alternativas": [
+      "So fenda labial",
+      "So PCA",
+      "Calcificacoes intracranianas, coriorretinite, hidrocefalia",
+      "So gastrosquise"
+    ]
+  },
+  {
+    "inimigo": "Diabetes materno descontrolado",
+    "correta": "Risco de cardiopatia, defeitos de tubo neural, macromomia, caudal regression",
+    "texto": "Controle glicemico pre-concepcional.",
+    "ameaca": "DM MATERNO",
+    "alternativas": [
+      "So baixo peso sempre",
+      "So anemia",
+      "Risco de cardiopatia, defeitos de tubo neural, macromomia, caudal regression",
+      "So surdez"
+    ]
+  },
+  {
+    "inimigo": "Mesoderma intermediario",
+    "correta": "Origem dos rins e gonadas",
+    "texto": "Sistema urogenital.",
+    "ameaca": "MESODERMA INTERMEDIARIO",
+    "alternativas": [
+      "So somitos",
+      "So coracao",
+      "Origem dos rins e gonadas",
+      "So epiderme"
+    ]
+  },
+  {
+    "inimigo": "Pro-rim, mesorren e metanefro",
+    "correta": "Sequencia de sistemas renais embrionarios",
+    "texto": "Metanefro forma o rim definitivo.",
+    "ameaca": "SISTEMAS RENAIS",
+    "alternativas": [
+      "So um rim embrionario",
+      "So bexiga",
+      "Sequencia de sistemas renais embrionarios",
+      "So uretra"
+    ]
+  },
+  {
+    "inimigo": "Brotamento ureteral",
+    "correta": "Induz o blastema metanefrico a formar nefrons",
+    "texto": "Interacao reciproca essencial.",
+    "ameaca": "BROTO URETERAL",
+    "alternativas": [
+      "So uretra",
+      "So bexiga",
+      "Induz o blastema metanefrico a formar nefrons",
+      "So gonad a"
+    ]
+  },
+  {
+    "inimigo": "Duplicidade ureteral / rim em ferradura",
+    "correta": "Anomalias de migracao/fusao do rim",
+    "texto": "Ferradura: polos inferiores fundidos.",
+    "ameaca": "ANOMALIAS RENAIS",
+    "alternativas": [
+      "So infeccao",
+      "So calculo",
+      "Anomalias de migracao/fusao do rim",
+      "So tumor"
+    ]
+  },
+  {
+    "inimigo": "Diferenciacao sexual: cromossomo Y",
+    "correta": "Gene SRY induz desenvolvimento testicular",
+    "texto": "Sem SRY: desenvolvimento ovariano padrao.",
+    "ameaca": "SRY",
+    "alternativas": [
+      "Gene da hemofilia",
+      "Gene da cor dos olhos",
+      "Gene SRY induz desenvolvimento testicular",
+      "Gene da altura"
+    ]
+  },
+  {
+    "inimigo": "Ductos de Wolff (mesonéfricos)",
+    "correta": "Em machos: epididimo, deferente, vesicula seminal",
+    "texto": "Regenerados por testosterona.",
+    "ameaca": "DUCTOS DE WOLFF",
+    "alternativas": [
+      "Utero e trompas",
+      "So ovario",
+      "Em machos: epididimo, deferente, vesicula seminal",
+      "So prostata"
+    ]
+  },
+  {
+    "inimigo": "Ductos de Muller (paramesonéfricos)",
+    "correta": "Em femeas: utero, trompas, terco superior da vagina",
+    "texto": "Regredidos por AMH nos machos.",
+    "ameaca": "DUCTOS DE MULLER",
+    "alternativas": [
+      "Deferente",
+      "Epididimo",
+      "Em femeas: utero, trompas, terco superior da vagina",
+      "So uretra"
+    ]
+  },
+  {
+    "inimigo": "AMH (hormonio anti-Mulleriano)",
+    "correta": "Produzido pelas celulas de Sertoli; regride ductos de Muller",
+    "texto": "Essencial na diferenciacao masculina interna.",
+    "ameaca": "AMH",
+    "alternativas": [
+      "Testosterona apenas",
+      "Estrogenio",
+      "Produzido pelas celulas de Sertoli; regride ductos de Muller",
+      "FSH"
+    ]
+  },
+  {
+    "inimigo": "Gubernaculo",
+    "correta": "Guia a descida testicular para a bolsa escrotal",
+    "texto": "Falhas: criptorquidia.",
+    "ameaca": "GUBERNACULO",
+    "alternativas": [
+      "Cordao umbilical",
+      "Ducto deferente",
+      "Guia a descida testicular para a bolsa escrotal",
+      "Uretra"
+    ]
+  },
+  {
+    "inimigo": "Criptorquidia",
+    "correta": "Testiculo nao descido",
+    "texto": "Risco de infertilidade e cancer; orquidopexia.",
+    "ameaca": "CRIPTORQUIDIA",
+    "alternativas": [
+      "Hidrocele apenas",
+      "Varicocele",
+      "Testiculo nao descido",
+      "Fimose"
+    ]
+  },
+  {
+    "inimigo": "Mielomeningocele",
+    "correta": "Forma grave de espinha bifida com medula exposta",
+    "texto": "Defice neurologico; prevencao com acido folico.",
+    "ameaca": "MIELOMENINGOCELE",
+    "alternativas": [
+      "Espinha bifida oculta apenas",
+      "Anencefalia",
+      "Forma grave de espinha bifida com medula exposta",
+      "Encefalocele apenas"
+    ]
+  },
+  {
+    "inimigo": "Encefalocele",
+    "correta": "Hernia de tecido cerebral atraves de defeito craniano",
+    "texto": "Frequentemente occipital.",
+    "ameaca": "ENCEFALOCELE",
+    "alternativas": [
+      "Anencefalia",
+      "Espinha bifida oculta",
+      "Hernia de tecido cerebral atraves de defeito craniano",
+      "Microcefalia apenas"
+    ]
+  },
+  {
+    "inimigo": "Holoprosencefalia",
+    "correta": "Falha de divisao do prosencefalo em hemisferios",
+    "texto": "Associada a anomalias faciais medias; trisomia 13.",
+    "ameaca": "HOLOPROSENCEFALIA",
+    "alternativas": [
+      "Hidrocefalia apenas",
+      "Espinha bifida",
+      "Falha de divisao do prosencefalo em hemisferios",
+      "Anencefalia"
+    ]
+  },
+  {
+    "inimigo": "Estagio de desenvolvimento das vesiculas cerebrais",
+    "correta": "Prosencefalo, mesencefalo e rombencefalo",
+    "texto": "Depois subdivisoes (telfencefalo, diencefalo etc.).",
+    "ameaca": "VESICULAS CEREBRAIS",
+    "alternativas": [
+      "So medula",
+      "So cerebelo",
+      "Prosencefalo, mesencefalo e rombencefalo",
+      "So ponte"
+    ]
+  },
+  {
+    "inimigo": "Placoda otico",
+    "correta": "Da origem ao labirinto membranoso da orelha interna",
+    "texto": "Invaginacao do ectoderma superficial.",
+    "ameaca": "PLACODA OTICA",
+    "alternativas": [
+      "Arco 1 apenas",
+      "Bolsa 1 apenas",
+      "Da origem ao labirinto membranoso da orelha interna",
+      "Crista neural apenas"
+    ]
+  },
+  {
+    "inimigo": "Placoda do cristalino",
+    "correta": "Induzida pela vesicula optica; forma o cristalino",
+    "texto": "Interacao com o ectoderma de superficie.",
+    "ameaca": "PLACODA CRISTALINO",
+    "alternativas": [
+      "Retina apenas",
+      "Coroide",
+      "Induzida pela vesicula optica; forma o cristalino",
+      "Esclerotica"
+    ]
+  },
+  {
+    "inimigo": "Coloboma",
+    "correta": "Falha de fechamento da fissura coroide/optica",
+    "texto": "Pode afetar iris, retina, nervo optico.",
+    "ameaca": "COLOBOMA",
+    "alternativas": [
+      "Catarata senil",
+      "Glaucoma apenas",
+      "Falha de fechamento da fissura coroide/optica",
+      "Miopia"
+    ]
+  },
+  {
+    "inimigo": "Dermatomo, miotomo e esclerotomo",
+    "correta": "Derivados de cada somito",
+    "texto": "Pele, musculo esqueletico segmentar e vertebras/costelas.",
+    "ameaca": "DERIVADOS DO SOMITO",
+    "alternativas": [
+      "So nervos",
+      "So vasos",
+      "Derivados de cada somito",
+      "So visceras"
+    ]
+  },
+  {
+    "inimigo": "Mesoderma lateral",
+    "correta": "Divide-se em somatoplesura e esplancnopleura",
+    "texto": "Forma paredes do corpo e visceras / serosas.",
+    "ameaca": "MESODERMA LATERAL",
+    "alternativas": [
+      "So paraxial",
+      "So intermediario",
+      "Divide-se em somatoplesura e esplancnopleura",
+      "So notocorda"
+    ]
+  },
+  {
+    "inimigo": "Celoma intraembrionario",
+    "correta": "Cavidade que dara origem a peritonial, pleural e pericardica",
+    "texto": "Separa-se do celoma extraembrionario.",
+    "ameaca": "CELOMA",
+    "alternativas": [
+      "Tubo neural",
+      "Saco vitelino apenas",
+      "Cavidade que dara origem a peritonial, pleural e pericardica",
+      "Amnion apenas"
+    ]
+  },
+  {
+    "inimigo": "Septum transversum",
+    "correta": "Mesoderma que contribui para o diafragma",
+    "texto": "Tambem para o desenvolvimento hepatico.",
+    "ameaca": "SEPTUM TRANSVERSUM",
+    "alternativas": [
+      "Notocorda",
+      "Somito occipital apenas",
+      "Mesoderma que contribui para o diafragma",
+      "Crista neural"
+    ]
+  },
+  {
+    "inimigo": "Membrana bucofaringea",
+    "correta": "Rompe-se abrindo a boca primitiva para o intestino anterior",
+    "texto": "No inicio da 4a semana aproximadamente.",
+    "ameaca": "MEMBRANA BUCOFARINGEA",
+    "alternativas": [
+      "Cloacal apenas",
+      "Neural",
+      "Rompe-se abrindo a boca primitiva para o intestino anterior",
+      "Pleuroperitoneal"
+    ]
+  },
+  {
+    "inimigo": "Membrana cloacal",
+    "correta": "Rompe-se separando anus e abertura urogenital",
+    "texto": "Importante na formacao do perineo.",
+    "ameaca": "MEMBRANA CLOACAL",
+    "alternativas": [
+      "Bucofaringea",
+      "Neural",
+      "Rompe-se separando anus e abertura urogenital",
+      "Timpânica"
+    ]
+  },
+  {
+    "inimigo": "Extrofia de bexiga",
+    "correta": "Falha de fechamento da parede abdominal inferior e bexiga aberta",
+    "texto": "Associada a epispadias.",
+    "ameaca": "EXTROFIA VESICAL",
+    "alternativas": [
+      "Onfalocele",
+      "Gastrosquise",
+      "Falha de fechamento da parede abdominal inferior e bexiga aberta",
+      "Hernia inguinal"
+    ]
+  },
+  {
+    "inimigo": "Urachus persistente",
+    "correta": "Fistula urinaria no umbigo (residuo do alantoide)",
+    "texto": "Pode secretar urina pelo umbigo.",
+    "ameaca": "URACO",
+    "alternativas": [
+      "Ducto vitelino",
+      "Cordao",
+      "Fistula urinaria no umbigo (residuo do alantoide)",
+      "Canal inguinal"
+    ]
+  },
+  {
+    "inimigo": "Ducto vitelino persistente (Meckel)",
+    "correta": "Diverticulo de Meckel no ileo",
+    "texto": "Pode conter mucosa gastrica e sangrar.",
+    "ameaca": "MECKEL",
+    "alternativas": [
+      "Apendice",
+      "Colon",
+      "Diverticulo de Meckel no ileo",
+      "Estomago"
+    ]
+  },
+  {
+    "inimigo": "Hematopoese embrionaria: sequencia",
+    "correta": "Saco vitelino -> figado -> baco -> medula ossea",
+    "texto": "Troca de sitios ao longo da gestacao.",
+    "ameaca": "HEMATOPOESE",
+    "alternativas": [
+      "So medula desde o inicio",
+      "So baco",
+      "Saco vitelino -> figado -> baco -> medula ossea",
+      "So linfonodos"
+    ]
+  },
+  {
+    "inimigo": "Idade gestacional vs idade embrionaria",
+    "correta": "Gestacional conta a partir da DUM; embrionaria a partir da fertilizacao (~2 semanas a menos)",
+    "texto": "Importante em obstetrícia e embriologia.",
+    "ameaca": "IDADES",
+    "alternativas": [
+      "Sao sempre iguais",
+      "Embrionaria e maior",
+      "Gestacional conta a partir da DUM; embrionaria a partir da fertilizacao (~2 semanas a menos)",
+      "So a ultrassonografia importa"
+    ]
+  },
+  {
+    "inimigo": "Comprimento cefalo-nalgas (CCN)",
+    "correta": "Medida ultrassonografica do embriao no 1o trimestre",
+    "texto": "Estima idade gestacional com precisao.",
+    "ameaca": "CCN",
+    "alternativas": [
+      "Apenas peso",
+      "Apenas DBP no 1o tri",
+      "Medida ultrassonografica do embriao no 1o trimestre",
+      "Apenas liquido"
+    ]
+  },
+  {
+    "inimigo": "Batimentos cardiados detectaveis por US",
+    "correta": "Por volta de 5,5-6 semanas de idade gestacional",
+    "texto": "Tubo cardiaco ja pulsa antes.",
+    "ameaca": "BHC AO US",
+    "alternativas": [
+      "12 semanas",
+      "20 semanas",
+      "Por volta de 5,5-6 semanas de idade gestacional",
+      "30 semanas"
+    ]
+  },
+  {
+    "inimigo": "Lanugo",
+    "correta": "Pelo fino que cobre o feto",
+    "texto": "Aparece no 2o trimestre; cai perto do termo.",
+    "ameaca": "LANUGO",
+    "alternativas": [
+      "Cabelo terminal",
+      "Unhas apenas",
+      "Pelo fino que cobre o feto",
+      "Vermelhidao"
+    ]
+  },
+  {
+    "inimigo": "Vernix caseosa",
+    "correta": "Substancias sebacea que cobre a pele fetal",
+    "texto": "Protege da maceracao pelo liquido amniotico.",
+    "ameaca": "VERNIX",
+    "alternativas": [
+      "Lanugo",
+      "Mecônio",
+      "Substancias sebacea que cobre a pele fetal",
+      "Surfactante"
+    ]
+  },
+  {
+    "inimigo": "Mecônio",
+    "correta": "Conteudo intestinal fetal (bile, celulas, lanugo)",
+    "texto": "Eliminado apos o nascimento; intra-utero pode indicar stress.",
+    "ameaca": "MECONIO",
+    "alternativas": [
+      "Urina",
+      "Liquido amniotico puro",
+      "Conteudo intestinal fetal (bile, celulas, lanugo)",
+      "Sangramento"
+    ]
+  },
+  {
+    "inimigo": "Viabilidade pulmonar aproximada",
+    "correta": "Apos 24 semanas com suporte (varia com centro e corticóide antenatal)",
+    "texto": "Surfactante e desenvolvimento alveolar sao criticos.",
+    "ameaca": "VIABILIDADE",
+    "alternativas": [
+      "12 semanas",
+      "16 semanas",
+      "Apos 24 semanas com suporte (varia com centro e corticóide antenatal)",
+      "8 semanas"
+    ]
+  },
+  {
+    "inimigo": "Corticóide antenatal",
+    "correta": "Acelera maturacao pulmonar fetal em risco de parto prematuro",
+    "texto": "Reduz SDR e hemorragia intraventricular.",
+    "ameaca": "CORTICOIDE ANTENATAL",
+    "alternativas": [
+      "Atrasa o parto sempre",
+      "So para a mae",
+      "Acelera maturacao pulmonar fetal em risco de parto prematuro",
+      "Aumenta peso apenas"
+    ]
+  },
+  {
+    "inimigo": "Gemelar monocorionico: risco especial",
+    "correta": "Transfusao feto-fetal, cordao enredado se monoamniotico",
+    "texto": "Vigilancia ultrasonografica frequente.",
+    "ameaca": "MONOCORIONICO RISCO",
+    "alternativas": [
+      "Nenhum extra",
+      "So macrosomia",
+      "Transfusao feto-fetal, cordao enredado se monoamniotico",
+      "So anemia materna"
+    ]
+  },
+  {
+    "inimigo": "Implantacao: dias apos fertilizacao",
+    "correta": "Cerca de 6 a 7 dias",
+    "texto": "Blastocisto sofre hatching e invade o endometrio.",
+    "ameaca": "DIA DA IMPLANTACAO",
+    "alternativas": [
+      "Dia 1",
+      "Dia 14",
+      "Cerca de 6 a 7 dias",
+      "Dia 21"
+    ]
+  },
+  {
+    "inimigo": "Decidualizacao",
+    "correta": "Transformacao do endometrio sob progesterona para receber o embriao",
+    "texto": "Essencial para a implantacao bem-sucedida.",
+    "ameaca": "DECIDUA",
+    "alternativas": [
+      "Menstruacao",
+      "Ovulation",
+      "Transformacao do endometrio sob progesterona para receber o embriao",
+      "Clivagem"
+    ]
+  },
+  {
+    "inimigo": "Inibina e ativina na embriologia",
+    "correta": "Fatores que modulam a linha primitiva e a gastrulacao (TGF-beta)",
+    "texto": "Sinalizacao complexa do desenvolvimento.",
+    "ameaca": "TGF-BETA",
+    "alternativas": [
+      "So hormonios da tiróide",
+      "So insulina",
+      "Fatores que modulam a linha primitiva e a gastrulacao (TGF-beta)",
+      "So adrenalina"
+    ]
+  },
+  {
+    "inimigo": "Gene Sonic hedgehog (SHH)",
+    "correta": "Sinalizacao importante no tubo neural, membros e linha media",
+    "texto": "Defeitos associados a holoprosencefalia.",
+    "ameaca": "SHH",
+    "alternativas": [
+      "SRY apenas",
+      "Hemoglobina",
+      "Sinalizacao importante no tubo neural, membros e linha media",
+      "Colageno"
+    ]
+  },
+  {
+    "inimigo": "Apoptose no desenvolvimento",
+    "correta": "Morte celular programada essencial (ex.: separacao dos dedos)",
+    "texto": "Falhas: sindactilia.",
+    "ameaca": "APOPTOSE",
+    "alternativas": [
+      "Sempre patologica",
+      "So no adulto",
+      "Morte celular programada essencial (ex.: separacao dos dedos)",
+      "So em cancer"
+    ]
+  },
+  {
+    "inimigo": "Sindactilia",
+    "correta": "Fusao de dedos por falha de apoptose no tecido interdigital",
+    "texto": "Pode ser ossea ou apenas cutanea.",
+    "ameaca": "SINDACTILIA",
+    "alternativas": [
+      "Polidactilia",
+      "Amelia",
+      "Fusao de dedos por falha de apoptose no tecido interdigital",
+      "Focomelia"
+    ]
+  },
+  {
+    "inimigo": "Polidactilia",
+    "correta": "Dedos extranumerarios",
+    "texto": "Pode ser genetica ou sindromica.",
+    "ameaca": "POLIDACTILIA",
+    "alternativas": [
+      "Sindactilia",
+      "Amelia",
+      "Dedos extranumerarios",
+      "Focomelia"
+    ]
+  },
+  {
+    "inimigo": "Amelia / meromelia",
+    "correta": "Ausencia total ou parcial de membros",
+    "texto": "Teratogenos (talidomida) ou geneticos.",
+    "ameaca": "AMELIA",
+    "alternativas": [
+      "Polidactilia",
+      "Sindactilia",
+      "Ausencia total ou parcial de membros",
+      "Clinodactilia"
+    ]
+  },
+  {
+    "inimigo": "Inducao embrionaria",
+    "correta": "Uma estrutura influencia o destino de outra (ex.: notocorda -> placa neural)",
+    "texto": "Base da organogenese.",
+    "ameaca": "INDUCAO",
+    "alternativas": [
+      "Clivagem apenas",
+      "So fertilizacao",
+      "Uma estrutura influencia o destino de outra (ex.: notocorda -> placa neural)",
+      "So crescimento"
+    ]
+  },
+  {
+    "inimigo": "Totipotencia",
+    "correta": "Capacidade de gerar um organismo completo (zigoto, blastomeros iniciais)",
+    "texto": "Perdida apos a diferenciacao precoce.",
+    "ameaca": "TOTIPOTENCIA",
+    "alternativas": [
+      "So multipotencia",
+      "So unipotencia",
+      "Capacidade de gerar um organismo completo (zigoto, blastomeros iniciais)",
+      "So em celulas adultas"
+    ]
+  },
+  {
+    "inimigo": "Pluripotencia",
+    "correta": "Capacidade de gerar tecidos dos tres folhetos (massa celular interna)",
+    "texto": "Celulas-tronco embrionarias.",
+    "ameaca": "PLURIPOTENCIA",
+    "alternativas": [
+      "Totipotencia completa de organismo",
+      "So um tipo celular",
+      "Capacidade de gerar tecidos dos tres folhetos (massa celular interna)",
+      "So nervoso"
+    ]
+  },
+  {
+    "inimigo": "Celulas-tronco adultas",
+    "correta": "Multipotentes ou unipotentes para regeneracao tecidual",
+    "texto": "Ex.: hematopoeticas, mesenquimais.",
+    "ameaca": "TRONCO ADULTA",
+    "alternativas": [
+      "Totipotentes",
+      "Formam embriao completo",
+      "Multipotentes ou unipotentes para regeneracao tecidual",
+      "So na placenta"
+    ]
+  },
+  {
+    "inimigo": "Disco embrionario bilaminar",
+    "correta": "Epiblasto + hipoblasto na 2a semana",
+    "texto": "Precede a gastrulacao.",
+    "ameaca": "DISCO BILAMINAR",
+    "alternativas": [
+      "Trilaminar ja",
+      "So trofoblasto",
+      "Epiblasto + hipoblasto na 2a semana",
+      "So amnion"
+    ]
+  },
+  {
+    "inimigo": "Disco embrionario trilaminar",
+    "correta": "Ectoderma + mesoderma + endoderma apos gastrulacao",
+    "texto": "3a semana.",
+    "ameaca": "DISCO TRILAMINAR",
+    "alternativas": [
+      "Bilaminar",
+      "So ectoderma",
+      "Ectoderma + mesoderma + endoderma apos gastrulacao",
+      "So endoderma"
+    ]
+  },
+  {
+    "inimigo": "Semana em que o coracao comeca a bater",
+    "correta": "Por volta da 3a-4a semana de desenvolvimento",
+    "texto": "Tubo cardiaco primitivo.",
+    "ameaca": "CORACAO BATE",
+    "alternativas": [
+      "8a semana",
+      "12a semana",
+      "Por volta da 3a-4a semana de desenvolvimento",
+      "20a semana"
+    ]
+  },
+  {
+    "inimigo": "Primeira evidencia de circulacao uteroplacentaria",
+    "correta": "Vilosidades terciarias com vasos (3a semana)",
+    "texto": "Trocas mais eficientes.",
+    "ameaca": "VILOSIDADES TERCIARIAS",
+    "alternativas": [
+      "So primarias",
+      "So secundarias",
+      "Vilosidades terciarias com vasos (3a semana)",
+      "So amnion"
+    ]
+  },
+  {
+    "inimigo": "Citotrofoblasto",
+    "correta": "Camada de celulas mononucleadas do trofoblasto",
+    "texto": "Forma colunas e reveste vilosidades.",
+    "ameaca": "CITOTROFOBLASTO",
+    "alternativas": [
+      "Sinciciotrofoblasto apenas",
+      "Epiblasto",
+      "Camada de celulas mononucleadas do trofoblasto",
+      "Hipoblasto"
+    ]
+  },
+  {
+    "inimigo": "Sinciciotrofoblasto",
+    "correta": "Massa multinucleada invasora que produz HCG",
+    "texto": "Invade o endometrio na implantacao.",
+    "ameaca": "SINCICIOTROFOBLASTO",
+    "alternativas": [
+      "Citotrofoblasto apenas",
+      "Mesoderma",
+      "Massa multinucleada invasora que produz HCG",
+      "Endoderma"
+    ]
+  },
+  {
+    "inimigo": "Lacunas no sinciciotrofoblasto",
+    "correta": "Espacos que se enchem de sangue materno",
+    "texto": "Inicio da circulacao uteroplacentaria primitiva.",
+    "ameaca": "LACUNAS",
+    "alternativas": [
+      "So amnion",
+      "So vitelino",
+      "Espacos que se enchem de sangue materno",
+      "So celoma"
+    ]
+  },
+  {
+    "inimigo": "Reacao decidual",
+    "correta": "Resposta do endometrio a implantacao",
+    "texto": "Celulas estromais torn am-se deciduais.",
+    "ameaca": "REACAO DECIDUAL",
+    "alternativas": [
+      "Menstruacao",
+      "Ovulation",
+      "Resposta do endometrio a implantacao",
+      "Clivagem"
+    ]
+  },
+  {
+    "inimigo": "Gemeos siameses",
+    "correta": "Divisao incompleta tardia do disco embrionario",
+    "texto": "Classificados pelo local de uniao (toracopago etc.).",
+    "ameaca": "SIAMESES",
+    "alternativas": [
+      "Dizigoticos",
+      "Dicorionicos sempre",
+      "Divisao incompleta tardia do disco embrionario",
+      "Sempre viaveis sem cirurgia"
+    ]
+  },
+  {
+    "inimigo": "Placenta previa",
+    "correta": "Insercao baixa da placenta sobre ou perto do orificio interno",
+    "texto": "Risco de sangramento; cesarea frequentemente.",
+    "ameaca": "PLACENTA PREVIA",
+    "alternativas": [
+      "Descolamento",
+      "Acreta apenas",
+      "Insercao baixa da placenta sobre ou perto do orificio interno",
+      "Normal no fundo"
+    ]
+  },
+  {
+    "inimigo": "Placenta acreta",
+    "correta": "Invasao anormal do miometrio pelo trofoblasto",
+    "texto": "Risco de hemorragia no parto.",
+    "ameaca": "ACRETA",
+    "alternativas": [
+      "Previa apenas",
+      "Descolamento",
+      "Invasao anormal do miometrio pelo trofoblasto",
+      "Insercao fundica normal"
+    ]
+  },
+  {
+    "inimigo": "Cordao com 2 vasos",
+    "correta": "Uma arteria e uma veia (em vez de 2A+1V)",
+    "texto": "Associado a anomalias fetais; investigar.",
+    "ameaca": "CORDAO 2 VASOS",
+    "alternativas": [
+      "Normal",
+      "Sempre letal",
+      "Uma arteria e uma veia (em vez de 2A+1V)",
+      "Tres arterias"
+    ]
+  },
+  {
+    "inimigo": "Insercao velamentosa do cordao",
+    "correta": "Vasos correm pelas membranas antes de chegar a placenta",
+    "texto": "Risco de rotura vascular (vasa previa).",
+    "ameaca": "VELAMENTOSA",
+    "alternativas": [
+      "Central normal",
+      "Marginal apenas",
+      "Vasos correm pelas membranas antes de chegar a placenta",
+      "Sempre sem risco"
+    ]
+  },
+  {
+    "inimigo": "Oligoidramnio",
+    "correta": "Liquido amniotico diminuido",
+    "texto": "Causas: rotura, insuficiencia placentaria, anomalia renal fetal.",
+    "ameaca": "OLIGOIDRAMNIO",
+    "alternativas": [
+      "Polidrâmnio",
+      "Normal",
+      "Liquido amniotico diminuido",
+      "Excesso de liquido"
+    ]
+  },
+  {
+    "inimigo": "Polidrâmnio",
+    "correta": "Excesso de liquido amniotico",
+    "texto": "Causas: diabetes, atresia esofagica, anomalias neurologicas.",
+    "ameaca": "POLIDRAMNIO",
+    "alternativas": [
+      "Oligoidramnio",
+      "Normal",
+      "Excesso de liquido amniotico",
+      "Ausencia de liquido"
+    ]
+  },
+  {
+    "inimigo": "Bossa serossanguinea",
+    "correta": "Edema do couro cabeludo que ultrapassa suturas",
+    "texto": "Resolucao espontanea apos o parto.",
+    "ameaca": "BOSSA",
+    "alternativas": [
+      "Cefaloematoma",
+      "Hemorragia intracraniana",
+      "Edema do couro cabeludo que ultrapassa suturas",
+      "Caput sem edema"
+    ]
+  },
+  {
+    "inimigo": "Cefaloematoma",
+    "correta": "Hematoma subperiosteal que nao ultrapassa suturas",
+    "texto": "Pode calcificar; reabsorve em semanas.",
+    "ameaca": "CEFALOEMATOMA",
+    "alternativas": [
+      "Bossa",
+      "Hemorragia subdural",
+      "Hematoma subperiosteal que nao ultrapassa suturas",
+      "Caput succedaneum apenas"
+    ]
+  },
+  {
+    "inimigo": "Caput succedaneum",
+    "correta": "Edema mole do couro cabeludo no ponto de apresentacao",
+    "texto": "Presente ao nascimento; resolve em dias.",
+    "ameaca": "CAPUT",
+    "alternativas": [
+      "Cefaloematoma",
+      "Bossa cronica",
+      "Edema mole do couro cabeludo no ponto de apresentacao",
+      "Fratura de cranio"
+    ]
+  },
+  {
+    "inimigo": "Teste de gravidez baseado em",
+    "correta": "Deteccao de HCG na urina ou sangue",
+    "texto": "Positivo apos implantacao quando HCG sobe.",
+    "ameaca": "TESTE DE GRAVIDEZ",
+    "alternativas": [
+      "FSH",
+      "Estrogenio apenas",
+      "Deteccao de HCG na urina ou sangue",
+      "Progesterona apenas"
+    ]
+  },
+  {
+    "inimigo": "Idade de viabilidade legal/obstetrica varia",
+    "correta": "Em geral a partir de 22-24 semanas conforme legislacao e recursos",
+    "texto": "Nao e um corte biologico absoluto unico.",
+    "ameaca": "VIABILIDADE LEGAL",
+    "alternativas": [
+      "12 semanas",
+      "16 semanas fixas",
+      "Em geral a partir de 22-24 semanas conforme legislacao e recursos",
+      "8 semanas"
+    ]
+  },
+  {
+    "inimigo": "Ultrassom morfologico tipico",
+    "correta": "Por volta de 20-24 semanas",
+    "texto": "Avalia anatomia fetal detalhada.",
+    "ameaca": "US MORFOLOGICO",
+    "alternativas": [
+      "6 semanas apenas",
+      "40 semanas",
+      "Por volta de 20-24 semanas",
+      "So no parto"
+    ]
+  },
+  {
+    "inimigo": "Translucencia nucal aumentada",
+    "correta": "Marcador de anomalia cromossomica e cardiopatia no 1o trimestre",
+    "texto": "Indica rastreamento complementar.",
+    "ameaca": "TN AUMENTADA",
+    "alternativas": [
+      "Sempre normal",
+      "So infeccao",
+      "Marcador de anomalia cromossomica e cardiopatia no 1o trimestre",
+      "So macrosomia"
+    ]
+  },
+  {
+    "inimigo": "Trisomia 21 (Down) marcadores",
+    "correta": "TN aumentada, osso nasal hipoplasico, defeitos cardiacos",
+    "texto": "Confirmacao por cariotipo/NIPT/amniocentese.",
+    "ameaca": "DOWN",
+    "alternativas": [
+      "So polidrâmnio isolado",
+      "So baixo peso isolado",
+      "TN aumentada, osso nasal hipoplasico, defeitos cardiacos",
+      "So sexo masculino"
+    ]
+  },
+  {
+    "inimigo": "Trisomia 18 (Edwards)",
+    "correta": "Restricao de crescimento, maos cerradas, cardiopatia, malformacoes multiplas",
+    "texto": "Prognostico reservado.",
+    "ameaca": "EDWARDS",
+    "alternativas": [
+      "Down tipico",
+      "So fenda labial isolada",
+      "Restricao de crescimento, maos cerradas, cardiopatia, malformacoes multiplas",
+      "So macrosomia"
+    ]
+  },
+  {
+    "inimigo": "Trisomia 13 (Patau)",
+    "correta": "Holoprosencefalia, fendas faciais, polidactilia, cardiopatia",
+    "texto": "Prognostico muito reservado.",
+    "ameaca": "PATAU",
+    "alternativas": [
+      "So Down",
+      "So Edwards",
+      "Holoprosencefalia, fendas faciais, polidactilia, cardiopatia",
+      "So surdez isolada"
+    ]
+  },
+  {
+    "inimigo": "Sindrome de Turner (45,X)",
+    "correta": "Higroma cistico, higroma, coarctacao, infantilismo sexual",
+    "texto": "Higroma no US prenatal.",
+    "ameaca": "TURNER",
+    "alternativas": [
+      "Klinefelter",
+      "Down",
+      "Higroma cistico, higroma, coarctacao, infantilismo sexual",
+      "So macrosomia"
+    ]
+  },
+  {
+    "inimigo": "Klinefelter (47,XXY)",
+    "correta": "Hipogonadismo masculino, ginecomastia, infertilidade",
+    "texto": "Diagnostico frequentemente na puberdade/adultos.",
+    "ameaca": "KLINEFELTER",
+    "alternativas": [
+      "Turner",
+      "Down",
+      "Hipogonadismo masculino, ginecomastia, infertilidade",
+      "So baixa estatura feminina"
+    ]
+  },
+  {
+    "inimigo": "Mola hidatiforme",
+    "correta": "Proliferacao trofoblastica com vilosidades hidropicas",
+    "texto": "HCG muito alto; risco de neoplasia trofoblastica.",
+    "ameaca": "MOLA",
+    "alternativas": [
+      "Gravidez normal",
+      "Ectopica apenas",
+      "Proliferacao trofoblastica com vilosidades hidropicas",
+      "Aborto retido simples"
+    ]
+  },
+  {
+    "inimigo": "Aborto espontaneo precoce causa comum",
+    "correta": "Anomalia cromossomica do concepto",
+    "texto": "Maioria nas primeiras semanas.",
+    "ameaca": "ABORTO PRECOCE",
+    "alternativas": [
+      "So trauma",
+      "So infeccao sempre",
+      "Anomalia cromossomica do concepto",
+      "So idade paterna"
+    ]
+  },
+  {
+    "inimigo": "Ameaca de aborto",
+    "correta": "Sangramento com colo fechado e embriao viavel",
+    "texto": "Repouso relativo e acompanhamento.",
+    "ameaca": "AMEACA DE ABORTO",
+    "alternativas": [
+      "Aborto completo",
+      "Ectopica rota",
+      "Sangramento com colo fechado e embriao viavel",
+      "Parto prematuro term"
+    ]
+  },
+  {
+    "inimigo": "Aborto incompleto",
+    "correta": "Restos ovulares no utero apos eliminacao parcial",
+    "texto": "Esvaziamento uterino frequentemente necessario.",
+    "ameaca": "ABORTO INCOMPLETO",
+    "alternativas": [
+      "Completo",
+      "Ameaca",
+      "Restos ovulares no utero apos eliminacao parcial",
+      "Ectopica"
+    ]
+  },
+  {
+    "inimigo": "Formacao dos membros: brotos",
+    "correta": "Aparecem na 4a semana; progressao proximal-distal",
+    "texto": "AER e ZPA regulam o padrao.",
+    "ameaca": "BROTOS DOS MEMBROS",
+    "alternativas": [
+      "8a semana inicio",
+      "12a semana",
+      "Aparecem na 4a semana; progressao proximal-distal",
+      "So no periodo fetal"
+    ]
+  },
+  {
+    "inimigo": "AER (cume ectodermico apical)",
+    "correta": "Mantem o crescimento proximal-distal do membro",
+    "texto": "Remocao experimental interrompe o crescimento.",
+    "ameaca": "AER",
+    "alternativas": [
+      "ZPA apenas",
+      "Notocorda",
+      "Mantem o crescimento proximal-distal do membro",
+      "Somito"
+    ]
+  },
+  {
+    "inimigo": "ZPA (zona de atividade polarizante)",
+    "correta": "Padroniza o eixo anteroposterior do membro (SHH)",
+    "texto": "Polegar-mindinho.",
+    "ameaca": "ZPA",
+    "alternativas": [
+      "AER apenas",
+      "Progressao so PD",
+      "Padroniza o eixo anteroposterior do membro (SHH)",
+      "So apoptose"
+    ]
+  },
+  {
+    "inimigo": "Separacao dos dedos",
+    "correta": "Apoptose do tecido interdigital",
+    "texto": "Falhas causam sindactilia.",
+    "ameaca": "SEPARACAO DEDOS",
+    "alternativas": [
+      "Crescimento apenas",
+      "So ossificacao",
+      "Apoptose do tecido interdigital",
+      "So musculos"
+    ]
+  },
+  {
+    "inimigo": "Ossificacao endocondral",
+    "correta": "Modelo cartilaginoso substituido por osso",
+    "texto": "Maioria dos ossos longos.",
+    "ameaca": "OSSIFICACAO ENDOCONDRAL",
+    "alternativas": [
+      "So intramembranosa",
+      "So em adultos",
+      "Modelo cartilaginoso substituido por osso",
+      "So dentes"
+    ]
+  },
+  {
+    "inimigo": "Ossificacao intramembranosa",
+    "correta": "Osso formado diretamente no mesenquima",
+    "texto": "Ossos chatos do cranio.",
+    "ameaca": "OSSIFICACAO INTRAMEMBRANOSA",
+    "alternativas": [
+      "So endocondral",
+      "So vertebras",
+      "Osso formado diretamente no mesenquima",
+      "So membros"
+    ]
+  },
+  {
+    "inimigo": "Fontanelas",
+    "correta": "Espacos membranosos entre ossos do cranio fetal/neonatal",
+    "texto": "Permitem moldagem no parto e crescimento cerebral.",
+    "ameaca": "FONTANELAS",
+    "alternativas": [
+      "Suturas fechadas ja",
+      "So no adulto",
+      "Espacos membranosos entre ossos do cranio fetal/neonatal",
+      "So da face"
+    ]
+  },
+  {
+    "inimigo": "Quando fecha a fontanela anterior",
+    "correta": "Em torno de 12-18 meses",
+    "texto": "Posterior fecha mais cedo (2-3 meses).",
+    "ameaca": "FONTANELA ANTERIOR",
+    "alternativas": [
+      "Ao nascer",
+      "Aos 5 anos",
+      "Em torno de 12-18 meses",
+      "Nunca"
+    ]
+  },
+  {
+    "inimigo": "Reflexo de Morro",
+    "correta": "Reflexo primitivo do recem-nascido",
+    "texto": "Desaparece com a maturacao neurologica.",
+    "ameaca": "MORO",
+    "alternativas": [
+      "So no adulto",
+      "So patologico sempre",
+      "Reflexo primitivo do recem-nascido",
+      "So na gravidez"
+    ]
+  },
+  {
+    "inimigo": "Apgar",
+    "correta": "Escore de vitalidade no 1o e 5o minuto de vida",
+    "texto": "Frequencia cardiaca, respiracao, tono, irritabilidade, cor.",
+    "ameaca": "APGAR",
+    "alternativas": [
+      "So peso",
+      "So estatura",
+      "Escore de vitalidade no 1o e 5o minuto de vida",
+      "So glicemia"
+    ]
+  },
+  {
+    "inimigo": "Clampagem do cordao",
+    "correta": "Interrompe a circulacao fetoplacentaria",
+    "texto": "Timing (precoce vs tardia) afeta volume sanguineo neonatal.",
+    "ameaca": "CLAMPAGEM",
+    "alternativas": [
+      "Nao muda nada",
+      "So estetico",
+      "Interrompe a circulacao fetoplacentaria",
+      "Abre o forame oval"
+    ]
+  },
+  {
+    "inimigo": "Primeira respiracao do RN",
+    "correta": "Estabelece capacidade residual funcional e cai a resistencia pulmonar",
+    "texto": "Essencial na transicao circulatoria.",
+    "ameaca": "1A RESPIRACAO",
+    "alternativas": [
+      "Aumenta resistencia pulmonar",
+      "Fecha arterias umbilicais apenas",
+      "Estabelece capacidade residual funcional e cai a resistencia pulmonar",
+      "Abre o ducto arterioso"
+    ]
+  },
+  {
+    "inimigo": "Fechamento funcional do forame oval",
+    "correta": "Aumento da pressao atrial esquerda apos o nascimento",
+    "texto": "Fecha anatomicamente depois em meses.",
+    "ameaca": "FECHAMENTO FORAME OVAL",
+    "alternativas": [
+      "Queda da pressao esquerda",
+      "Aumento da pressao direita isolada",
+      "Aumento da pressao atrial esquerda apos o nascimento",
+      "So aos 10 anos"
+    ]
+  },
+  {
+    "inimigo": "Fechamento do ducto arterioso",
+    "correta": "Aumento de O2 e queda de prostaglandinas",
+    "texto": "PCA se permanecer aberto.",
+    "ameaca": "FECHAMENTO DUCTO ARTERIOSO",
+    "alternativas": [
+      "Queda de O2",
+      "Aumento de prostaglandinas",
+      "Aumento de O2 e queda de prostaglandinas",
+      "So cirurgia sempre"
+    ]
+  },
+  {
+    "inimigo": "Teste do pezinho (triagem neonatal)",
+    "correta": "Detecta fenilcetonuria, hipotiroidismo, hemoglobinopatias etc.",
+    "texto": "Coleta apos 48h de vida preferencialmente.",
+    "ameaca": "TESTE DO PEZINHO",
+    "alternativas": [
+      "So glicemia",
+      "So hemograma",
+      "Detecta fenilcetonuria, hipotiroidismo, hemoglobinopatias etc.",
+      "So tipagem sanguinea"
+    ]
+  },
+  {
+    "inimigo": "Icterícia fisiologica do RN",
+    "correta": "Aparece apos 24h, pico no 3o-4o dia, resolucao em 1-2 semanas",
+    "texto": "Hiperbilirrubinemia indireta por imaturidade hepatica.",
+    "ameaca": "ICTERICIA FISIOLOGICA",
+    "alternativas": [
+      "Nas primeiras 12h sempre patologica igual",
+      "Sempre hemolise",
+      "Aparece apos 24h, pico no 3o-4o dia, resolucao em 1-2 semanas",
+      "Sempre requer exsanguineo"
+    ]
+  },
+  {
+    "inimigo": "Icterícia nas primeiras 24 horas",
+    "correta": "Sempre patologica ate prova em contrario",
+    "texto": "Investigar hemolise, infeccao, incompatibilidades.",
+    "ameaca": "ICTERICIA PRECOCE",
+    "alternativas": [
+      "Fisiologica",
+      "Normal do pezinho",
+      "Sempre patologica ate prova em contrario",
+      "So aleitamento"
+    ]
+  },
+  {
+    "inimigo": "Camada germinativa da epiderme",
+    "correta": "Ectoderma",
+    "texto": "Epiderme e anexos cutaneos vem do ectoderma de superficie.",
+    "ameaca": "EPIDERME ORIGEM",
+    "alternativas": [
+      "Mesoderma",
+      "Endoderma",
+      "Ectoderma",
+      "Crista neural apenas"
+    ]
+  },
+  {
+    "inimigo": "Camada germinativa do figado",
+    "correta": "Endoderma",
+    "texto": "Diverticulo hepatico do intestino anterior.",
+    "ameaca": "FIGADO ORIGEM",
+    "alternativas": [
+      "Mesoderma",
+      "Ectoderma",
+      "Endoderma",
+      "Crista neural"
+    ]
+  },
+  {
+    "inimigo": "Camada germinativa do coracao",
+    "correta": "Mesoderma",
+    "texto": "Mesoderma esplancnico da placa cardiogenica.",
+    "ameaca": "CORACAO ORIGEM",
+    "alternativas": [
+      "Ectoderma",
+      "Endoderma",
+      "Mesoderma",
+      "Crista neural"
+    ]
+  },
+  {
+    "inimigo": "Origem da medula da adrenal",
+    "correta": "Crista neural",
+    "texto": "Celulas cromafins; cortex vem do mesoderma.",
+    "ameaca": "MEDULA ADRENAL",
+    "alternativas": [
+      "Endoderma",
+      "Mesoderma",
+      "Crista neural",
+      "Ectoderma de superficie"
+    ]
+  },
+  {
+    "inimigo": "Origem do cortex da adrenal",
+    "correta": "Mesoderma intermediario",
+    "texto": "Junto a crista urogenital.",
+    "ameaca": "CORTEX ADRENAL",
+    "alternativas": [
+      "Crista neural",
+      "Endoderma",
+      "Mesoderma intermediario",
+      "Ectoderma"
+    ]
+  },
+  {
+    "inimigo": "Origem dos melanocitos",
+    "correta": "Crista neural",
+    "texto": "Migracao para a epiderme.",
+    "ameaca": "MELANOCITOS",
+    "alternativas": [
+      "Mesoderma",
+      "Endoderma",
+      "Crista neural",
+      "Hipoblasto"
+    ]
+  },
+  {
+    "inimigo": "Origem dos ganglios da raiz dorsal",
+    "correta": "Crista neural",
+    "texto": "Tambem ganglios autonomicos em parte.",
+    "ameaca": "GANGlios",
+    "alternativas": [
+      "Tubo neural apenas",
+      "Somitos",
+      "Crista neural",
+      "Endoderma"
+    ]
+  },
+  {
+    "inimigo": "Origem da retina",
+    "correta": "Neuroectoderma (vesicula optica)",
+    "texto": "Diencéfalo.",
+    "ameaca": "RETINA",
+    "alternativas": [
+      "Crista neural",
+      "Mesoderma",
+      "Neuroectoderma (vesicula optica)",
+      "Endoderma"
+    ]
+  },
+  {
+    "inimigo": "Origem do esmalte dentario",
+    "correta": "Ectoderma",
+    "texto": "Ameloblastos; dentina e polpa de origem mista/neural crest.",
+    "ameaca": "ESMALTE",
+    "alternativas": [
+      "Mesoderma",
+      "Endoderma",
+      "Ectoderma",
+      "Somitos"
+    ]
+  },
+  {
+    "inimigo": "Origem do esofago e traqueia",
+    "correta": "Endoderma do intestino anterior + mesoderma",
+    "texto": "Septacao tracheoesofagica.",
+    "ameaca": "ESOFAGO TRAQUEIA",
+    "alternativas": [
+      "So ectoderma",
+      "So crista neural",
+      "Endoderma do intestino anterior + mesoderma",
+      "So amnion"
+    ]
+  },
+  {
+    "inimigo": "Fistula tracheoesofagica",
+    "correta": "Falha de septacao entre traqueia e esofago",
+    "texto": "Associada a atresia esofagica; risco de aspiracao.",
+    "ameaca": "FISTULA TE",
+    "alternativas": [
+      "Onfalocele",
+      "Gastrosquise",
+      "Falha de septacao entre traqueia e esofago",
+      "PCA"
+    ]
+  },
+  {
+    "inimigo": "Atresia duodenal",
+    "correta": "Interrupcao do lumen duodenal; sinal da bolha dupla",
+    "texto": "Associada a Down com frequencia.",
+    "ameaca": "ATRESIA DUODENAL",
+    "alternativas": [
+      "Atresia esofagica apenas",
+      "Hirschsprung",
+      "Interrupcao do lumen duodenal; sinal da bolha dupla",
+      "Meckel"
+    ]
+  },
+  {
+    "inimigo": "Doenca de Hirschsprung",
+    "correta": "Ausencia de ganglios no segmento intestinal distal",
+    "texto": "Crista neural nao migrou; megacolon congenito.",
+    "ameaca": "HIRSCHSPRUNG",
+    "alternativas": [
+      "Atresia duodenal",
+      "Onfalocele",
+      "Ausencia de ganglios no segmento intestinal distal",
+      "Diverticulo de Meckel"
+    ]
+  },
+  {
+    "inimigo": "Persistencia do canal peritoneovaginal",
+    "correta": "Hidrocele comunicante ou hernia inguinal congenita",
+    "texto": "Mais comum no sexo masculino.",
+    "ameaca": "CANAL PERITONEOVAGINAL",
+    "alternativas": [
+      "Uraco",
+      "Meckel",
+      "Hidrocele comunicante ou hernia inguinal congenita",
+      "Extrofia"
+    ]
+  },
+  {
+    "inimigo": "Hipospadia",
+    "correta": "Meato uretral na face ventral do penis",
+    "texto": "Falha de fusao das pregas uretrais.",
+    "ameaca": "HIPOSPADIA",
+    "alternativas": [
+      "Epispadia",
+      "Extrofia",
+      "Meato uretral na face ventral do penis",
+      "Criptorquidia"
+    ]
+  },
+  {
+    "inimigo": "Epispadia",
+    "correta": "Meato uretral na face dorsal do penis",
+    "texto": "Associada a extrofia de bexiga.",
+    "ameaca": "EPISPADIA",
+    "alternativas": [
+      "Hipospadia",
+      "Fimose",
+      "Meato uretral na face dorsal do penis",
+      "Criptorquidia"
+    ]
+  },
+  {
+    "inimigo": "Hermaphroditismo verdadeiro",
+    "correta": "Presenca de tecido ovariano e testicular",
+    "texto": "Raro; cariotipo variavel.",
+    "ameaca": "HERMAFRODITA VERDADEIRO",
+    "alternativas": [
+      "Pseudo apenas",
+      "Turner",
+      "Presenca de tecido ovariano e testicular",
+      "Klinefelter apenas"
+    ]
+  },
+  {
+    "inimigo": "Pseudo-hermafroditismo masculino",
+    "correta": "Genitalia ambigua com cariotipo XY e testiculos",
+    "texto": "Deficiencia de 5-alfa-redutase ou androgenos.",
+    "ameaca": "PSEUDO MASCULINO",
+    "alternativas": [
+      "XX com ovario",
+      "Turner",
+      "Genitalia ambigua com cariotipo XY e testiculos",
+      "Down"
+    ]
+  },
+  {
+    "inimigo": "Sindrome de insensibilidade androgenica",
+    "correta": "XY com fenotipo feminino por resistencia a androgenos",
+    "texto": "Testiculos intra-abdominais; vagina curta.",
+    "ameaca": "INSENSIBILIDADE ANDROGENICA",
+    "alternativas": [
+      "Turner",
+      "Congenital adrenal",
+      "XY com fenotipo feminino por resistencia a androgenos",
+      "Klinefelter"
+    ]
+  },
+  {
+    "inimigo": "Hiperplasia adrenal congenita classica",
+    "correta": "Virilizacao de fetos XX por excesso de androgenos",
+    "texto": "Deficiencia de 21-hidroxilase mais comum.",
+    "ameaca": "HAC",
+    "alternativas": [
+      "Turner",
+      "Insensibilidade androgenica",
+      "Virilizacao de fetos XX por excesso de androgenos",
+      "Klinefelter"
+    ]
+  },
+  {
+    "inimigo": "Saco coriônico no US precoce",
+    "correta": "Primeira estrutura gestacional visivel no utero",
+    "texto": "Antes do embriao e do vitelino.",
+    "ameaca": "SACO CORIONICO",
+    "alternativas": [
+      "So embriao",
+      "So batimento",
+      "Primeira estrutura gestacional visivel no utero",
+      "So placenta madura"
+    ]
+  },
+  {
+    "inimigo": "Vesicula vitelina no US",
+    "correta": "Visivel no saco gestacional antes do embriao",
+    "texto": "Confirma gravidez intra-uterina.",
+    "ameaca": "VESICULA VITELINA US",
+    "alternativas": [
+      "So apos 12 semanas",
+      "So liquido",
+      "Visivel no saco gestacional antes do embriao",
+      "So cordao"
+    ]
+  },
+  {
+    "inimigo": "Reacao de implantacao: dias",
+    "correta": "Blastocisto penetra o endometrio cerca de 6-10 dias pos-fertilizacao",
+    "texto": "Completa-se na 2a semana.",
+    "ameaca": "TIMING IMPLANTACAO",
+    "alternativas": [
+      "Dia 1",
+      "Dia 20",
+      "Blastocisto penetra o endometrio cerca de 6-10 dias pos-fertilizacao",
+      "Dia 40"
+    ]
+  },
+  {
+    "inimigo": "Barreira placentaria",
+    "correta": "Separa sangue materno e fetal nas vilosidades",
+    "texto": "Permite troca seletiva de gases e nutrientes.",
+    "ameaca": "BARREIRA PLACENTARIA",
+    "alternativas": [
+      "Mistura livre de sangues",
+      "So amnion",
+      "Separa sangue materno e fetal nas vilosidades",
+      "So corion liso"
+    ]
+  },
+  {
+    "inimigo": "IgG no feto",
+    "correta": "Atravessa a placenta (imunidade passiva)",
+    "texto": "IgM nao atravessa; se elevada no RN = infeccao congenita.",
+    "ameaca": "IgG PLACENTA",
+    "alternativas": [
+      "IgM atravessa livremente",
+      "IgA atravessa muito",
+      "Atravessa a placenta (imunidade passiva)",
+      "Nenhuma Ig atravessa"
+    ]
+  },
+  {
+    "inimigo": "Periodo germinal (1a-2a semana)",
+    "correta": "Morte embrionaria ou recuperacao total (tudo ou nada)",
+    "texto": "Teratogenos tendem a causar aborto ou nenhum efeito.",
+    "ameaca": "PERIODO GERMINAL",
+    "alternativas": [
+      "So malformacoes maiores",
+      "So no 3o trimestre",
+      "Morte embrionaria ou recuperacao total (tudo ou nada)",
+      "So retardo mental"
+    ]
+  },
+  {
+    "inimigo": "Periodo fetal e teratogenos",
+    "correta": "Principalmente restricao de crescimento e alteracoes funcionais",
+    "texto": "Malformacoes estruturais maiores sao menos comuns que na organogenese.",
+    "ameaca": "PERIODO FETAL TERATOGENO",
+    "alternativas": [
+      "So morte imediata",
+      "So anencefalia nova",
+      "Principalmente restricao de crescimento e alteracoes funcionais",
+      "Nenhum efeito nunca"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 👶 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA EMBRIOLÓGICO] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🧬`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE EMBRIOLÓGICO CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE EMBRIOLÓGICO INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

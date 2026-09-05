@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PenseQuizMed Semiologia</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{--bg:#0b1120;--card:#1e293b;--side:#0f172a;--bd:#334155;--tx:#e2e8f0;--mu:#94a3b8;--ac:#14b8a6;--acs:rgba(20,184,166,.12);--ye:#fbbf24;--success:#22c55e;--danger:#ef4444;--radius:12px}
+[data-theme="light"]{--bg:#f1f5f9;--card:#fff;--side:#0f172a;--bd:#e2e8f0;--tx:#1e293b;--mu:#64748b;--acs:rgba(13,148,136,.1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);display:flex;min-height:100vh}
+.side{width:280px;background:var(--side);border-right:1px solid var(--bd);position:fixed;height:100vh;display:flex;flex-direction:column;z-index:100;transition:transform .3s}
+.hd{padding:1.2rem;background:linear-gradient(135deg,#0d9488,#0f766e)}
+.hd h1{color:#fff;font-size:1.1rem}
+.hd p{color:rgba(255,255,255,.85);font-size:.72rem;margin-top:.25rem}
+.sb{padding:.7rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb input{width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#fff;outline:none;font-size:.88rem}
+.sb input::placeholder{color:rgba(255,255,255,.45)}
+.nv{flex:1;overflow-y:auto;padding:.4rem 0}
+.ni{display:block;width:100%;text-align:left;padding:.6rem 1rem;background:0;border:0;color:#94a3b8;font-size:.88rem;cursor:pointer;border-left:3px solid transparent;transition:.15s}
+.ni:hover,.ni.on{background:rgba(20,184,166,.15);color:#5eead4}
+.ni.on{border-left-color:#14b8a6;font-weight:600}
+.mn{margin-left:280px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.tb{padding:.85rem 1.3rem;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg);z-index:50}
+.tb h2{font-size:1.15rem}
+.btns{display:flex;gap:.4rem;flex-wrap:wrap}
+.btn{padding:.4rem .85rem;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:.8rem;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--ac);color:var(--ac)}
+.bp{background:#0d9488;border-color:#0d9488;color:#fff}
+.bp:hover{background:#0f766e;color:#fff}
+.ct{flex:1;padding:1.3rem;overflow-y:auto;max-width:1100px}
+.mapa{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);padding:1.3rem;margin-bottom:1.1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.9rem}
+.tc{background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:var(--radius);padding:1.1rem;cursor:pointer;transition:.2s}
+.tc:hover{border-color:var(--ac)}
+.tc h3{font-size:.95rem;color:var(--ac);margin-bottom:.35rem}
+.tc p{font-size:.85rem;color:var(--mu);line-height:1.45}
+.steps{display:flex;flex-direction:column;gap:.7rem}
+.step{display:flex;gap:.85rem;padding:.8rem;background:rgba(255,255,255,.03);border-radius:10px;border-left:4px solid var(--ac)}
+.step-num{background:var(--ac);color:#0b1120;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:.9rem}
+.list-check{list-style:none}
+.list-check li{padding:.35rem 0 .35rem 1.5rem;position:relative;color:var(--mu);line-height:1.5}
+.list-check li::before{content:"✓";position:absolute;left:0;color:var(--success);font-weight:bold}
+.mantra{background:linear-gradient(90deg,rgba(20,184,166,.12),rgba(251,191,36,.1));border-radius:10px;padding:.9rem 1.1rem;text-align:center;font-weight:600;margin:1.2rem 0;border:1px dashed var(--ac)}
+.rb{margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--bd);font-size:.85rem;color:var(--mu)}
+.rb h4{color:var(--ye);margin-bottom:.35rem}
+.quiz-card{background:var(--card);border-radius:var(--radius);padding:1.2rem;border:1px solid var(--bd);margin-bottom:1rem}
+.quiz-q{font-weight:600;margin-bottom:.8rem;line-height:1.45}
+.option{padding:.7rem 1rem;border:2px solid var(--bd);border-radius:9px;cursor:pointer;margin-bottom:.45rem;transition:.15s;font-size:.92rem}
+.option:hover{border-color:var(--ac)}
+.option.selected{border-color:var(--ac);background:var(--acs)}
+.option.correct{border-color:var(--success);background:rgba(34,197,94,.12)}
+.option.wrong{border-color:var(--danger);background:rgba(239,68,68,.12)}
+.feedback{margin-top:.7rem;padding:.7rem;border-radius:8px;display:none;font-size:.9rem;line-height:1.5}
+.feedback.show{display:block}
+.feedback.correct{background:rgba(34,197,94,.12);color:var(--success)}
+.feedback.wrong{background:rgba(239,68,68,.12);color:var(--danger)}
+.ref-line{font-size:.8rem;color:var(--mu);margin-top:.4rem}
+.score-box{background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;padding:1.2rem;border-radius:var(--radius);text-align:center;margin-bottom:1.2rem}
+.score-box h3{font-size:1.9rem}
+.flash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.flashcard{perspective:1000px;height:175px}
+.flash-inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
+.flashcard.flipped .flash-inner{transform:rotateY(180deg)}
+.flash-front,.flash-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;text-align:center;border:1px solid var(--bd)}
+.flash-front{background:var(--card)}
+.flash-back{background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;transform:rotateY(180deg)}
+.wel{text-align:center;padding:1.5rem 1rem}
+.wel h2{font-size:1.5rem;margin-bottom:.5rem}
+.wel p{color:var(--mu);line-height:1.55;margin-bottom:1rem}
+.st{display:flex;justify-content:center;gap:1.4rem;flex-wrap:wrap;margin-top:1.2rem}
+.st .n{font-size:1.5rem;font-weight:700;color:var(--ac)}
+.st .l{font-size:.75rem;color:var(--mu)}
+.mt{display:none;background:0;border:0;color:var(--tx);font-size:1.35rem;cursor:pointer}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+.ov.on{display:block}
+.hy{background:rgba(251,191,36,.12);border-left:3px solid var(--ye);padding:.65rem .9rem;margin:.8rem 0;border-radius:0 8px 8px 0;font-size:.9rem}
+.body-text{font-size:.95rem;line-height:1.7;color:var(--mu)}
+.body-text strong{color:var(--tx)}
+.accordion-item{background:rgba(255,255,255,.03);border-radius:10px;margin-bottom:.5rem;border:1px solid var(--bd);overflow:hidden}
+.accordion-header{padding:.9rem 1.1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.accordion-header:hover{background:var(--acs)}
+.accordion-body{max-height:0;overflow:hidden;transition:max-height .35s ease;padding:0 1.1rem;font-size:.92rem;color:var(--mu);line-height:1.6}
+.accordion-item.open .accordion-body{max-height:600px;padding-bottom:1rem}
+@media(max-width:860px){.side{transform:translateX(-100%)}.side.on{transform:translateX(0)}.mn{margin-left:0}.mt{display:block}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="ov" id="ov"></div>
+<aside class="side" id="side">
+  <div class="hd">
+    <h1>🩺 PenseQuizMed Semiologia</h1>
+    <p>Anamnese • Exame • 100 Casos-Quiz • Simulado</p>
+  </div>
+  <div class="sb"><input id="q" placeholder="Buscar tópico, sinal..."></div>
+  <nav class="nv" id="nv"></nav>
+</aside>
+<div class="mn">
+  <header class="tb">
+    <div style="display:flex;align-items:center;gap:.55rem">
+      <button class="mt" id="mt">☰</button>
+      <h2 id="pt">Início</h2>
+    </div>
+    <div class="btns">
+      <button class="btn" id="refB">📚 Referências</button>
+      <button class="btn" id="themeBtn">🌙</button>
+      <button class="btn bp" id="hmB">🏠 Início</button>
+    </div>
+  </header>
+  <main class="ct" id="ct"></main>
+</div>
+<script>
+const CASOS_Q = [{"q": "Ao realizar o exame físico de um paciente portador de insuficiência cardíaca direita, investigou-se a presença do sinal de Godet. Em relação a esse sinal clínico, é correto afirmar que permite avaliar, de forma objetiva, a presença e magnitude de:", "options": ["estase jugular.", "edema postural.", "aumento do volume hepático.", "edema pulmonar.", "distensão abdominal."], "correct": 1, "comment": "O sinal de Godet (cacifo) avalia edema depressível de partes moles, comum em MMII na IC direita.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Blumberg, é correto afirmar que indica prioritariamente:", "options": ["irritação peritoneal.", "colecistite.", "pielonefrite.", "ascite.", "hepatomegalia."], "correct": 0, "comment": "Sinal de Blumberg: irritação peritoneal.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Murphy, é correto afirmar que indica prioritariamente:", "options": ["colecistite aguda.", "apendicite.", "pancreatite.", "úlcera perfurada.", "pielonefrite."], "correct": 0, "comment": "Sinal de Murphy: colecistite aguda.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Rovsing, é correto afirmar que indica prioritariamente:", "options": ["apendicite.", "colecistite.", "pancreatite.", "diverticulite.", "pielonefrite."], "correct": 0, "comment": "Sinal de Rovsing: apendicite.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Giordano, é correto afirmar que indica prioritariamente:", "options": ["pielonefrite ou litíase.", "apendicite.", "colecistite.", "pancreatite.", "úlcera."], "correct": 0, "comment": "Sinal de Giordano: pielonefrite ou litíase.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Cullen, é correto afirmar que indica prioritariamente:", "options": ["pancreatite hemorrágica.", "apendicite.", "colecistite.", "gastrite.", "diverticulite."], "correct": 0, "comment": "Sinal de Cullen: pancreatite hemorrágica.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Grey-Turner, é correto afirmar que indica prioritariamente:", "options": ["equimose nos flancos.", "icterícia.", "ascite.", "hepatomegalia.", "esplenomegalia."], "correct": 0, "comment": "Sinal de Grey-Turner: equimose nos flancos.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Courvoisier, é correto afirmar que indica prioritariamente:", "options": ["obstrução biliar maligna distal.", "cólica biliar simples.", "hepatite A.", "apendicite.", "colecistite típica."], "correct": 0, "comment": "Sinal de Courvoisier: obstrução biliar maligna distal.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Homans, é correto afirmar que indica prioritariamente:", "options": ["baixa sensibilidade/especificidade para TVP.", "patognomônico de TVP.", "exclui TVP se negativo.", "substitui Doppler.", "obrigatório."], "correct": 0, "comment": "Sinal de Homans: baixa sensibilidade/especificidade para TVP.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Chvostek, é correto afirmar que indica prioritariamente:", "options": ["hipocalcemia.", "hipercalcemia.", "hipernatremia.", "hipocalemia.", "hiperglicemia."], "correct": 0, "comment": "Sinal de Chvostek: hipocalcemia.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Trousseau, é correto afirmar que indica prioritariamente:", "options": ["hipocalcemia.", "hipernatremia.", "hiperglicemia.", "anemia.", "hipotireoidismo."], "correct": 0, "comment": "Sinal de Trousseau: hipocalcemia.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Lasègue, é correto afirmar que indica prioritariamente:", "options": ["irritação ciática/radiculopatia.", "meningite.", "apendicite.", "colecistite.", "enxaqueca."], "correct": 0, "comment": "Sinal de Lasègue: irritação ciática/radiculopatia.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Babinski, é correto afirmar que indica prioritariamente:", "options": ["lesão do trato piramidal.", "normalidade em adulto.", "neuropatia periférica.", "miopatia.", "reflexo fisiológico."], "correct": 0, "comment": "Sinal de Babinski: lesão do trato piramidal.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Romberg, é correto afirmar que indica prioritariamente:", "options": ["propriocepção ou vestibular.", "só cerebelo.", "só piramidal.", "só nervo óptico.", "só córtex motor."], "correct": 0, "comment": "Sinal de Romberg: propriocepção ou vestibular.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Kernig, é correto afirmar que indica prioritariamente:", "options": ["irritação meníngea.", "AVE.", "Parkinson.", "radiculopatia.", "miastenia."], "correct": 0, "comment": "Sinal de Kernig: irritação meníngea.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Brudzinski, é correto afirmar que indica prioritariamente:", "options": ["irritação meníngea.", "AVE.", "Parkinson.", "radiculopatia.", "miastenia."], "correct": 0, "comment": "Sinal de Brudzinski: irritação meníngea.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Pemberton, é correto afirmar que indica prioritariamente:", "options": ["obstrução da VCS/bócio mergulhante.", "asma.", "anemia.", "hipotireoidismo.", "gastrite."], "correct": 0, "comment": "Sinal de Pemberton: obstrução da VCS/bócio mergulhante.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Beck (tríade), é correto afirmar que indica prioritariamente:", "options": ["tamponamento cardíaco.", "choque séptico.", "pneumotórax simples.", "asma.", "hipovolemia pura."], "correct": 0, "comment": "Sinal de Beck (tríade): tamponamento cardíaco.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Charcot (tríade), é correto afirmar que indica prioritariamente:", "options": ["colangite aguda.", "apendicite.", "pancreatite leve.", "úlcera.", "pielonefrite."], "correct": 0, "comment": "Sinal de Charcot (tríade): colangite aguda.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Em relação ao sinal de Virchow, é correto afirmar que indica prioritariamente:", "options": ["metástase de neoplasia abdominal.", "infecção viral.", "alergia.", "cárie.", "otite."], "correct": 0, "comment": "Sinal de Virchow: metástase de neoplasia abdominal.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "No exame do abdome, a sequência correta é:", "options": ["Inspeção, ausculta, percussão e palpação.", "Inspeção, palpação, percussão e ausculta.", "Palpação, inspeção, ausculta e percussão.", "Ausculta, inspeção, palpação e percussão.", "Percussão, ausculta, inspeção e palpação."], "correct": 0, "comment": "Ausculta antes da palpação profunda no abdome.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "A escala de força MRC varia de:", "options": ["0 a 5.", "1 a 5.", "0 a 10.", "1 a 10.", "0 a 4."], "correct": 0, "comment": "0=nenhuma; 5=normal.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Glasgow máxima é:", "options": ["15.", "10.", "12.", "20.", "8."], "correct": 0, "comment": "EO4+RV5+RM6=15.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Glasgow mínima é:", "options": ["3.", "0.", "1.", "5.", "8."], "correct": 0, "comment": "Mínimo 3.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Ortopneia é:", "options": ["Dispneia ao deitar que melhora sentado.", "Dispneia aos grandes esforços.", "Apneia do sono.", "Taquipneia febril.", "Dispneia só a mínimos esforços."], "correct": 0, "comment": "Clássica da congestão pulmonar.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "DPN sugere:", "options": ["IC esquerda.", "Rinite.", "Anemia leve.", "Ansiedade.", "DPOC estável."], "correct": 0, "comment": "Despertar noturno com falta de ar.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Melena indica sangramento:", "options": ["Do TGI alto.", "Do cólon distal só.", "Só hemorroidário.", "Vesical.", "De vias aéreas."], "correct": 0, "comment": "Fezes pretas alcatroadas.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Hemoptise é:", "options": ["Expectoração de sangue das vias aéreas.", "Vômito de sangue.", "Epistaxe.", "Melena.", "Hematuria."], "correct": 0, "comment": "Origem respiratória.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Sopro holossistólico ápice→axila:", "options": ["Insuficiência mitral.", "Estenose aórtica.", "Estenose mitral.", "Estenose pulmonar.", "CIA."], "correct": 0, "comment": "Irradiação clássica da IM.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Sopro aórtico→carótidas:", "options": ["Estenose aórtica.", "Insuficiência mitral.", "CIA.", "TVP.", "Pericardite."], "correct": 0, "comment": "Padrão clássico de EA.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Atrito pericárdico:", "options": ["Pericardite.", "Asma.", "DPOC.", "Anemia.", "Pneumonia."], "correct": 0, "comment": "Som de atrito.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Flapping:", "options": ["Encefalopatia hepática ou hipercapnia.", "Parkinson.", "AVE lacunar.", "Miastenia.", "EM."], "correct": 0, "comment": "Asterixis.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Marcha ceifante:", "options": ["Hemiplegia piramidal.", "Parkinson.", "Ataxia.", "Miopatia.", "Vestibular."], "correct": 0, "comment": "Sequela de AVE.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Marcha festinante:", "options": ["Doença de Parkinson.", "AVE.", "L5.", "Miastenia.", "Neuropatia."], "correct": 0, "comment": "Passos curtos acelerados.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Paralisia facial com fronte acometida:", "options": ["Lesão periférica do VII.", "Lesão central só.", "Sempre AVC.", "Lesão do III.", "Miastenia."], "correct": 0, "comment": "Bell acomete fronte.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Mixedema:", "options": ["Hipotireoidismo grave.", "Hipertireoidismo.", "Cushing.", "Addison.", "Acromegalia."], "correct": 0, "comment": "Edema não depressível.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Fácies de lua cheia:", "options": ["Síndrome de Cushing.", "Hipertireoidismo.", "Addison.", "Acromegalia.", "Hipotireoidismo."], "correct": 0, "comment": "Excesso de cortisol.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Tremor fino + oftalmopatia:", "options": ["Hipertireoidismo/Graves.", "Hipotireoidismo.", "Cushing.", "Addison.", "Acromegalia."], "correct": 0, "comment": "Tireotoxicose.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Abdome em tábua:", "options": ["Rigidez difusa por peritonite.", "Obesidade.", "Ascite.", "Gases.", "Gestação."], "correct": 0, "comment": "Peritonite.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Silêncio abdominal:", "options": ["Íleo paralítico ou peritonite avançada.", "Diarreia.", "SII.", "Refeição.", "Obstipação leve."], "correct": 0, "comment": "Alarme.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Ruídos metálicos aumentados:", "options": ["Obstrução intestinal mecânica.", "Íleo.", "Ascite.", "Gestação.", "Pancreatite crônica."], "correct": 0, "comment": "Ruídos de luta.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Turgência jugular elevada:", "options": ["Aumento da PVC.", "Hipotensão isolada.", "Anemia.", "Desidratação.", "Hipoglicemia."], "correct": 0, "comment": "PVC elevada.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Enchimento capilar normal:", "options": ["Menos de 2 segundos.", "Mais de 5 s.", "10 s.", "30 s.", "Irrelevante."], "correct": 0, "comment": "<2 s.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Petéquias sem esmaecer:", "options": ["Extravasamento sanguíneo (púrpura).", "Eritema.", "Alergia.", "Bronze.", "Rosácea."], "correct": 0, "comment": "Não esmaecem.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Mácula:", "options": ["Plana com alteração de cor.", "Elevada.", "Líquida.", "Perda de substância.", "Purulenta."], "correct": 0, "comment": "Lesão plana.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Pápula:", "options": ["Sólida elevada <1 cm.", "Plana.", "Líquida >1 cm.", "Crosta.", "Úlcera."], "correct": 0, "comment": "Sólida <1 cm.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Vesícula:", "options": ["Líquido claro <1 cm.", "Pus.", "Só sangue.", "Queratina.", "Ar."], "correct": 0, "comment": "Líquida pequena.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Glasgow motor 6:", "options": ["Obedece a comandos.", "Nenhuma.", "Extensão.", "Flexão anormal.", "Localiza dor."], "correct": 0, "comment": "Obedece=6.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "AVPU:", "options": ["Alert, Voice, Pain, Unresponsive.", "Só PA.", "Ausculta Vitais.", "Airway Pulse.", "Nada."], "correct": 0, "comment": "Consciência rápida.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "qSOFA NÃO inclui:", "options": ["Leucocitose >12.000.", "FR ≥22.", "PAS ≤100.", "Alteração mental.", "Todos os anteriores."], "correct": 0, "comment": "Sem leucócitos.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Dor neuropática:", "options": ["Queimação, choque, formigamento e alodinia.", "Cólica localizada.", "Só peso.", "Sempre AINE.", "Sem sensitivo."], "correct": 0, "comment": "Padrão clássico.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Alodinia:", "options": ["Dor por estímulo que normalmente não dói.", "Sem dor.", "Dor intensa.", "Dor referida.", "Anestesia."], "correct": 0, "comment": "Dor neuropática.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Hiperalgesia:", "options": ["Resposta exagerada a estímulo doloroso.", "Anestesia.", "Dor fantasma.", "Anestesia total.", "Parestesia."], "correct": 0, "comment": "Aumento da resposta.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Cefaleia red flag:", "options": ["Súbita a pior da vida.", "Tensional.", "Melhora com analgésico.", "Anos sem mudança.", "Privação de sono."], "correct": 0, "comment": "Thunderclap=HSA.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Lombar red flag:", "options": ["Déficit + incontinência + anestesia em sela.", "Mecânica com repouso.", "Crônica sem déficit.", "Fim do dia.", "Atleta sem déficit."], "correct": 0, "comment": "Cauda equina.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Tiragem:", "options": ["Aumento do esforço respiratório.", "Normal.", "Pneumonia isolada.", "Derrame.", "Irrelevante."], "correct": 0, "comment": "Musculatura acessória.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Crepitações lembram:", "options": ["Cabelo esfregado entre os dedos.", "Sibilo.", "Sopro.", "Silêncio.", "Ronco."], "correct": 0, "comment": "Descrição clássica.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Frêmito diminuído:", "options": ["Derrame e pneumotórax.", "Consolidação.", "Pneumonia pérvia.", "Atelectasia pérvia.", "Asma leve."], "correct": 0, "comment": "Barreira líquido/ar.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Frêmito aumentado:", "options": ["Consolidação pulmonar.", "Derrame.", "Pneumotórax.", "Asma.", "DPOC."], "correct": 0, "comment": "Melhor transmissão.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "B1:", "options": ["Mitral e tricúspide.", "Aórtica e pulmonar.", "Só aórtica.", "Só mitral.", "Pulmonar e tricúspide."], "correct": 0, "comment": "Atrioventriculares.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "B2:", "options": ["Aórtica e pulmonar.", "Mitral e tricúspide.", "Só mitral.", "Só tricúspide.", "Mitral e aórtica."], "correct": 0, "comment": "Semilunares.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Desdobramento B2:", "options": ["Inspiração.", "Expiração.", "Apneia.", "Só supino.", "Nunca."], "correct": 0, "comment": "Fisiológico na inspiração.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "OSCE valoriza:", "options": ["Comunicação, método e segurança.", "Velocidade.", "Só diagnóstico.", "Frases prontas.", "Pular anamnese."], "correct": 0, "comment": "Processo.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Antes do exame:", "options": ["Apresentar-se, explicar e autorizar.", "Tocar sem explicar.", "Começar pela dor.", "Sem olhar.", "Sem lavar mãos."], "correct": 0, "comment": "Ética.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Revisão de sistemas:", "options": ["Detectar sintomas não referidos.", "Substituir exame.", "Só papel.", "Evitar HDA.", "Só lab."], "correct": 0, "comment": "Varredura.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "AP EXCETO:", "options": ["Cor da roupa do paciente.", "Alergias.", "Medicamentos.", "Cirurgias.", "Comorbidades."], "correct": 0, "comment": "Dados relevantes.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "HF importante em:", "options": ["HAS, DM, câncer, cardiopatias precoces.", "Trauma isolado.", "Fratura.", "Queimadura.", "Cefaleia pós-punção."], "correct": 0, "comment": "Risco familiar.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Anos-maço:", "options": ["Carga tabágica.", "Álcool.", "Corticoide.", "Sol.", "Sal."], "correct": 0, "comment": "maços/dia×anos.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Choque frio:", "options": ["Hipoperfusão / choque frio.", "Choque quente.", "Ansiedade.", "HAS.", "Só febre."], "correct": 0, "comment": "Extremidades frias.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Trauma PA baixa:", "options": ["Choque até prova em contrário.", "Bem-estar.", "HAS.", "Ansiedade.", "Epilepsia."], "correct": 0, "comment": "Hipotensão+taquicardia.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Anasarca:", "options": ["Edema generalizado intenso.", "Maleolar só.", "Ascite só.", "Derrame só.", "Palpebral só."], "correct": 0, "comment": "Edema difuso.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Icterícia escleras:", "options": ["2 a 2,5 mg/dL.", "0,2 mg/dL.", "10 mg/dL.", "20 mg/dL.", "Não correlaciona."], "correct": 0, "comment": "Valor clássico.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Mama suspeita:", "options": ["Investigar câncer de mama.", "Cisto.", "Fibroadenoma só.", "Virose.", "Normal gestação."], "correct": 0, "comment": "Retração+nódulo fixo.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Globus vesical:", "options": ["Retenção urinária aguda.", "Diarreia.", "Ascite.", "Gestação.", "Obstrução alta."], "correct": 0, "comment": "Anúria+massa.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Cólica nefrética:", "options": ["Litíase urinária.", "Apendicite.", "Colecistite.", "Pancreatite.", "Gastrite."], "correct": 0, "comment": "Flanco→virilha+hematúria.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Pancreatite dor:", "options": ["Pancreatite aguda.", "Apendicite.", "Cistite.", "Otite.", "Sinusite."], "correct": 0, "comment": "Epigástrio em faixa.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Apendicite dor:", "options": ["Apendicite aguda.", "Cólica biliar.", "IAM.", "Pielonefrite.", "Zóster."], "correct": 0, "comment": "Migração→FID.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "SCA dor:", "options": ["Isquêmica/SCA até prova em contrário.", "Muscular.", "DRGE.", "Ansiedade.", "Zóster."], "correct": 0, "comment": "Aperto+mandíbula+sudorese.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Thunderclap:", "options": ["Hemorragia subaracnóidea.", "Tensional.", "Sinusite.", "Abuso analgésico.", "Enxaqueca."], "correct": 0, "comment": "TC±PL.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Anafilaxia:", "options": ["Adrenalina IM.", "Corticoide só.", "Anti-histamínico só.", "SF sem adrenalina.", "BD só."], "correct": 0, "comment": "Adrenalina IM 1ª linha.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Kussmaul:", "options": ["Acidose metabólica (CAD).", "Asma.", "TEP.", "Ansiedade.", "Pneumotórax."], "correct": 0, "comment": "Respiração profunda.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "DM jovem:", "options": ["Descompensação de DM (possível CAD).", "DRGE.", "Asma.", "Enxaqueca.", "Sinusite."], "correct": 0, "comment": "Poliúria+polidipsia+cetose.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Comparar lados:", "options": ["Detectar assimetrias.", "Prolongar.", "Evitar anamnese.", "Substituir imagem.", "Nada."], "correct": 0, "comment": "Princípio.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Crepitações+ortopneia:", "options": ["Congestão pulmonar/IC.", "Asma.", "Pneumotórax.", "Derrame.", "Traqueíte."], "correct": 0, "comment": "IC esquerda.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Lasègue cruzado:", "options": ["Compressão radicular lombar.", "Meningite.", "Apendicite.", "Cólica biliar.", "Cefaleia."], "correct": 0, "comment": "Perna contralateral.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Cocaína e dor torácica:", "options": ["Pode precipitar isquemia e dissecção.", "Sem relação.", "Só cefaleia.", "Só asma.", "Irrelevante."], "correct": 0, "comment": "Gatilho SCA.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Objetivo semiologia:", "options": ["Coletar e interpretar sinais e sintomas para o raciocínio clínico.", "Substituir exames.", "Só prontuário.", "Tratar antes.", "Decorar."], "correct": 0, "comment": "Método clínico.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Machinery murmur:", "options": ["Persistência do canal arterial.", "EM.", "CIA.", "EA.", "IT."], "correct": 0, "comment": "Sopro contínuo PCA.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Piparote:", "options": ["Onda líquida transmissível.", "Hepatomegalia.", "Esplenomegalia.", "Tumor.", "Gases."], "correct": 0, "comment": "Ascite.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Ictus cordis:", "options": ["5º EIE linha hemiclavicular.", "2º EIE.", "3º EID.", "Xifoide.", "2º EID."], "correct": 0, "comment": "Impulso apical.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Sinal × sintoma:", "options": ["Sinal objetivo; sintoma subjetivo.", "Iguais.", "Sinal sempre grave.", "Sintoma só com lab.", "Sinal=lab."], "correct": 0, "comment": "Definição clássica.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "HDA:", "options": ["Cronologia, características e melhora/piora.", "Só família.", "Só diagnóstico.", "Só hábitos.", "Só medicação."], "correct": 0, "comment": "Núcleo da queixa.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "SOCRATES EXCETO:", "options": ["Cirurgia prévia.", "Site.", "Onset.", "Character.", "Radiation."], "correct": 0, "comment": "Não inclui cirurgia.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "B3:", "options": ["Sobrecarga de volume ou disfunção de VE.", "Fisiológico em todos.", "EA grave.", "BRE.", "Pericardite só."], "correct": 0, "comment": "Galope.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Pulso paradoxal:", "options": ["Tamponamento e asma grave.", "HAS.", "Anemia.", "Hipotireoidismo.", "Gastrite."], "correct": 0, "comment": "Queda inspiratória PAS.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Edema unilateral quente:", "options": ["TVP ou celulite.", "IC esquerda.", "Hipotireoidismo.", "IVC bilateral.", "Anasarca."], "correct": 0, "comment": "Assimetria.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Baqueteamento:", "options": ["Doenças cardiopulmonares crônicas e neoplasias.", "Gastrite.", "Enxaqueca.", "Otite.", "Cefaleia."], "correct": 0, "comment": "Hipocratismo.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Cianose central:", "options": ["Hipoxemia arterial.", "Frio.", "Ansiedade.", "Anemia sempre.", "Icterícia."], "correct": 0, "comment": "Baixa SaO₂.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Nódulo tireoide suspeito:", "options": ["Suspeita de malignidade.", "Cisto.", "Tireoidite só.", "HipoT.", "Bócio fisiológico."], "correct": 0, "comment": "Duro, fixo, linfonodo.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}, {"q": "Rigidez de nuca + febre:", "options": ["Meningite / irritação meníngea.", "Enxaqueca.", "Cefaleia tensional.", "Sinusite.", "Otite."], "correct": 0, "comment": "Meningismo.", "ref": "Bates’ Guide 13ª ed.; Porto Semiologia Médica 8ª ed."}];
+const SIM_Q = [{"q": "O mantra clássico da semiologia é:", "options": ["Diagnosticar → Tratar", "Ouvir → Examinar → Pensar → Registrar → Agir", "Examinar → Medicar", "Perguntar → Internar"], "correct": 1, "comment": "Sequência do método clínico.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Febre axilar a partir de:", "options": ["37,0°C", "37,5°C", "37,8°C", "38,5°C"], "correct": 2, "comment": "≥37,8°C axilar.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "SpO₂ normal adulto:", "options": ["≥85%", "≥90%", "≥95%", "100% obrigatório"], "correct": 2, "comment": "≥95%.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "FC normal adulto repouso:", "options": ["40–50", "60–100", "110–130", "20–40"], "correct": 1, "comment": "60–100 bpm.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "FR normal adulto:", "options": ["6–8", "12–20", "25–35", "40–50"], "correct": 1, "comment": "12–20 irpm.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "HAS consultório clássica:", "options": ["≥120×80", "≥130×80", "≥140×90", "≥160×100"], "correct": 2, "comment": "≥140×90.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Taquicardia + hipotensão:", "options": ["Normal", "Hipoperfusão/choque até prova em contrário", "Sempre ansiedade", "HAS mascarada"], "correct": 1, "comment": "Choque.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Síndrome é:", "options": ["Sintoma isolado", "Conjunto de sinais e sintomas com significado clínico", "Lab", "Prescrição"], "correct": 1, "comment": "Definição.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Queixa principal registra-se:", "options": ["Só termos técnicos", "Nas palavras do paciente + tempo", "Só CID", "Só se exame anormal"], "correct": 1, "comment": "Linguagem do paciente.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "OPQRST inclui:", "options": ["Só local", "Onset, Provocation/Palliation, Quality, Region/Radiation, Severity, Time", "Só intensidade", "Exame"], "correct": 1, "comment": "Mnemônico da dor.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Pulsos assimétricos + dor lacerante:", "options": ["Ansiedade", "Dissecção de aorta", "Asma", "Gastrite"], "correct": 1, "comment": "Dissecção.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "S1Q3T3 pode sugerir:", "options": ["IAM anterior", "TEP", "BRE", "Pericardite"], "correct": 1, "comment": "TEP (baixa sensibilidade).", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "NIHSS quantifica:", "options": ["Sepse", "Déficit no AVE", "Dor abdominal", "Trauma"], "correct": 1, "comment": "AVC.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Hematoquezia:", "options": ["Vômito sangue", "Sangramento retal vermelho vivo", "Urina escura", "Melena"], "correct": 1, "comment": "Reto vermelho.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Hematêmese:", "options": ["Tosse sangue", "Vômito de sangue", "Fezes sangue", "Urina sangue"], "correct": 1, "comment": "Vômito sangue.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Cacifo positivo:", "options": ["Celulite sem edema", "Edema com depressão", "Trombose arterial", "Fratura"], "correct": 1, "comment": "Edema depressível.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Extremidades frias no choque:", "options": ["Choque quente", "Má perfusão / choque frio", "Ansiedade", "HAS"], "correct": 1, "comment": "Hipoperfusão.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Courvoisier NÃO típico de:", "options": ["Obstrução maligna", "Cólica com vesícula retraída por cálculo crônico", "Tumor cabeça pâncreas", "Icterícia indolor + vesícula palpável"], "correct": 1, "comment": "Vesícula retraída.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Cheyne-Stokes:", "options": ["Amplitude constante", "Ciclos com apneias", "Só taquipneia", "Apneia terminal"], "correct": 1, "comment": "Padrão periódico.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Sopro descreve-se quanto a:", "options": ["Só intensidade", "Foco, tempo, intensidade, irradiação e caráter", "Só foco", "Só tempo"], "correct": 1, "comment": "Descrição completa.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Primeiro método do exame:", "options": ["Palpação", "Inspeção", "Ausculta", "Percussão"], "correct": 1, "comment": "Inspeção.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Trauma prioridade:", "options": ["Anamnese completa", "ABCDE", "Neuro detalhado", "Analgésico"], "correct": 1, "comment": "ATLS.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Anamnese + exame:", "options": ["Substituem sempre imagem", "Fundamentam raciocínio inicial", "Opcionais com lab", "Só burocracia"], "correct": 1, "comment": "Método clínico.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Crepitações comuns em:", "options": ["Asma seca", "Pneumonia e edema pulmonar", "Pneumotórax", "Traqueíte seca"], "correct": 1, "comment": "Clássicos.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Roncos sugerem:", "options": ["Secreção em vias maiores", "Derrame livre", "Pneumotórax", "Fibrose só"], "correct": 0, "comment": "Sons graves.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Defesa abdominal:", "options": ["Relaxamento", "Contração involuntária por irritação peritoneal", "Só gases", "Ascite"], "correct": 1, "comment": "Peritonismo.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Icterícia + colúria + hipocolia:", "options": ["Hemólise sem colestase", "Colestase / obstrução biliar", "Anemia", "Hipotireoidismo"], "correct": 1, "comment": "Colestático.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Lasègue avalia:", "options": ["Só meningite", "Ciática / radiculopatia lombar", "Colecistite", "Enxaqueca"], "correct": 1, "comment": "Elevação da perna.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Ptose + diplopia fatigável:", "options": ["Só AVC", "Miastenia gravis em investigação", "Catarata", "Conjuntivite"], "correct": 1, "comment": "Fadiga.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Linfonodo duro fixo idoso tabagista:", "options": ["Sempre viral", "Investigar neoplasia", "Irrelevante", "Só cárie"], "correct": 1, "comment": "Suspeito.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Úlcera pé diabético + eritema:", "options": ["Cosmético", "Infecção/osteomielite até avaliação", "Só calosidade", "Fratura stress"], "correct": 1, "comment": "Alto risco.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Síncope esforço + sopro aórtico:", "options": ["Vasovagal", "Estenose aórtica grave até prova em contrário", "Anemia", "Labirintite"], "correct": 1, "comment": "Red flag EA.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Crise convulsiva:", "options": ["Forçar objetos na boca", "Proteger, lateralizar, cronometrar", "Conter com força", "Dar água"], "correct": 1, "comment": "Segurança.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Delirium idoso:", "options": ["Déficit fixo crônico", "Início agudo, flutuação e alteração de atenção", "Sempre Alzheimer", "Psicose crônica"], "correct": 1, "comment": "Confusional agudo.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Petéquias + febre + prostração jovem:", "options": ["Virose banal", "Meningococcemia até prova em contrário", "Alergia", "Dermatite"], "correct": 1, "comment": "Emergência.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Dor torácica piora deitado melhora sentado + atrito:", "options": ["SCA típica", "Pericardite", "Só TEP", "Asma"], "correct": 1, "comment": "Pericardite.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Pneumotórax hipertensivo conduta:", "options": ["Observar", "Descompressão torácica imediata", "Colonoscopia", "Só antibiótico"], "correct": 1, "comment": "Agulha/dreno.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Anamnese IST:", "options": ["Só cor da pele", "Parceiros, proteção, sintomas e vacinas", "Só idade", "Nada sexual"], "correct": 1, "comment": "Anamnese sexual.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Wells estima:", "options": ["Apendicite", "TEP/TVP", "Enxaqueca", "Otite"], "correct": 1, "comment": "TEP/TVP.", "ref": "Bates 13ª ed.; Porto 8ª ed."}, {"q": "Heimlich em:", "options": ["Asma", "OVACE adulto consciente", "IAM", "AVC"], "correct": 1, "comment": "Engasgo.", "ref": "Bates 13ª ed.; Porto 8ª ed."}];
+
+const SECTIONS = [
+  {k:"home",i:"🏠",d:"Início"},
+  {k:"fund",i:"📘",d:"Fundamentos"},
+  {k:"anam",i:"💬",d:"Anamnese"},
+  {k:"dor",i:"⚡",d:"Semiologia da Dor"},
+  {k:"exame",i:"🖐️",d:"Exame Físico"},
+  {k:"vitais",i:"💓",d:"Sinais Vitais"},
+  {k:"sist",i:"🫀",d:"Sistemas (resumo)"},
+  {k:"rac",i:"🧩",d:"Raciocínio Clínico"},
+  {k:"casos",i:"📝",d:"Casos – Quiz Semiologia (100)"},
+  {k:"quiz",i:"❓",d:"Simulado (40)"},
+  {k:"flash",i:"🃏",d:"Flashcards (79)"},
+  {k:"rev",i:"⚡",d:"Revisão Rápida"},
+  {k:"erros",i:"⚠️",d:"Erros & Dicas OSCE"}
+];
+
+const REFS = `<strong>Referências – Semiologia</strong><br><br>
+<strong>Livros</strong><br>
+• Bates’ Guide to Physical Examination – 13ª ed. (Bickley)<br>
+• Porto – Semiologia Médica – 8ª ed.<br>
+• Swartz – Textbook of Physical Diagnosis – 8ª ed.<br>
+• Harrison’s Principles of Internal Medicine – 21ª ed.<br>
+• DeGowin’s Diagnostic Examination – 11ª ed.<br><br>
+<strong>Diretrizes</strong><br>
+• SBC (SCA, IC, HAS, AVE) • AHA/ASA • GOLD • GINA • IDSA • SBD • Surviving Sepsis • ESC<br><br>
+<strong>Comunicação / raciocínio</strong><br>
+• Kurtz, Silverman & Draper – Skills for Communicating with Patients<br>
+• Croskerry – Cognitive errors • Kassirer – Learning Clinical Reasoning`;
+
+const FLASH = [{"front": "Sinal × Sintoma", "back": "Sinal = objetivo (examinador). Sintoma = subjetivo (paciente)."}, {"front": "Síndrome", "back": "Conjunto de sinais e sintomas com significado clínico próprio."}, {"front": "Sequência do exame (IPPA)", "back": "Inspeção → Palpação → Percussão → Ausculta. No abdome: ausculta antes da palpação profunda."}, {"front": "SOCRATES", "back": "Site, Onset, Character, Radiation, Associated, Time, Exacerbating/relieving, Severity."}, {"front": "OPQRST", "back": "Onset, Provocation/Palliation, Quality, Region/Radiation, Severity, Time."}, {"front": "Blumberg", "back": "Dor à descompressão brusca = peritonismo (irritação peritoneal)."}, {"front": "Murphy", "back": "Dor à inspiração profunda no ponto cístico = colecistite aguda."}, {"front": "Rovsing", "back": "Dor em FID ao comprimir a fossa ilíaca esquerda = apendicite."}, {"front": "Giordano", "back": "Punho-percussão lombar dolorosa = pielonefrite ou litíase."}, {"front": "Godet / cacifo", "back": "Edema depressível – a pressão digital deixa depressão (marca)."}, {"front": "Courvoisier", "back": "Vesícula palpável indolor + icterícia = obstrução biliar distal (muitas vezes maligna)."}, {"front": "Cullen", "back": "Equimose periumbilical – pancreatite hemorrágica / hemoperitônio."}, {"front": "Grey-Turner", "back": "Equimose nos flancos – pancreatite grave / hemorragia retroperitoneal."}, {"front": "Tríade de Beck", "back": "Hipotensão + estase jugular + bulhas abafadas = tamponamento cardíaco."}, {"front": "Tríade de Charcot", "back": "Dor em HD + icterícia + febre = colangite aguda."}, {"front": "B1", "back": "Fechamento das valvas atrioventriculares (mitral e tricúspide)."}, {"front": "B2", "back": "Fechamento das valvas semilunares (aórtica e pulmonar)."}, {"front": "B3", "back": "Galope ventricular – sobrecarga de volume / disfunção de VE."}, {"front": "Sopro IM", "back": "Holossistólico no ápice irradiando para a axila = insuficiência mitral."}, {"front": "Sopro EA", "back": "Sistólico em foco aórtico irradiando para carótidas = estenose aórtica."}, {"front": "Frêmito ↑", "back": "Aumenta na consolidação pulmonar (melhor transmissão)."}, {"front": "Frêmito ↓", "back": "Diminui no derrame pleural e no pneumotórax."}, {"front": "Macicez à percussão", "back": "Consolidação ou derrame pleural."}, {"front": "Sibilos", "back": "Obstrução de vias aéreas (asma, DPOC, broncoespasmo)."}, {"front": "Crepitações", "back": "Som de cabelo esfregado – pneumonia, edema pulmonar."}, {"front": "Ortopneia", "back": "Dispneia ao deitar que melhora sentado – congestão / IC."}, {"front": "DPN", "back": "Dispneia paroxística noturna – IC esquerda / congestão pulmonar."}, {"front": "Melena", "back": "Fezes pretas alcatroadas – sangramento do TGI alto."}, {"front": "Hemoptise", "back": "Expectoração de sangue originado das vias aéreas."}, {"front": "Hematêmese", "back": "Vômito de sangue – TGI alto."}, {"front": "Hematoquezia", "back": "Sangramento retal vermelho vivo."}, {"front": "Glasgow", "back": "Mínimo 3, máximo 15 (EO4 + RV5 + RM6)."}, {"front": "AVPU", "back": "Alert, Voice, Pain, Unresponsive – avaliação rápida de consciência."}, {"front": "qSOFA", "back": "FR ≥22, PAS ≤100, alteração mental (sem leucócitos)."}, {"front": "Babinski +", "back": "Extensão do hálux em adulto = lesão do trato piramidal."}, {"front": "Lasègue", "back": "Dor à elevação da perna estendida = irritação ciática / radiculopatia."}, {"front": "Kernig / Brudzinski", "back": "Sinais de irritação meníngea (meningismo)."}, {"front": "Romberg", "back": "Desequilíbrio com olhos fechados – propriocepção ou vestibular."}, {"front": "Marcha ceifante", "back": "Hemiplegia (síndrome piramidal) – MI em semicírculo."}, {"front": "Marcha festinante", "back": "Parkinson – passos curtos e acelerados."}, {"front": "Paralisia facial periférica", "back": "Acomete toda a hemiface, inclusive a fronte (VII periférico / Bell)."}, {"front": "Chvostek", "back": "Espasmo facial à percussão do nervo facial = hipocalcemia."}, {"front": "Trousseau", "back": "Espasmo carpopedal com manguito = hipocalcemia."}, {"front": "Flapping (asterixis)", "back": "Tremor de “bater asas” – encefalopatia hepática ou hipercapnia."}, {"front": "Anasarca", "back": "Edema generalizado intenso (renal, hepático, cardíaco, desnutrição)."}, {"front": "Cianose central", "back": "Lábios/mucosas – hipoxemia arterial (baixa SaO₂)."}, {"front": "Baqueteamento digital", "back": "Hipocratismo – doenças cardiopulmonares crônicas e algumas neoplasias."}, {"front": "Virchow", "back": "Linfonodo supraclavicular esquerdo endurecido – possível metástase abdominal."}, {"front": "Red flag cefaleia", "back": "Thunderclap (“pior da vida”) = HSA até prova em contrário."}, {"front": "Cauda equina", "back": "Déficit neurológico + incontinência + anestesia em sela – emergência."}, {"front": "Abdome em tábua", "back": "Rigidez difusa involuntária = peritonite."}, {"front": "Piparote / macicez deslocável", "back": "Sinais de ascite (líquido livre peritoneal)."}, {"front": "Enchimento capilar", "back": "Normal < 2 segundos – boa perfusão periférica."}, {"front": "Choque (sinais)", "back": "Hipotensão + taquicardia = choque até prova em contrário."}, {"front": "Kussmaul", "back": "Respiração profunda e rápida – acidose metabólica (ex.: CAD)."}, {"front": "Alodinia", "back": "Dor causada por estímulo que normalmente não é doloroso."}, {"front": "Hiperalgesia", "back": "Resposta exagerada a um estímulo doloroso."}, {"front": "Dor neuropática", "back": "Queimação, choque, formigamento, alodinia."}, {"front": "Mácula", "back": "Lesão plana com alteração apenas de cor."}, {"front": "Pápula", "back": "Lesão sólida elevada < 1 cm."}, {"front": "Vesícula", "back": "Lesão com líquido claro < 1 cm."}, {"front": "Anos-maço", "back": "(Maços/dia) × anos de tabagismo = carga tabágica."}, {"front": "Ictus cordis", "back": "5º espaço intercostal esquerdo, linha hemiclavicular (adulto)."}, {"front": "Mantra da semiologia", "back": "Ouvir → Examinar → Pensar → Registrar → Agir."}, {"front": "Pemberton", "back": "Congestão facial ao elevar os braços – obstrução da VCS / bócio mergulhante."}, {"front": "Machinery murmur", "back": "Sopro contínuo “em máquina de lavar” = persistência do canal arterial."}, {"front": "Mixedema", "back": "Edema não depressível do hipotireoidismo grave."}, {"front": "Fácies cushingoide", "back": "Lua cheia, pletora, giba – excesso de cortisol."}, {"front": "Tiragem intercostal", "back": "Uso de musculatura acessória – aumento do esforço respiratório."}, {"front": "Silêncio abdominal", "back": "Ausência de RHA – íleo paralítico ou peritonite avançada."}, {"front": "Pulso paradoxal", "back": "Queda inspiratória exagerada da PAS – tamponamento / asma grave."}, {"front": "Atrito pericárdico", "back": "Som de atrito (muitas vezes trifásico) = pericardite."}, {"front": "Turgência jugular", "back": "Aumento da pressão venosa central (IC direita, tamponamento, TEP)."}, {"front": "Defesa abdominal", "back": "Contração involuntária da parede por irritação peritoneal."}, {"front": "Icterícia escleral", "back": "Visível a partir de bilirrubina ≈ 2–2,5 mg/dL."}, {"front": "Petéquias verdadeiras", "back": "Não esmaecem à vitropressão – extravasamento sanguíneo."}, {"front": "Adrenalina na anafilaxia", "back": "1ª linha: adrenalina intramuscular."}, {"front": "Heimlich", "back": "OVACE (engasgo) em adulto consciente."}, {"front": "ABCDE", "back": "Prioridade no trauma / emergência antes da anamnese completa."}];
+
+const side=document.getElementById('side'),ov=document.getElementById('ov'),ct=document.getElementById('ct'),pt=document.getElementById('pt');
+
+function buildNav(){
+  document.getElementById('nv').innerHTML=SECTIONS.map(s=>`<button class="ni" data-k="${s.k}">${s.i} ${s.d}</button>`).join('');
+  document.querySelectorAll('.ni').forEach(b=>b.addEventListener('click',()=>{show(b.dataset.k);closeSide()}));
+}
+function show(k){
+  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on',n.dataset.k===k));
+  const map={home,fund,anam,dor,exame,vitais,sist,rac,casos,quiz,flash,rev,erros,refs};
+  (map[k]||home)();
+}
+function closeSide(){side.classList.remove('on');ov.classList.remove('on')}
+
+function home(){
+  pt.textContent='Início';
+  ct.innerHTML=`<div class="wel">
+    <h2>🩺 PenseQuizMed Semiologia</h2>
+    <p>Sistema didático de semiologia para estudantes de medicina: anamnese, exame físico, sinais clássicos, raciocínio clínico, <strong>100 questões de casos</strong> no molde de provas e <strong>simulado separado</strong>.</p>
+    <div class="st">
+      <div><div class="n">100</div><div class="l">Casos-Quiz</div></div>
+      <div><div class="n">40</div><div class="l">Simulado</div></div>
+      <div><div class="n">79</div><div class="l">Flashcards</div></div>
+      <div><div class="n">12</div><div class="l">Seções</div></div>
+    </div>
+    <div class="grid" style="margin-top:1.5rem;text-align:left">
+      <div class="tc" onclick="show('casos')"><h3>📝 Casos – Quiz (100)</h3><p>Questões de semiologia no molde Godet, com gabarito e referência.</p></div>
+      <div class="tc" onclick="show('quiz')"><h3>❓ Simulado (40)</h3><p>Conteúdo diferente das questões de casos.</p></div>
+      <div class="tc" onclick="show('anam')"><h3>💬 Anamnese</h3><p>HDA, SOCRATES, antecedentes, revisão de sistemas.</p></div>
+      <div class="tc" onclick="show('exame')"><h3>🖐️ Exame Físico</h3><p>IPPA, sinais clássicos, sistemas.</p></div>
+    </div>
+  </div>`;
+}
+
+function fund(){
+  pt.textContent='Fundamentos da Semiologia';
+  ct.innerHTML=`<div class="mapa"><p class="body-text">A <strong>semiologia</strong> é a ciência dos sinais e sintomas. O método clínico articula anamnese, exame físico e raciocínio para gerar hipóteses e decidir condutas.</p>
+  <div class="mantra">OUVIR → EXAMINAR → PENSAR → REGISTRAR → AGIR</div>
+  <ul class="list-check">
+    <li><strong>Sinal:</strong> objetivo (observado pelo examinador)</li>
+    <li><strong>Sintoma:</strong> subjetivo (relatado pelo paciente)</li>
+    <li><strong>Síndrome:</strong> conjunto de sinais e sintomas com significado clínico</li>
+  </ul>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates 13ª ed.; Porto 8ª ed.; Harrison 21ª ed.</p></div></div>`;
+}
+
+function anam(){
+  pt.textContent='Anamnese';
+  ct.innerHTML=`<div class="mapa"><h3 style="color:var(--ac);margin-bottom:.6rem">Estrutura da anamnese</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div><h4>Identificação</h4><p style="color:var(--mu);font-size:.9rem">Nome, idade, sexo, cor, estado civil, profissão, naturalidade, procedência.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div><h4>Queixa principal</h4><p style="color:var(--mu);font-size:.9rem">Nas palavras do paciente + tempo de evolução.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div><h4>HDA</h4><p style="color:var(--mu);font-size:.9rem">Cronologia, características (SOCRATES), fatores de melhora/piora, sintomas associados.</p></div></div>
+    <div class="step"><div class="step-num">4</div><div><h4>Antecedentes</h4><p style="color:var(--mu);font-size:.9rem">Pessoais, familiares, hábitos, alergias, medicamentos, cirurgias.</p></div></div>
+    <div class="step"><div class="step-num">5</div><div><h4>Revisão de sistemas</h4><p style="color:var(--mu);font-size:.9rem">Varredura sistemática de sintomas não referidos.</p></div></div>
+  </div>
+  <div class="hy"><strong>Não esquecer:</strong> alergias, medicamentos (incluindo anticoagulação), última menstruação / gravidez, viagens e ocupação.</div>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates; Porto; Kurtz & Silverman – comunicação clínica.</p></div></div>`;
+}
+
+function dor(){
+  pt.textContent='Semiologia da Dor';
+  ct.innerHTML=`<div class="mapa"><h3 style="color:var(--ac);margin-bottom:.6rem">SOCRATES / 8 dimensões</h3>
+  <ul class="list-check">
+    <li><strong>Site</strong> – localização</li>
+    <li><strong>Onset</strong> – início (súbito/gradual)</li>
+    <li><strong>Character</strong> – caráter (aperto, queimação, cólica…)</li>
+    <li><strong>Radiation</strong> – irradiação</li>
+    <li><strong>Associated</strong> – sintomas associados</li>
+    <li><strong>Time</strong> – duração e evolução</li>
+    <li><strong>Exacerbating/relieving</strong> – piora/melhora</li>
+    <li><strong>Severity</strong> – intensidade (EVA 0–10)</li>
+  </ul>
+  <p class="body-text" style="margin-top:.8rem"><strong>Tipos:</strong> nociceptiva, neuropática (queimação, choque, alodinia), mista.</p>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates; IASP; diretrizes de dor.</p></div></div>`;
+}
+
+function exame(){
+  pt.textContent='Exame Físico';
+  ct.innerHTML=`<div class="mapa"><h3 style="color:var(--ac);margin-bottom:.6rem">IPPA</h3>
+  <p class="body-text">Inspeção → Palpação → Percussão → Ausculta. No <strong>abdome</strong>, ausculta antes da palpação profunda.</p>
+  <div class="hy">Sempre compare os dois lados do corpo. Apresente-se, explique e peça autorização antes de tocar.</div>
+  <h3 style="color:var(--ac);margin:1rem 0 .5rem">Sinais clássicos (alto rendimento)</h3>
+  <ul class="list-check">
+    <li>Blumberg – peritonismo</li>
+    <li>Murphy – colecistite</li>
+    <li>Rovsing – apendicite</li>
+    <li>Giordano – flanco / pielonefrite</li>
+    <li>Godet – edema depressível</li>
+    <li>Courvoisier, Cullen, Grey-Turner, Beck, Charcot</li>
+  </ul>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates 13ª; Porto 8ª; Swartz 8ª.</p></div></div>`;
+}
+
+function vitais(){
+  pt.textContent='Sinais Vitais';
+  ct.innerHTML=`<div class="mapa"><ul class="list-check">
+    <li><strong>PA:</strong> HAS consultório clássica ≥140×90 mmHg</li>
+    <li><strong>FC:</strong> 60–100 bpm (adulto)</li>
+    <li><strong>FR:</strong> 12–20 irpm</li>
+    <li><strong>Temp:</strong> febre axilar habitual ≥37,8°C</li>
+    <li><strong>SpO₂:</strong> ≥95% em ar ambiente (adulto saudável)</li>
+    <li><strong>Dor:</strong> escala EVA 0–10</li>
+    <li><strong>Enchimento capilar:</strong> &lt;2 s</li>
+  </ul>
+  <div class="hy">Hipotensão + taquicardia = choque até prova em contrário.</div>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates; SBC HAS; ATLS.</p></div></div>`;
+}
+
+function sist(){
+  pt.textContent='Sistemas – Resumo';
+  ct.innerHTML=`<div class="mapa">
+  <div class="accordion-item"><div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">🫁 Respiratório <i class="fas fa-chevron-down"></i></div>
+  <div class="accordion-body">Frêmito ↑ consolidação, ↓ derrame/pneumotórax. Macicez na consolidação. Sibilos = obstrução. Crepitações = pneumonia/edema.</div></div>
+  <div class="accordion-item"><div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">❤️ Cardiovascular <i class="fas fa-chevron-down"></i></div>
+  <div class="accordion-body">Ictus no 5º EIE LHM. B1=AV, B2=semilunares. B3=sobrecarga VE. Sopro IM→axila; EA→carótidas. Beck=tamponamento.</div></div>
+  <div class="accordion-item"><div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">🟰 Abdome <i class="fas fa-chevron-down"></i></div>
+  <div class="accordion-body">Ausculta antes de palpar. Blumberg, Murphy, Rovsing, Giordano. Abdome em tábua=peritonite. Piparote/macicez deslocável=ascite.</div></div>
+  <div class="accordion-item"><div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">🧠 Neurológico <i class="fas fa-chevron-down"></i></div>
+  <div class="accordion-body">Glasgow 3–15. Kernig/Brudzinski. Babinski. Lasègue. Marcha ceifante/festinante. Romberg.</div></div>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates; Porto; Harrison.</p></div></div>`;
+}
+
+function rac(){
+  pt.textContent='Raciocínio Clínico';
+  ct.innerHTML=`<div class="mapa"><div class="steps">
+  <div class="step"><div class="step-num">1</div><div><h4>Coletar</h4><p style="color:var(--mu);font-size:.9rem">Anamnese + exame completo e dirigido.</p></div></div>
+  <div class="step"><div class="step-num">2</div><div><h4>Organizar</h4><p style="color:var(--mu);font-size:.9rem">Problema principal, associados, dados +/− relevantes.</p></div></div>
+  <div class="step"><div class="step-num">3</div><div><h4>Hipóteses</h4><p style="color:var(--mu);font-size:.9rem">Diferencial amplo – comum e grave.</p></div></div>
+  <div class="step"><div class="step-num">4</div><div><h4>Testar</h4><p style="color:var(--mu);font-size:.9rem">Exames dirigidos, não “baterias”.</p></div></div>
+  <div class="step"><div class="step-num">5</div><div><h4>Priorizar</h4><p style="color:var(--mu);font-size:.9rem">Ameaça à vida → probabilidade → tratabilidade.</p></div></div>
+  </div>
+  <div class="mantra">Descarte primeiro o que ameaça a vida: PCR, IAM, AVE, sepse, anafilaxia, HSA, abdome agudo</div>
+  <div class="rb"><h4>📖 Referências</h4><p>Croskerry; Kassirer; Bates; Harrison.</p></div></div>`;
+}
+
+function shuffleArr(a){
+  const arr=a.slice();
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function prepareQuiz(data){
+  return shuffleArr(data).map(item=>{
+    const idxs=item.options.map((_,i)=>i);
+    const shuf=shuffleArr(idxs);
+    return {
+      q:item.q,
+      options:shuf.map(i=>item.options[i]),
+      correct:shuf.indexOf(item.correct),
+      comment:item.comment,
+      ref:item.ref||''
+    };
+  });
+}
+
+const quizState={casos:null,sim:null};
+
+function startOneByOne(kind, rawData){
+  const prepared=prepareQuiz(rawData);
+  quizState[kind]={
+    data:prepared,
+    idx:0,
+    score:0,
+    answered:false
+  };
+  renderOneQuestion(kind);
+}
+
+function renderOneQuestion(kind){
+  const st=quizState[kind];
+  const boxId=kind==='casos'?'casosBox':'simBox';
+  const scoreId=kind==='casos'?'scoreCasos':'scoreSim';
+  const textId=kind==='casos'?'scoreCasosText':'scoreSimText';
+  const msgId=kind==='casos'?'scoreCasosMsg':'scoreSimMsg';
+  const box=document.getElementById(boxId);
+  const total=st.data.length;
+
+  if(st.idx>=total){
+    const pct=st.score/total;
+    document.getElementById(scoreId).style.display='block';
+    document.getElementById(textId).textContent=`${st.score} / ${total}`;
+    document.getElementById(msgId).textContent=pct>=.8?'Excelente!':pct>=.6?'Bom desempenho – revise os erros.':'Revise os fundamentos de semiologia.';
+    box.innerHTML=`<div class="mapa" style="text-align:center">
+      <p class="body-text">Quiz finalizado.</p>
+      <button class="btn bp" onclick="startOneByOne('${kind}',${kind==='casos'?'CASOS_Q':'SIM_Q'})" style="margin-top:.8rem">Reiniciar (embaralhar de novo)</button>
+    </div>`;
+    return;
+  }
+
+  document.getElementById(scoreId).style.display='none';
+  const item=st.data[st.idx];
+  const letters=['A','B','C','D','E'];
+  st.answered=false;
+
+  box.innerHTML=`<div class="quiz-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem">
+      <div style="color:var(--mu);font-size:.85rem">Questão ${st.idx+1} de ${total} · Acertos: ${st.score}</div>
+      <button class="btn" type="button" onclick="startOneByOne('${kind}',${kind==='casos'?'CASOS_Q':'SIM_Q'})">↺ Reiniciar quiz</button>
+    </div>
+    <div class="quiz-q">${item.q}</div>
+    ${item.options.map((opt,j)=>`<div class="option" data-opt="${j}">${letters[j]||(j+1)}) ${opt}</div>`).join('')}
+    <div class="feedback" id="fb-one-${kind}"></div>
+    <div style="text-align:center;margin-top:1rem">
+      <button class="btn bp" id="btnNext-${kind}" style="display:none" onclick="nextQuestion('${kind}')">Próxima →</button>
+    </div>
+  </div>`;
+
+  box.querySelectorAll('.option').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      if(st.answered) return;
+      st.answered=true;
+      const chosen=+opt.dataset.opt;
+      const opts=box.querySelectorAll('.option');
+      opts.forEach(o=>{
+        o.style.pointerEvents='none';
+        if(+o.dataset.opt===item.correct) o.classList.add('correct');
+      });
+      const fb=document.getElementById(`fb-one-${kind}`);
+      if(chosen===item.correct){
+        st.score++;
+        opt.classList.add('selected','correct');
+        fb.className='feedback show correct';
+        fb.innerHTML=`✓ Correto! ${item.comment}<div class="ref-line">📖 ${item.ref}</div>`;
+      } else {
+        opt.classList.add('selected','wrong');
+        fb.className='feedback show wrong';
+        fb.innerHTML=`✗ Incorreto. ${item.comment}<div class="ref-line">📖 ${item.ref}</div>`;
+      }
+      const btn=document.getElementById(`btnNext-${kind}`);
+      btn.style.display='inline-block';
+      btn.textContent=st.idx+1>=total?'Ver resultado':'Próxima →';
+    });
+  });
+}
+
+function nextQuestion(kind){
+  quizState[kind].idx++;
+  renderOneQuestion(kind);
+}
+
+function casos(){
+  pt.textContent='Casos – Quiz de Semiologia (100 questões)';
+  ct.innerHTML=`<p style="color:var(--mu);margin-bottom:1rem;font-size:.92rem">Uma pergunta por vez. Opções e ordem embaralhadas. Ao responder: acerto/erro + comentário + referência. Depois clique em <strong>Próxima</strong>.</p>
+  <div class="score-box" id="scoreCasos" style="display:none"><div>Pontuação final</div><h3 id="scoreCasosText">0 / 100</h3><div id="scoreCasosMsg"></div></div>
+  <div id="casosBox"></div>
+  <div class="mapa" style="margin-top:1rem"><div class="rb"><h4>📖 Referências gerais</h4><p>Bates 13ª; Porto 8ª; Harrison 21ª; SBC; AHA/ASA; IDSA; SBD; Surviving Sepsis.</p></div></div>`;
+  startOneByOne('casos', CASOS_Q);
+}
+
+function quiz(){
+  pt.textContent='Simulado (40 questões)';
+  ct.innerHTML=`<p style="color:var(--mu);margin-bottom:1rem;font-size:.92rem">Uma pergunta por vez. Opções e ordem embaralhadas. Ao responder: acerto/erro + comentário + referência. Depois clique em <strong>Próxima</strong>.</p>
+  <div class="score-box" id="scoreSim" style="display:none"><div>Pontuação final</div><h3 id="scoreSimText">0 / 40</h3><div id="scoreSimMsg"></div></div>
+  <div id="simBox"></div>`;
+  startOneByOne('sim', SIM_Q);
+}
+
+function flash(){
+  pt.textContent='Flashcards (79)';
+  ct.innerHTML=`<p style="color:var(--mu);margin-bottom:1rem">Clique no card para virar</p>
+  <div class="flash-grid">${FLASH.map(f=>`<div class="flashcard" onclick="this.classList.toggle('flipped')"><div class="flash-inner">
+    <div class="flash-front"><div style="font-size:1.3rem;margin-bottom:.3rem">💡</div><h3 style="font-size:.95rem">${f.front}</h3><small style="color:var(--mu)">Clique</small></div>
+    <div class="flash-back"><p>${f.back}</p></div>
+  </div></div>`).join('')}</div>`;
+}
+
+function rev(){
+  pt.textContent='Revisão Rápida';
+  ct.innerHTML=`<div class="mapa"><ul class="list-check" style="line-height:1.85">
+    <li>Sinal (objetivo) × Sintoma (subjetivo) × Síndrome</li>
+    <li>Abdome: ausculta antes da palpação profunda</li>
+    <li>Dor: SOCRATES</li>
+    <li>Blumberg | Murphy | Rovsing | Giordano | Godet</li>
+    <li>B3 = sobrecarga VE | Frêmito ↑ consolidação</li>
+    <li>Red flags: SCA, HSA, abdome em tábua, cauda equina, meningite</li>
+    <li>Hipotensão + taquicardia = choque</li>
+    <li>Mantra: Ouvir → Examinar → Pensar → Registrar → Agir</li>
+  </ul>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates; Porto; OSCE; SBC/AHA.</p></div></div>`;
+}
+
+function erros(){
+  pt.textContent='Erros & Dicas OSCE';
+  ct.innerHTML=`<div class="mapa"><h3 style="color:var(--ac);margin-bottom:.5rem">Erros comuns</h3>
+  <ul class="list-check">
+    <li>Pular anamnese e ir direto ao exame</li>
+    <li>Não comparar os dois lados</li>
+    <li>Palpar abdome antes de auscultar</li>
+    <li>Ancoragem na primeira hipótese</li>
+    <li>Omitir alergias e medicamentos</li>
+  </ul>
+  <h3 style="color:var(--ac);margin:1rem 0 .5rem">Dicas OSCE</h3>
+  <ul class="list-check">
+    <li>Apresente-se, identifique o paciente, peça autorização</li>
+    <li>Explique antes de tocar; verbalize achados</li>
+    <li>Compare D e E; resuma e planeje ao final</li>
+    <li>Emergência: ABCDE antes da anamnese completa</li>
+  </ul>
+  <div class="rb"><h4>📖 Referências</h4><p>Bates; Porto; guias de OSCE; Kurtz & Silverman.</p></div></div>`;
+}
+
+function refs(){pt.textContent='Referências';ct.innerHTML=`<div class="mapa"><div class="rb" style="border:0;margin:0;padding:0">${REFS}</div></div>`}
+
+document.getElementById('q').addEventListener('input',function(){
+  const s=this.value.trim().toLowerCase();
+  if(!s){home();return}
+  const hits=SECTIONS.filter(sec=>sec.d.toLowerCase().includes(s)||sec.k.includes(s));
+  pt.textContent=`Busca: "${s}"`;
+  ct.innerHTML=hits.length?`<div class="grid">${hits.map(h=>`<div class="tc" onclick="show('${h.k}')"><h3>${h.i} ${h.d}</h3></div>`).join('')}</div>`:`<div style="text-align:center;padding:3rem;color:var(--mu)">Nenhum resultado.</div>`;
+});
+document.getElementById('mt').addEventListener('click',()=>{side.classList.toggle('on');ov.classList.toggle('on')});
+ov.addEventListener('click',closeSide);
+document.getElementById('hmB').addEventListener('click',()=>show('home'));
+document.getElementById('refB').addEventListener('click',refs);
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=document.documentElement.getAttribute('data-theme')!=='light';
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  document.getElementById('themeBtn').textContent=dark?'☀️':'🌙';
+  localStorage.setItem('pqmTheme',dark?'light':'dark');
+});
+if(localStorage.getItem('pqmTheme')==='light'){document.documentElement.setAttribute('data-theme','light');document.getElementById('themeBtn').textContent='☀️'}
+buildNav();home();
+</script>
+</body>
+</html>

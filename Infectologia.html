@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Infectologia - Um quiz desafiador sobre doenças infecciosas, seus patógenos, diagnósticos e tratamentos.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Infectologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow-y: auto; /* Alterado de 'hidden' para 'auto' para permitir rolagem vertical */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Infectologia</h1>
+  <p>Enfrente os patógenos e desvende os mistérios das infecções! 🦠</p>
+
+  <div id="terminal">[SISTEMA DE INFECTOLOGIA INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🔬 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR DESAFIO DE INFECTOLOGIA</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE INFECTOLOGIA</h2>
+      <p>Bem-vindo, Infectologista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre as doenças infecciosas, seus agentes, diagnóstico e manejo.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente agentes etiológicos, vias de transmissão, manifestações clínicas e opções terapêuticas para diversas infecções.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis, baseadas em princípios de microbiologia, epidemiologia e terapêutica antimicrobiana.</li>
+        <li>Aumentar sua capacidade de integrar informações para o manejo de casos infecciosos.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão de Infectologia" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada, e uma breve justificativa será fornecida.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A Infectologia é crucial para a saúde pública e individual. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Infectologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura:</p>
+      <ul>
+        <li>**LIVRO:** Mandell, Douglas, and Bennett's Principles and Practice of Infectious Diseases [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Sherris Medical Microbiology [Ano da Edição], Editora [Nome da Editora]. (Para Microbiologia)</li>
+        <li>**LIVRO:** Goldman's Cecil Medicine / Harrison's Principles of Internal Medicine [Ano da Edição], Editora [Nome da Editora]. (Capítulos de Doenças Infecciosas)</li>
+        <li>**GUIAS CLÍNICOS:** Diretrizes e consensos de sociedades de infectologia nacionais e internacionais (ex: SBI, IDSA - Infectious Diseases Society of America).</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Infectologia e Microbiologia (ex: Clinical Infectious Diseases, The Lancet Infectious Diseases).</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos, diretrizes clínicas e a constante atualização sobre patógenos emergentes e resistência antimicrobiana.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Principal agente etiológico da sífilis",
+    "correta": "Treponema pallidum",
+    "texto": "Espiroqueta; transmissão sexual e vertical.",
+    "ameaca": "IST: SÍFILIS",
+    "alternativas": [
+      "Neisseria gonorrhoeae",
+      "Chlamydia trachomatis",
+      "Treponema pallidum",
+      "HSV-2"
+    ]
+  },
+  {
+    "inimigo": "Via principal de transmissão da tuberculose pulmonar",
+    "correta": "Aerossóis (gotículas respiratórias)",
+    "texto": "Quarto com pressão negativa e N95.",
+    "ameaca": "TB: TRANSMISSÃO",
+    "alternativas": [
+      "Contato direto apenas",
+      "Água contaminada",
+      "Aerossóis (gotículas respiratórias)",
+      "Vetores"
+    ]
+  },
+  {
+    "inimigo": "Antibiótico de escolha clássico para MRSA grave",
+    "correta": "Vancomicina (ou daptomicina/linezolida conforme foco)",
+    "texto": "Glicopeptídeo; monitorar nível.",
+    "ameaca": "ATB: MRSA",
+    "alternativas": [
+      "Oxacilina",
+      "Ceftriaxona",
+      "Vancomicina (ou daptomicina/linezolida conforme foco)",
+      "Amoxicilina"
+    ]
+  },
+  {
+    "inimigo": "Doença viral com parotidite prevenida pela SCR",
+    "correta": "Caxumba",
+    "texto": "Complicações: orquite, meningite, pancreatite.",
+    "ameaca": "VIRAL: CAXUMBA",
+    "alternativas": [
+      "Sarampo",
+      "Rubéola",
+      "Caxumba",
+      "Varicela"
+    ]
+  },
+  {
+    "inimigo": "Janela imunológica no HIV",
+    "correta": "Período entre infecção e detecção de anticorpos",
+    "texto": "Testes de 4ª geração e carga viral reduzem a janela.",
+    "ameaca": "HIV: JANELA",
+    "alternativas": [
+      "Tempo de incubação clínica",
+      "Período assintomático total",
+      "Período entre infecção e detecção de anticorpos",
+      "Tempo de resposta ao TARV"
+    ]
+  },
+  {
+    "inimigo": "Complicação não supurativa clássica de faringite por S. pyogenes não tratada",
+    "correta": "Febre reumática aguda",
+    "texto": "Critérios de Jones; profilaxia secundária com penicilina.",
+    "ameaca": "BACTÉRIA: S. PYOGENES",
+    "alternativas": [
+      "Abscesso peritonsilar apenas",
+      "Otite média",
+      "Febre reumática aguda",
+      "Impetigo"
+    ]
+  },
+  {
+    "inimigo": "Arbovirose transmitida pelo Aedes aegypti",
+    "correta": "Dengue",
+    "texto": "Também transmite Zika e Chikungunya.",
+    "ameaca": "ARBO: DENGUE",
+    "alternativas": [
+      "Malária",
+      "Chagas",
+      "Dengue",
+      "Leishmaniose"
+    ]
+  },
+  {
+    "inimigo": "Diarreia 'água de arroz' após frutos do mar / água contaminada",
+    "correta": "Vibrio cholerae",
+    "texto": "Reposição hídrica agressiva ± antibiótico.",
+    "ameaca": "GI: CÓLERA",
+    "alternativas": [
+      "ETEC",
+      "Salmonella typhi",
+      "Vibrio cholerae",
+      "Shigella"
+    ]
+  },
+  {
+    "inimigo": "Antiviral de escolha para HSV e VZV",
+    "correta": "Aciclovir (ou valaciclovir)",
+    "texto": "Inibe DNA polimerase viral.",
+    "ameaca": "ANTIVIRAL: HERPES",
+    "alternativas": [
+      "Oseltamivir",
+      "Ribavirina",
+      "Aciclovir (ou valaciclovir)",
+      "Ganciclovir de primeira linha para HSV"
+    ]
+  },
+  {
+    "inimigo": "Isolamento hospitalar para TB pulmonar ativa",
+    "correta": "Aerossóis (N95 + pressão negativa)",
+    "texto": "Até baciloscopia negativa conforme protocolo.",
+    "ameaca": "ISOLAMENTO: TB",
+    "alternativas": [
+      "Contato apenas",
+      "Gotículas (máscara cirúrgica)",
+      "Aerossóis (N95 + pressão negativa)",
+      "Protetor apenas"
+    ]
+  },
+  {
+    "inimigo": "Definição de sepse (Sepsis-3)",
+    "correta": "Disfunção orgânica por infecção (ΔSOFA ≥2)",
+    "texto": "Ameaça à vida.",
+    "ameaca": "SEPSE: DEFINIÇÃO",
+    "alternativas": [
+      "Só bacteremia",
+      "Disfunção orgânica por infecção (ΔSOFA ≥2)",
+      "Só febre e leucocitose",
+      "SIRS isolada"
+    ]
+  },
+  {
+    "inimigo": "Choque séptico",
+    "correta": "Sepse com hipotensão refratária a volume + necessidade de vasopressor e lactato elevado",
+    "texto": "Reposição e noradrenalina.",
+    "ameaca": "SEPSE: CHOQUE",
+    "alternativas": [
+      "Só hipotensão responsiva a volume",
+      "Sepse com hipotensão refratária a volume + necessidade de vasopressor e lactato elevado",
+      "Choque cardiogênico",
+      "Choque hipovolêmico puro"
+    ]
+  },
+  {
+    "inimigo": "Bundle da 1ª hora na sepse",
+    "correta": "Culturas, antibiótico, volume, lactato, vasopressor se preciso",
+    "texto": "Tempo é crítico.",
+    "ameaca": "SEPSE: BUNDLE",
+    "alternativas": [
+      "ATB só após 6h",
+      "Culturas, antibiótico, volume, lactato, vasopressor se preciso",
+      "Só cirurgia",
+      "Só corticóide"
+    ]
+  },
+  {
+    "inimigo": "Tratamento empírico típico de pneumonia comunitária hospitalizada",
+    "correta": "Beta-lactâmico + macrolídeo (ou quinolona respiratória)",
+    "texto": "Cobrir pneumococo e atípicos.",
+    "ameaca": "PAC: TRATAMENTO",
+    "alternativas": [
+      "Só oseltamivir",
+      "Beta-lactâmico + macrolídeo (ou quinolona respiratória)",
+      "Só aminoglicosídeo",
+      "Só antifúngico"
+    ]
+  },
+  {
+    "inimigo": "Escore CURB-65",
+    "correta": "Confusão, Ureia, Frequência respiratória, Pressão arterial, idade ≥65",
+    "texto": "Gravidade da PAC.",
+    "ameaca": "PAC: CURB-65",
+    "alternativas": [
+      "Só idade",
+      "Confusão, Ureia, Frequência respiratória, Pressão arterial, idade ≥65",
+      "Só RX",
+      "Só leucócitos"
+    ]
+  },
+  {
+    "inimigo": "Esquema padrão de TB sensível (Brasil)",
+    "correta": "RHZE 2 meses + RH 4 meses",
+    "texto": "Supervisão e testagem de sensibilidade.",
+    "ameaca": "TB: TRATAMENTO",
+    "alternativas": [
+      "Só rifampicina",
+      "RHZE 2 meses + RH 4 meses",
+      "INH 9 meses isolada sempre",
+      "Estreptomicina em todos"
+    ]
+  },
+  {
+    "inimigo": "Indicação clássica de tratar infecção latente por TB",
+    "correta": "Teste positivo sem doença ativa em grupos de risco",
+    "texto": "Evitar progressão para doença ativa.",
+    "ameaca": "TB: LATENTE",
+    "alternativas": [
+      "Todo mundo com RX normal",
+      "Teste positivo sem doença ativa em grupos de risco",
+      "Só vacinados com BCG",
+      "Nunca tratar latente"
+    ]
+  },
+  {
+    "inimigo": "Meningite bacteriana empírica no adulto",
+    "correta": "Ceftriaxona + vancomicina (± ampicilina se >50 anos ou fatores de risco para Listeria)",
+    "texto": "Coletar liquor se estável antes do ATB quando possível.",
+    "ameaca": "MENINGITE: EMPÍRICO",
+    "alternativas": [
+      "Só aciclovir",
+      "Ceftriaxona + vancomicina (± ampicilina se >50 anos ou fatores de risco para Listeria)",
+      "Só penicilina",
+      "Só corticóide sem ATB"
+    ]
+  },
+  {
+    "inimigo": "Causa mais comum de meningite viral",
+    "correta": "Enterovírus",
+    "texto": "Liquor linfocítico; suporte.",
+    "ameaca": "MENINGITE: VIRAL",
+    "alternativas": [
+      "Meningococo",
+      "Enterovírus",
+      "Pneumococo",
+      "Hib"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia de endocardite",
+    "correta": "Apenas pacientes de alto risco em procedimentos específicos",
+    "texto": "Diretrizes atuais são restritas.",
+    "ameaca": "ENDOCARDITE: PROFILAXIA",
+    "alternativas": [
+      "Todos os procedimentos dentários",
+      "Apenas pacientes de alto risco em procedimentos específicos",
+      "Só se febre",
+      "Toda cirurgia"
+    ]
+  },
+  {
+    "inimigo": "Critérios de Duke",
+    "correta": "Maiores e menores para diagnóstico de endocardite",
+    "texto": "Hemoculturas + ecocardiograma.",
+    "ameaca": "ENDOCARDITE: DUKE",
+    "alternativas": [
+      "Só hemocultura",
+      "Maiores e menores para diagnóstico de endocardite",
+      "Só eco",
+      "Só febre"
+    ]
+  },
+  {
+    "inimigo": "Cistite não complicada em mulher saudável - opções",
+    "correta": "Nitrofurantoína, fosfomicina ou pivmecillinam (conforme guia local)",
+    "texto": "Evitar fluoroquinolonas de rotina.",
+    "ameaca": "ITU: CISTITE",
+    "alternativas": [
+      "Sempre ciprofloxacino 14 dias",
+      "Nitrofurantoína, fosfomicina ou pivmecillinam (conforme guia local)",
+      "Só ceftriaxona IV",
+      "Sem ATB"
+    ]
+  },
+  {
+    "inimigo": "Pielonefrite - características",
+    "correta": "Febre, dor lombar, sintomas urinários ± náuseas",
+    "texto": "ATB e avaliar gravidade para internação.",
+    "ameaca": "ITU: PIELONEFRITE",
+    "alternativas": [
+      "Só disúria sem febre",
+      "Febre, dor lombar, sintomas urinários ± náuseas",
+      "Uretrite isolada",
+      "Prostatite crônica apenas"
+    ]
+  },
+  {
+    "inimigo": "Celulite vs erisipela",
+    "correta": "Erisipela: placa bem delimitada (S. pyogenes); celulite: limites menos nítidos",
+    "texto": "ATB antiestreptocócico/antiestafilocócico.",
+    "ameaca": "PELE: CELULITE ERISIPELA",
+    "alternativas": [
+      "São a mesma entidade sempre",
+      "Erisipela: placa bem delimitada (S. pyogenes); celulite: limites menos nítidos",
+      "Só abscesso",
+      "Só fúngica"
+    ]
+  },
+  {
+    "inimigo": "Fasciíte necrosante - sinal de alerta",
+    "correta": "Dor desproporcional, crepitação, progressão rápida, toxicidade sistêmica",
+    "texto": "Cirurgia de emergência + ATB.",
+    "ameaca": "PELE: FASCIÍTE",
+    "alternativas": [
+      "Celulite simples",
+      "Dor desproporcional, crepitação, progressão rápida, toxicidade sistêmica",
+      "Só erisipela",
+      "Impetigo"
+    ]
+  },
+  {
+    "inimigo": "Osteomielite hematogênica aguda em criança - agente mais comum",
+    "correta": "Staphylococcus aureus",
+    "texto": "Metáfise de ossos longos.",
+    "ameaca": "OSSO: OSTEOMIELITE",
+    "alternativas": [
+      "Só tuberculose",
+      "Staphylococcus aureus",
+      "Só Pseudomonas em todos",
+      "Salmonella só em falciforme sem outras causas"
+    ]
+  },
+  {
+    "inimigo": "Artrite séptica - conduta",
+    "correta": "Puncionar, drenar e antibiótico",
+    "texto": "Emergência ortopédica/infecciosa.",
+    "ameaca": "OSSO: ARTRITE SÉPTICA",
+    "alternativas": [
+      "Só AINE",
+      "Puncionar, drenar e antibiótico",
+      "Só repouso",
+      "Só fisioterapia"
+    ]
+  },
+  {
+    "inimigo": "Diarreia do viajante - agente frequente",
+    "correta": "ETEC (E. coli enterotoxigênica)",
+    "texto": "Hidratação ± ATB se moderada/grave.",
+    "ameaca": "GI: DIARREIA VIAJANTE",
+    "alternativas": [
+      "Só cólera",
+      "ETEC (E. coli enterotoxigênica)",
+      "Só Shigella sempre",
+      "Só vírus"
+    ]
+  },
+  {
+    "inimigo": "Colite por Clostridioides difficile",
+    "correta": "Associada a antibióticos; toxinas A/B",
+    "texto": "Vancomicina oral ou fidaxomicina; isolamento de contato.",
+    "ameaca": "GI: C. DIFFICILE",
+    "alternativas": [
+      "E. coli comum",
+      "Associada a antibióticos; toxinas A/B",
+      "Salmonella",
+      "Shigella"
+    ]
+  },
+  {
+    "inimigo": "Hepatite A - características",
+    "correta": "Fecal-oral; aguda; não cronifica; vacina disponível",
+    "texto": "Suporte.",
+    "ameaca": "HEPATITE: HAV",
+    "alternativas": [
+      "Cronifica frequentemente",
+      "Fecal-oral; aguda; não cronifica; vacina disponível",
+      "Só parenteral",
+      "Só sexual"
+    ]
+  },
+  {
+    "inimigo": "Hepatite B crônica - marcador",
+    "correta": "HBsAg persistente >6 meses",
+    "texto": "Risco de cirrose e CHC; tratar conforme critérios.",
+    "ameaca": "HEPATITE: HBV",
+    "alternativas": [
+      "Anti-HBs isolado",
+      "HBsAg persistente >6 meses",
+      "IgM anti-HBc apenas na crônica",
+      "HAV IgG"
+    ]
+  },
+  {
+    "inimigo": "Hepatite C - tratamento atual",
+    "correta": "Antivirais de ação direta (DAAs) com alta taxa de cura",
+    "texto": "Rastrear e tratar.",
+    "ameaca": "HEPATITE: HCV",
+    "alternativas": [
+      "Só interferon eterno",
+      "Antivirais de ação direta (DAAs) com alta taxa de cura",
+      "Só suporte",
+      "Vacina disponível e curativa"
+    ]
+  },
+  {
+    "inimigo": "Teste de HIV recomendado",
+    "correta": "4ª geração (Ag/Ac) e confirmação; carga viral para monitoramento",
+    "texto": "Consentimento e aconselhamento.",
+    "ameaca": "HIV: DIAGNÓSTICO",
+    "alternativas": [
+      "Só Western blot como primeiro teste",
+      "4ª geração (Ag/Ac) e confirmação; carga viral para monitoramento",
+      "Só CD4",
+      "Só clínica"
+    ]
+  },
+  {
+    "inimigo": "PrEP para HIV",
+    "correta": "TDF/FTC (ou esquemas atualizados) em pessoas de risco sustentado",
+    "texto": "Adesão e monitoramento renal/sorologias.",
+    "ameaca": "HIV: PrEP",
+    "alternativas": [
+      "Só PEP",
+      "TDF/FTC (ou esquemas atualizados) em pessoas de risco sustentado",
+      "Vacina obrigatória",
+      "Só preservativo sem PrEP possível"
+    ]
+  },
+  {
+    "inimigo": "PEP para HIV",
+    "correta": "Iniciar preferencialmente em até 72h; esquema por 28 dias",
+    "texto": "Avaliar risco da exposição.",
+    "ameaca": "HIV: PEP",
+    "alternativas": [
+      "PrEP contínua",
+      "Iniciar preferencialmente em até 72h; esquema por 28 dias",
+      "Só se sintomático",
+      "Após 1 semana ainda ideal"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia de Pneumocystis com CD4 <200",
+    "correta": "Sulfametoxazol-trimetoprima",
+    "texto": "Até recuperação imune sustentada.",
+    "ameaca": "HIV: PCP",
+    "alternativas": [
+      "Só fluconazol",
+      "Sulfametoxazol-trimetoprima",
+      "Só azitromicina",
+      "Isoniazida apenas"
+    ]
+  },
+  {
+    "inimigo": "Malária grave - tratamento",
+    "correta": "Artesunato IV + suporte",
+    "texto": "Principalmente P. falciparum.",
+    "ameaca": "MALÁRIA: GRAVE",
+    "alternativas": [
+      "Só cloroquina oral",
+      "Artesunato IV + suporte",
+      "Só primaquina",
+      "Só sintomático"
+    ]
+  },
+  {
+    "inimigo": "Sinais de alarme na dengue",
+    "correta": "Dor abdominal intensa, vômitos persistentes, sangramento, letargia, queda de plaquetas com hemoconcentração",
+    "texto": "Internação e hidratação cuidadosa.",
+    "ameaca": "DENGUE: ALARME",
+    "alternativas": [
+      "Só febre",
+      "Dor abdominal intensa, vômitos persistentes, sangramento, letargia, queda de plaquetas com hemoconcentração",
+      "Só mialgia",
+      "Só rash"
+    ]
+  },
+  {
+    "inimigo": "Dengue grave",
+    "correta": "Choque, sangramento grave ou comprometimento de órgãos",
+    "texto": "UTI e protocolo de volume.",
+    "ameaca": "DENGUE: GRAVE",
+    "alternativas": [
+      "Sem sinais de alarme",
+      "Choque, sangramento grave ou comprometimento de órgãos",
+      "Só febre alta",
+      "Só cefaleia"
+    ]
+  },
+  {
+    "inimigo": "Leptospirose - transmissão e forma grave",
+    "correta": "Urina de animais (ratos); síndrome de Weil (icterícia, rim, hemorragia)",
+    "texto": "Penicilina/doxiciclina conforme fase.",
+    "ameaca": "LEPTOSPIROSE",
+    "alternativas": [
+      "Aedes",
+      "Urina de animais (ratos); síndrome de Weil (icterícia, rim, hemorragia)",
+      "Anopheles",
+      "Triatoma"
+    ]
+  },
+  {
+    "inimigo": "Febre amarela - prevenção",
+    "correta": "Vacina (atenuada); contraindicações específicas",
+    "texto": "Notificação e suporte na doença.",
+    "ameaca": "FEBRE AMARELA",
+    "alternativas": [
+      "Só repelente sem vacina",
+      "Vacina (atenuada); contraindicações específicas",
+      "Antibiótico profilático",
+      "Só rede"
+    ]
+  },
+  {
+    "inimigo": "Zika na gestação - preocupação principal",
+    "correta": "Microcefalia e outras malformações congênitas",
+    "texto": "Também associado à Síndrome de Guillain-Barré.",
+    "ameaca": "ZIKA",
+    "alternativas": [
+      "Só artralgia materna sem risco fetal",
+      "Microcefalia e outras malformações congênitas",
+      "Só Chikungunya causa isso",
+      "Sem transmissão vertical"
+    ]
+  },
+  {
+    "inimigo": "Chikungunya - destaque clínico",
+    "correta": "Artralgia intensa e frequentemente persistente",
+    "texto": "Aedes; suporte e analgesia.",
+    "ameaca": "CHIKUNGUNYA",
+    "alternativas": [
+      "Só febre sem dor",
+      "Artralgia intensa e frequentemente persistente",
+      "Só hemorragia grave como dengue",
+      "Só respiratória"
+    ]
+  },
+  {
+    "inimigo": "COVID-19 - gravidade típica",
+    "correta": "Hipoxemia, dispneia, infiltrados; corticóide se O2 necessário",
+    "texto": "Isolamento e suporte.",
+    "ameaca": "COVID-19",
+    "alternativas": [
+      "Só resfriado leve sempre",
+      "Hipoxemia, dispneia, infiltrados; corticóide se O2 necessário",
+      "Só anosmia sem risco",
+      "Antibiótico de rotina em todos"
+    ]
+  },
+  {
+    "inimigo": "Isolamento de contato - indicações clássicas",
+    "correta": "C. difficile, MRSA, VRE (conforme política local)",
+    "texto": "Luvas e avental; higiene das mãos.",
+    "ameaca": "ISOLAMENTO: CONTATO",
+    "alternativas": [
+      "Só gotículas",
+      "C. difficile, MRSA, VRE (conforme política local)",
+      "Só aerossol",
+      "Só padrão"
+    ]
+  },
+  {
+    "inimigo": "Isolamento por gotículas",
+    "correta": "Meningococo, influenza, coqueluche",
+    "texto": "Máscara cirúrgica e quarto privativo preferencial.",
+    "ameaca": "ISOLAMENTO: GOTÍCULAS",
+    "alternativas": [
+      "Aerossol (N95 sempre)",
+      "Meningococo, influenza, coqueluche",
+      "Só contato",
+      "Desnecessário"
+    ]
+  },
+  {
+    "inimigo": "Isolamento por aerossol",
+    "correta": "TB, sarampo, varicela",
+    "texto": "N95 e pressão negativa.",
+    "ameaca": "ISOLAMENTO: AEROSSOL",
+    "alternativas": [
+      "Gotículas apenas",
+      "TB, sarampo, varicela",
+      "Só contato",
+      "Só padrão"
+    ]
+  },
+  {
+    "inimigo": "Vacina influenza",
+    "correta": "Anual; cepas atualizadas; prioridade a grupos de risco",
+    "texto": "Reduz formas graves.",
+    "ameaca": "VACINA: INFLUENZA",
+    "alternativas": [
+      "A cada 10 anos",
+      "Anual; cepas atualizadas; prioridade a grupos de risco",
+      "Uma vez na vida",
+      "Só infantil"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia de contactantes de meningococo",
+    "correta": "Ciprofloxacino, rifampicina ou ceftriaxona (conforme protocolo)",
+    "texto": "Além da vacina em surtos.",
+    "ameaca": "MENINGO: PROFILAXIA",
+    "alternativas": [
+      "Só observação",
+      "Ciprofloxacino, rifampicina ou ceftriaxona (conforme protocolo)",
+      "Só isolamento sem fármaco",
+      "ATB prolongado em todos"
+    ]
+  },
+  {
+    "inimigo": "Gonorreia - tratamento atual típico",
+    "correta": "Ceftriaxona (dose adequada) ± cobertura para clamídia",
+    "texto": "Resistência crescente a vários ATB.",
+    "ameaca": "IST: GONORREIA",
+    "alternativas": [
+      "Só penicilina oral",
+      "Ceftriaxona (dose adequada) ± cobertura para clamídia",
+      "Só azitromicina isolada sempre",
+      "Sem tratar parceiro"
+    ]
+  },
+  {
+    "inimigo": "Clamídia - complicação em mulher",
+    "correta": "DPI, infertilidade, gravidez ectópica",
+    "texto": "Tratar e notificar parceiros.",
+    "ameaca": "IST: CLAMÍDIA",
+    "alternativas": [
+      "Só uretrite sem sequela",
+      "DPI, infertilidade, gravidez ectópica",
+      "Só em homens",
+      "Sem transmissão sexual"
+    ]
+  },
+  {
+    "inimigo": "Herpes genital - conduta na crise",
+    "correta": "Aciclovir/valaciclovir; analgesia; aconselhamento sobre transmissão",
+    "texto": "Supressivo se recorrências frequentes.",
+    "ameaca": "IST: HERPES",
+    "alternativas": [
+      "Antibiótico",
+      "Aciclovir/valaciclovir; analgesia; aconselhamento sobre transmissão",
+      "Cauterização de rotina",
+      "Sem tratamento possível"
+    ]
+  },
+  {
+    "inimigo": "HPV - prevenção primária",
+    "correta": "Vacina (melhor antes do início da vida sexual)",
+    "texto": "Também rastreamento citológico.",
+    "ameaca": "IST: HPV",
+    "alternativas": [
+      "Só preservativo 100% eficaz",
+      "Vacina (melhor antes do início da vida sexual)",
+      "Antibiótico",
+      "Só tratamento de verrugas"
+    ]
+  },
+  {
+    "inimigo": "Sífilis - teste não treponêmico + treponêmico",
+    "correta": "VDRL/RPR para triagem e seguimento; TPHA/FTA-Abs confirmatórios",
+    "texto": "Titulação do VDRL acompanha resposta.",
+    "ameaca": "IST: SÍFILIS LAB",
+    "alternativas": [
+      "Só VDRL definitivo isolado",
+      "VDRL/RPR para triagem e seguimento; TPHA/FTA-Abs confirmatórios",
+      "Só IgM",
+      "Cultura de rotina"
+    ]
+  },
+  {
+    "inimigo": "Neurosífilis - liquor",
+    "correta": "Pleocitose, proteínas altas, VDRL no liquor (específico quando positivo)",
+    "texto": "Penicilina cristalina IV.",
+    "ameaca": "IST: NEUROSÍFILIS",
+    "alternativas": [
+      "Liquor sempre normal",
+      "Pleocitose, proteínas altas, VDRL no liquor (específico quando positivo)",
+      "Só sorologia sérica basta",
+      "ATB oral suficiente"
+    ]
+  },
+  {
+    "inimigo": "Toxoplasmose na gestação - risco",
+    "correta": "Transmissão vertical com maior gravidade no 1º trimestre (menor taxa) e maior taxa no 3º",
+    "texto": "Espiramicina/sulfadiazina+pirimetamina conforme protocolo.",
+    "ameaca": "TORCH: TOXO",
+    "alternativas": [
+      "Sem risco fetal",
+      "Transmissão vertical com maior gravidade no 1º trimestre (menor taxa) e maior taxa no 3º",
+      "Só no parto",
+      "Só amamentação"
+    ]
+  },
+  {
+    "inimigo": "CMV em imunodeprimido / RN",
+    "correta": "Retinite, pneumonite, doença disseminada; infecção congênita",
+    "texto": "Ganciclovir/valganciclovir quando indicado.",
+    "ameaca": "VIRAL: CMV",
+    "alternativas": [
+      "Só resfriado",
+      "Retinite, pneumonite, doença disseminada; infecção congênita",
+      "Sem tratamento",
+      "Só em imunocompetentes graves"
+    ]
+  },
+  {
+    "inimigo": "Mononucleose infecciosa - agente e achado",
+    "correta": "EBV; linfócitos atípicos; heterófilo pode ser positivo",
+    "texto": "Suporte; evitar contato esportivo se esplenomegalia.",
+    "ameaca": "VIRAL: EBV",
+    "alternativas": [
+      "CMV sempre",
+      "EBV; linfócitos atípicos; heterófilo pode ser positivo",
+      "Estreptococo",
+      "HIV agudo apenas"
+    ]
+  },
+  {
+    "inimigo": "Varicela - isolamento e risco",
+    "correta": "Aerossol e contato; grave em adultos, gestantes e imunodeprimidos",
+    "texto": "Aciclovir se indicado; vacina preventiva.",
+    "ameaca": "VIRAL: VARICELA",
+    "alternativas": [
+      "Só gotículas leves",
+      "Aerossol e contato; grave em adultos, gestantes e imunodeprimidos",
+      "Sem contagiosidade após crostas",
+      "Só infantil benigna sempre"
+    ]
+  },
+  {
+    "inimigo": "Herpes zoster - complicação temida em idoso",
+    "correta": "Neuralgia pós-herpética",
+    "texto": "Antiviral precoce reduz risco; vacina recombinante disponível.",
+    "ameaca": "VIRAL: ZOSTER",
+    "alternativas": [
+      "Só pneumonia",
+      "Neuralgia pós-herpética",
+      "Sem dor residual possível",
+      "Só em jovens"
+    ]
+  },
+  {
+    "inimigo": "Influenza - antiviral",
+    "correta": "Oseltamivir (preferencialmente em até 48h) em grupos de risco/grave",
+    "texto": "Não substitui vacina.",
+    "ameaca": "VIRAL: INFLUENZA TX",
+    "alternativas": [
+      "Aciclovir",
+      "Oseltamivir (preferencialmente em até 48h) em grupos de risco/grave",
+      "Amoxicilina",
+      "Sem benefício nunca"
+    ]
+  },
+  {
+    "inimigo": "Raiva - profilaxia pós-exposição",
+    "correta": "Lavagem do ferimento + vacina ± soro/imunoglobulina conforme risco",
+    "texto": "Decisão por tipo de exposição e animal.",
+    "ameaca": "VIRAL: RAIVA",
+    "alternativas": [
+      "Só antibiótico",
+      "Lavagem do ferimento + vacina ± soro/imunoglobulina conforme risco",
+      "Observar só o animal sem vacinar em alto risco",
+      "ATB antirrábico"
+    ]
+  },
+  {
+    "inimigo": "Tétano - prevenção",
+    "correta": "Vacina (dT/dTpa) e soro/imunoglobulina em ferimentos de risco se esquema incompleto",
+    "texto": "Esporos no ambiente.",
+    "ameaca": "BACTÉRIA: TÉTANO",
+    "alternativas": [
+      "Só antibiótico",
+      "Vacina (dT/dTpa) e soro/imunoglobulina em ferimentos de risco se esquema incompleto",
+      "Sem vacina necessária após infância",
+      "Só limpeza sem imunização"
+    ]
+  },
+  {
+    "inimigo": "Botulismo - mecanismo",
+    "correta": "Toxina bloqueia liberação de acetilcolina nas terminações nervosas",
+    "texto": "Antitoxina e suporte ventilatório.",
+    "ameaca": "BACTÉRIA: BOTULISMO",
+    "alternativas": [
+      "Espasmo por tétano",
+      "Toxina bloqueia liberação de acetilcolina nas terminações nervosas",
+      "Invasão do SNC",
+      "Só GI sem neurológico"
+    ]
+  },
+  {
+    "inimigo": "Difteria - sinal clássico",
+    "correta": "Placas aderentes em orofaringe + toxina com miocardite/neuropatia",
+    "texto": "Antitoxina + ATB; isolamento.",
+    "ameaca": "BACTÉRIA: DIFTERIA",
+    "alternativas": [
+      "Só faringite viral",
+      "Placas aderentes em orofaringe + toxina com miocardite/neuropatia",
+      "Só tosse sem placas",
+      "Sem vacina disponível"
+    ]
+  },
+  {
+    "inimigo": "Coqueluche - tratamento e profilaxia de contactantes",
+    "correta": "Macrolídeo (azitromicina)",
+    "texto": "Vacina na gestação (dTpa) protege o RN.",
+    "ameaca": "BACTÉRIA: COQUELUCHE",
+    "alternativas": [
+      "Beta-lactâmico sempre",
+      "Macrolídeo (azitromicina)",
+      "Só suporte sem ATB",
+      "Quinolona de rotina em lactentes"
+    ]
+  },
+  {
+    "inimigo": "Legionella - pista clínica",
+    "correta": "Pneumonia atípica + hiponatremia + diarreia + exposição a água/ar-condicionado",
+    "texto": "Macrolídeo ou quinolona; antígeno urinário.",
+    "ameaca": "PAC: LEGIONELLA",
+    "alternativas": [
+      "Só pneumococo",
+      "Pneumonia atípica + hiponatremia + diarreia + exposição a água/ar-condicionado",
+      "Só viral",
+      "TB"
+    ]
+  },
+  {
+    "inimigo": "Mycoplasma pneumoniae",
+    "correta": "Pneumonia atípica em jovens; macrolídeo",
+    "texto": "Não tem parede celular (beta-lactâmicos ineficazes).",
+    "ameaca": "PAC: MYCOPLASMA",
+    "alternativas": [
+      "Pneumococo típico",
+      "Pneumonia atípica em jovens; macrolídeo",
+      "Tratar com amoxicilina apenas",
+      "Sempre grave com consolidação lobar"
+    ]
+  },
+  {
+    "inimigo": "Pneumocystis jirovecii",
+    "correta": "Pneumonia em HIV com CD4 baixo; LDH alta; hipoxemia com esforço",
+    "texto": "SMX-TMP; corticoide se PaO2 baixa.",
+    "ameaca": "HIV: PCP DX",
+    "alternativas": [
+      "Pneumococo típico",
+      "Pneumonia em HIV com CD4 baixo; LDH alta; hipoxemia com esforço",
+      "TB sempre",
+      "Só bacteriana comum"
+    ]
+  },
+  {
+    "inimigo": "Criptococose em HIV",
+    "correta": "Meningite subaguda; antígeno criptocócico; tinta da China",
+    "texto": "Anfotericina + flucitosina depois fluconazol; aliviar pressão do liquor.",
+    "ameaca": "HIV: CRIPTO",
+    "alternativas": [
+      "Tuberculose apenas",
+      "Meningite subaguda; antígeno criptocócico; tinta da China",
+      "Só viral",
+      "Bacteriana aguda com neutrófilos"
+    ]
+  },
+  {
+    "inimigo": "Toxoplasmose cerebral em HIV",
+    "correta": "Múltiplas lesões com anel no TC/RM; CD4 baixo; IgG positivo",
+    "texto": "Sulfadiazina + pirimetamina + ácido folínico.",
+    "ameaca": "HIV: TOXO CEREBRAL",
+    "alternativas": [
+      "Linfoma primário sempre único",
+      "Múltiplas lesões com anel no TC/RM; CD4 baixo; IgG positivo",
+      "AVC",
+      "Abscesso bacteriano único sem HIV"
+    ]
+  },
+  {
+    "inimigo": "Histoplasmose disseminada",
+    "correta": "Áreas endêmicas; HIV/imunodeprimidos; febre, perda de peso, hepatoesplenomegalia",
+    "texto": "Anfotericina depois itraconazol.",
+    "ameaca": "FUNGO: HISTOPLASMA",
+    "alternativas": [
+      "Só candidíase oral",
+      "Áreas endêmicas; HIV/imunodeprimidos; febre, perda de peso, hepatoesplenomegalia",
+      "Só aspergilose",
+      "Dermatofito"
+    ]
+  },
+  {
+    "inimigo": "Aspergilose pulmonar invasiva",
+    "correta": "Neutropenia; nódulo com halo/crescente no TC; galactomanana",
+    "texto": "Voriconazol (ou outros antifúngicos conforme caso).",
+    "ameaca": "FUNGO: ASPERGILLUS",
+    "alternativas": [
+      "Só colonização de sempre",
+      "Neutropenia; nódulo com halo/crescente no TC; galactomanana",
+      "Cândida de corrente sanguínea sem foco",
+      "Pneumocystis"
+    ]
+  },
+  {
+    "inimigo": "Candidemia",
+    "correta": "Fator de risco: cateter, ATB amplo, UTI; hemocultura",
+    "texto": "Retirar cateter e equinocandina/fluconazol conforme espécie e gravidade.",
+    "ameaca": "FUNGO: CANDIDEMIA",
+    "alternativas": [
+      "Sempre contaminação ignorar",
+      "Fator de risco: cateter, ATB amplo, UTI; hemocultura",
+      "Só oral",
+      "Nunca metastatiza"
+    ]
+  },
+  {
+    "inimigo": "Malária - diagnóstico",
+    "correta": "Gotícula espessa e esfregaço fino (ou testes rápidos/PCR)",
+    "texto": "Identificar espécie e gravidade.",
+    "ameaca": "MALÁRIA: DX",
+    "alternativas": [
+      "Só clínica",
+      "Gotícula espessa e esfregaço fino (ou testes rápidos/PCR)",
+      "Só sorologia",
+      "RX de tórax"
+    ]
+  },
+  {
+    "inimigo": "P. vivax - particularidade de tratamento",
+    "correta": "Hipnozoítas → primaquina (após testar G6PD)",
+    "texto": "Evitar recidivas.",
+    "ameaca": "MALÁRIA: VIVAX",
+    "alternativas": [
+      "Igual falciparum sem primaquina",
+      "Hipnozoítas → primaquina (após testar G6PD)",
+      "Só cloroquina sem radical cure",
+      "Sem tratamento radical necessário"
+    ]
+  },
+  {
+    "inimigo": "Doença de Chagas - fase crônica cardíaca",
+    "correta": "Miocardiopatia dilatada, arritmias, aneurisma apical",
+    "texto": "Benznidazol/nifurtimox com benefício maior na aguda/recente; suporte na crônica.",
+    "ameaca": "CHAGAS",
+    "alternativas": [
+      "Só digestiva sempre",
+      "Miocardiopatia dilatada, arritmias, aneurisma apical",
+      "Sem acometimento cardíaco",
+      "Só cutânea"
+    ]
+  },
+  {
+    "inimigo": "Leishmaniose visceral - clínica",
+    "correta": "Febre, hepatoesplenomegalia, pancitopenia; flebotomíneo",
+    "texto": "Anfotericina lipossomal (ou outros conforme guia).",
+    "ameaca": "LEISHMANIA: VISCERAL",
+    "alternativas": [
+      "Só cutânea",
+      "Febre, hepatoesplenomegalia, pancitopenia; flebotomíneo",
+      "Malária sem esplenomegalia",
+      "TB isolada"
+    ]
+  },
+  {
+    "inimigo": "Esquistossomose mansoni - complicação",
+    "correta": "Fibrose periportal, hipertensão portal, varizes esofágicas",
+    "texto": "Praziquantel; tratar complicações.",
+    "ameaca": "HELMINTO: SCHISTOSOMA",
+    "alternativas": [
+      "Só diarreia sem fibrose",
+      "Fibrose periportal, hipertensão portal, varizes esofágicas",
+      "Só cutânea",
+      "Pneumonia"
+    ]
+  },
+  {
+    "inimigo": "Strongyloides - risco em imunossuprimido",
+    "correta": "Hiperinfecção / disseminação (corticoide, HTLV)",
+    "texto": "Ivermectina; rastrear antes de imunossuprimir em áreas endêmicas.",
+    "ameaca": "HELMINTO: STRONGYLOIDES",
+    "alternativas": [
+      "Sem risco especial",
+      "Hiperinfecção / disseminação (corticoide, HTLV)",
+      "Só anemia leve",
+      "Só em crianças"
+    ]
+  },
+  {
+    "inimigo": "Ascaridíase - complicação mecânica",
+    "correta": "Obstrução intestinal / migração biliar",
+    "texto": "Albendazol/mebendazol; cirurgia se obstrução.",
+    "ameaca": "HELMINTO: ASCARIS",
+    "alternativas": [
+      "Só prurido anal",
+      "Obstrução intestinal / migração biliar",
+      "Só anemia ferropriva clássica do ancilóstomo",
+      "Sem tratamento"
+    ]
+  },
+  {
+    "inimigo": "Ancilostomíase - destaque",
+    "correta": "Anemia ferropriva por perda crônica de sangue",
+    "texto": "Albendazol e repor ferro.",
+    "ameaca": "HELMINTO: ANCILOSTOMO",
+    "alternativas": [
+      "Só obstrução",
+      "Anemia ferropriva por perda crônica de sangue",
+      "Só prurido anal",
+      "Cisticercose"
+    ]
+  },
+  {
+    "inimigo": "Cisticercose - forma grave",
+    "correta": "Neurocisticercose (convulsões, hidrocefalia)",
+    "texto": "Albendazol/praziquantel + corticoide ± cirurgia.",
+    "ameaca": "HELMINTO: CISTICERCO",
+    "alternativas": [
+      "Só teníase intestinal sem risco",
+      "Neurocisticercose (convulsões, hidrocefalia)",
+      "Só muscular sem SNC",
+      "Sem tratamento"
+    ]
+  },
+  {
+    "inimigo": "Hidatidose (Echinococcus)",
+    "correta": "Cisto hepático/pulmonar; risco de anafilaxia se ruptura",
+    "texto": "Cirurgia/PAIR + albendazol conforme caso.",
+    "ameaca": "HELMINTO: HIDÁTIDE",
+    "alternativas": [
+      "Cisticercose igual",
+      "Cisto hepático/pulmonar; risco de anafilaxia se ruptura",
+      "Só intestinal",
+      "Sem imagem necessária"
+    ]
+  },
+  {
+    "inimigo": "Escabiose - tratamento",
+    "correta": "Ivermectina oral e/ou permetrina tópica; tratar contactantes e fômites",
+    "texto": "Prurido noturno e túneis.",
+    "ameaca": "ECTO: ESCABIOSE",
+    "alternativas": [
+      "Só anti-histamínico",
+      "Ivermectina oral e/ou permetrina tópica; tratar contactantes e fômites",
+      "Antibiótico isolado",
+      "Sem tratar família"
+    ]
+  },
+  {
+    "inimigo": "Pediculose - tratamento",
+    "correta": "Pediculicidas tópicos; remover lêndeas; tratar contactantes",
+    "texto": "Escola e família.",
+    "ameaca": "ECTO: PIOLHO",
+    "alternativas": [
+      "Só cortar cabelo obrigatório",
+      "Pediculicidas tópicos; remover lêndeas; tratar contactantes",
+      "Ivermectina sempre primeira em criança pequena sem critério",
+      "Ignorar"
+    ]
+  },
+  {
+    "inimigo": "Mordedura de cão/gato - profilaxia",
+    "correta": "Lavagem + ATB (ex.: amox-clav) ± raiva/tétano conforme risco",
+    "texto": "Pasteurella etc.",
+    "ameaca": "MORDEDURA",
+    "alternativas": [
+      "Só ponto sem lavar",
+      "Lavagem + ATB (ex.: amox-clav) ± raiva/tétano conforme risco",
+      "Sem ATB nunca",
+      "Só antirrábico sem limpeza"
+    ]
+  },
+  {
+    "inimigo": "Neutropenia febril - conduta inicial",
+    "correta": "Hemoculturas + ATB de amplo espectro imediato (ex.: piperacilina-tazobactam ou cefepime)",
+    "texto": "Urgência.",
+    "ameaca": "NEUTROPENIA FEBRIL",
+    "alternativas": [
+      "Esperar cultura para iniciar ATB",
+      "Hemoculturas + ATB de amplo espectro imediato (ex.: piperacilina-tazobactam ou cefepime)",
+      "Só antifúngico inicial em todos",
+      "Só observação"
+    ]
+  },
+  {
+    "inimigo": "Infecção relacionada a cateter - conduta",
+    "correta": "Hemoculturas pareadas + considerar remoção do cateter + ATB",
+    "texto": "S. aureus e Candida geralmente exigem retirada.",
+    "ameaca": "CATETER",
+    "alternativas": [
+      "Nunca retirar cateter",
+      "Hemoculturas pareadas + considerar remoção do cateter + ATB",
+      "Só trocar curativo",
+      "ATB tópico suficiente"
+    ]
+  },
+  {
+    "inimigo": "Peritonite bacteriana espontânea",
+    "correta": "Ascite + PMN ≥250 no líquido; ATB (ex.: cefalosporina 3ª) ± albumina",
+    "texto": "Profilaxia secundária com norfloxacino/SMX-TMP.",
+    "ameaca": "PBE",
+    "alternativas": [
+      "Só diurético",
+      "Ascite + PMN ≥250 no líquido; ATB (ex.: cefalosporina 3ª) ± albumina",
+      "Cirurgia de rotina",
+      "Sem ATB"
+    ]
+  },
+  {
+    "inimigo": "Colangite aguda - tríade de Charcot",
+    "correta": "Dor em QSD, icterícia e febre",
+    "texto": "ATB + desobstrução biliar urgente se grave (Reynolds).",
+    "ameaca": "GI: COLANGITE",
+    "alternativas": [
+      "Só colecistite sem dilatação",
+      "Dor em QSD, icterícia e febre",
+      "Pancreatite sem icterícia",
+      "Hepatite A"
+    ]
+  },
+  {
+    "inimigo": "Abscesso hepático piogênico vs amebiano",
+    "correta": "Piogênico: polimicrobiano/ATB+drenagem; amebiano: Entamoeba, metronidazol",
+    "texto": "Imagem e epidemiologia ajudam.",
+    "ameaca": "ABS CESSO HEPÁTICO",
+    "alternativas": [
+      "Sempre iguais",
+      "Piogênico: polimicrobiano/ATB+drenagem; amebiano: Entamoeba, metronidazol",
+      "Só cirúrgico sempre",
+      "Só viral"
+    ]
+  },
+  {
+    "inimigo": "Osteomielite vertebral / espondilodiscite",
+    "correta": "Dor lombar + febre ± déficit; RM; hemoculturas e biópsia",
+    "texto": "S. aureus frequente; TB em endêmicos.",
+    "ameaca": "OSSO: ESPONDILODISCITE",
+    "alternativas": [
+      "Só mecânica",
+      "Dor lombar + febre ± déficit; RM; hemoculturas e biópsia",
+      "Só AINE",
+      "Sem imagem"
+    ]
+  },
+  {
+    "inimigo": "Infecção de prótese articular",
+    "correta": "Dor, fistula, afrouxamento; punção e cultura; biofilme",
+    "texto": "Cirurgia + ATB prolongado conforme classificação.",
+    "ameaca": "PRÓTESE",
+    "alternativas": [
+      "Só AINE",
+      "Dor, fistula, afrouxamento; punção e cultura; biofilme",
+      "ATB oral curto sempre curativo",
+      "Ignorar se RX normal"
+    ]
+  },
+  {
+    "inimigo": "Sinusite bacteriana aguda - quando ATB",
+    "correta": "Sintomas ≥10 dias, piora após melhora, ou grave com febre alta e face",
+    "texto": "Amox-clav conforme guia.",
+    "ameaca": "ORL: SINUSITE",
+    "alternativas": [
+      "Todo resfriado no dia 1",
+      "Sintomas ≥10 dias, piora após melhora, ou grave com febre alta e face",
+      "Só quinolona de rotina",
+      "Sem analgesia"
+    ]
+  },
+  {
+    "inimigo": "Otite média aguda - agente e conduta",
+    "correta": "Pneumococo, H. influenzae, M. catarrhalis; amoxicilina na maioria",
+    "texto": "Analgesia essencial.",
+    "ameaca": "ORL: OTITE",
+    "alternativas": [
+      "Só viral nunca ATB",
+      "Pneumococo, H. influenzae, M. catarrhalis; amoxicilina na maioria",
+      "Ciprofloxacino oral de rotina em criança",
+      "Sem analgésico"
+    ]
+  },
+  {
+    "inimigo": "Epiglotite - agente histórico e conduta",
+    "correta": "H. influenzae tipo b (menos comum pós-vacina); proteger via aérea + ATB",
+    "texto": "Não examinar garganta agressivamente.",
+    "ameaca": "ORL: EPIGLOTITE",
+    "alternativas": [
+      "Crupe viral manejado em casa sempre",
+      "H. influenzae tipo b (menos comum pós-vacina); proteger via aérea + ATB",
+      "Só nebulização sem via aérea",
+      "Observação ambulatorial em tripé"
+    ]
+  },
+  {
+    "inimigo": "Abscesso peritonsilar",
+    "correta": "Complicação de amigdalite; trismo, voz abafada, desvio de úvula",
+    "texto": "Drenagem + ATB.",
+    "ameaca": "ORL: PERITONSILAR",
+    "alternativas": [
+      "Amigdalite simples",
+      "Complicação de amigdalite; trismo, voz abafada, desvio de úvula",
+      "Só corticoide",
+      "Meningite"
+    ]
+  },
+  {
+    "inimigo": "Infecção por HTLV-1 - associações",
+    "correta": "Paraparesia espástica / leucemia-linfoma de células T do adulto",
+    "texto": "Transmissão vertical, sexual e sangue.",
+    "ameaca": "HTLV",
+    "alternativas": [
+      "Só HIV-like imunodeficiência sempre",
+      "Paraparesia espástica / leucemia-linfoma de células T do adulto",
+      "Sem doença associada",
+      "Só hepatite"
+    ]
+  },
+  {
+    "inimigo": "Hanseníase - formas e baciloscopia",
+    "correta": "Paucibacilar vs multibacilar; Mycobacterium leprae",
+    "texto": "Poliquimioterapia (rifampicina, dapsona, clofazimina).",
+    "ameaca": "HANSENÍASE",
+    "alternativas": [
+      "TB pulmonar igual",
+      "Paucibacilar vs multibacilar; Mycobacterium leprae",
+      "Só corticoide",
+      "Sem tratamento multidroga"
+    ]
+  },
+  {
+    "inimigo": "Nocardia vs Actinomyces",
+    "correta": "Nocardia: aeróbia, parcial BAAR, imunodeprimidos, pulmão/SNC; Actinomyces: anaeróbia, abscesso cervical com grãos",
+    "texto": "ATB prolongado diferente.",
+    "ameaca": "BACTÉRIA: NOCARDIA ACTINO",
+    "alternativas": [
+      "São a mesma",
+      "Nocardia: aeróbia, parcial BAAR, imunodeprimidos, pulmão/SNC; Actinomyces: anaeróbia, abscesso cervical com grãos",
+      "Só fungos",
+      "Sem tratamento"
+    ]
+  },
+  {
+    "inimigo": "Resistência antimicrobiana - princípio de stewardship",
+    "correta": "Usar ATB certo, dose certa, tempo certo; desescalonar com culturas",
+    "texto": "Reduz resistência e efeitos adversos.",
+    "ameaca": "STEWARDSHIP",
+    "alternativas": [
+      "ATB amplo em todos por 3 semanas",
+      "Usar ATB certo, dose certa, tempo certo; desescalonar com culturas",
+      "Nunca colher cultura",
+      "Profilaxia indefinida"
+    ]
+  },
+  {
+    "inimigo": "Procalcitonina na prática",
+    "correta": "Auxilia decisão de iniciar/suspender ATB em infecções respiratórias/sepse",
+    "texto": "Não substitui julgamento clínico.",
+    "ameaca": "BIOMARCADOR: PCT",
+    "alternativas": [
+      "Diagnostica vírus isoladamente",
+      "Auxilia decisão de iniciar/suspender ATB em infecções respiratórias/sepse",
+      "Só PCR inflamatória basta sempre",
+      "Sem valor"
+    ]
+  },
+  {
+    "inimigo": "Vacina SCR - componentes",
+    "correta": "Sarampo, caxumba e rubéola",
+    "texto": "Viva atenuada; contraindicações em gestação e imunossupressão grave.",
+    "ameaca": "VACINA: SCR",
+    "alternativas": [
+      "Só sarampo",
+      "Sarampo, caxumba e rubéola",
+      "Inclui varicela sempre no mesmo frasco nacional padrão",
+      "Inativada"
+    ]
+  },
+  {
+    "inimigo": "Vacina meningocócica conjugada",
+    "correta": "Previne doença invasiva por sorogrupos incluídos (ex.: C, ACWY)",
+    "texto": "Indicações no calendário e surtos.",
+    "ameaca": "VACINA: MENINGO",
+    "alternativas": [
+      "Só pneumococo",
+      "Previne doença invasiva por sorogrupos incluídos (ex.: C, ACWY)",
+      "Não existe",
+      "Só polissacarídica em lactentes sempre superior"
+    ]
+  },
+  {
+    "inimigo": "Vacina pneumocócica conjugada vs polissacarídica",
+    "correta": "Conjugada imunogênica em crianças e memória; polissacarídica em adultos/idosos conforme indicação",
+    "texto": "Esquemas combinados em risco.",
+    "ameaca": "VACINA: PNEUMO",
+    "alternativas": [
+      "São intercambiáveis em lactentes igualmente",
+      "Conjugada imunogênica em crianças e memória; polissacarídica em adultos/idosos conforme indicação",
+      "Só uma dose na vida",
+      "Inúteis em idosos"
+    ]
+  },
+  {
+    "inimigo": "Antivirais para influenza - limitação",
+    "correta": "Benefício maior se iniciados precocemente; resistência possível",
+    "texto": "Vacina permanece a base da prevenção.",
+    "ameaca": "INFLUENZA: LIMITE",
+    "alternativas": [
+      "Curam sempre em qualquer tempo",
+      "Benefício maior se iniciados precocemente; resistência possível",
+      "Substituem vacina",
+      "Ineficazes sempre"
+    ]
+  },
+  {
+    "inimigo": "Ganciclovir - principal indicação clássica",
+    "correta": "CMV em imunodeprimidos (retinite, doença invasiva)",
+    "texto": "Toxicidade medular.",
+    "ameaca": "ANTIVIRAL: GANCICLOVIR",
+    "alternativas": [
+      "HSV de primeira linha preferencial sobre aciclovir",
+      "CMV em imunodeprimidos (retinite, doença invasiva)",
+      "Influenza",
+      "Hepatite C"
+    ]
+  },
+  {
+    "inimigo": "Anfotericina B - toxicidade clássica",
+    "correta": "Nefrotoxicidade e reações infusionais",
+    "texto": "Formulações lipossomais menos tóxicas.",
+    "ameaca": "ANTIFÚNGICO: ANFO",
+    "alternativas": [
+      "Só hepatotoxicidade sem rim",
+      "Nefrotoxicidade e reações infusionais",
+      "Sem efeito adverso relevante",
+      "Só rash leve"
+    ]
+  },
+  {
+    "inimigo": "Equinocandinas - espectro",
+    "correta": "Candida (incluindo algumas resistentes a azólicos) e Aspergillus (fungicida/fungistático conforme)",
+    "texto": "Candidemia e neutropênicos.",
+    "ameaca": "ANTIFÚNGICO: EQUINOCANDINA",
+    "alternativas": [
+      "Só dermatofitos",
+      "Candida (incluindo algumas resistentes a azólicos) e Aspergillus (fungicida/fungistático conforme)",
+      "Só vírus",
+      "Só criptococo de escolha absoluta"
+    ]
+  },
+  {
+    "inimigo": "Isoniazida - efeito adverso importante",
+    "correta": "Hepatite e neurite periférica (prevenir com piridoxina em risco)",
+    "texto": "Monitorar enzimas.",
+    "ameaca": "TB DROGA: INH",
+    "alternativas": [
+      "Só ototoxicidade",
+      "Hepatite e neurite periférica (prevenir com piridoxina em risco)",
+      "Só rash",
+      "Sem toxicidade"
+    ]
+  },
+  {
+    "inimigo": "Rifampicina - interações",
+    "correta": "Indutor potente do citocromo P450 (reduz níveis de muitos fármacos, inclusive antiretrovirais e anticoagulantes)",
+    "texto": "Ajusta esquemas.",
+    "ameaca": "TB DROGA: RIF",
+    "alternativas": [
+      "Inibe P450",
+      "Indutor potente do citocromo P450 (reduz níveis de muitos fármacos, inclusive antiretrovirais e anticoagulantes)",
+      "Sem interação",
+      "Só com alimentos"
+    ]
+  },
+  {
+    "inimigo": "Etambutol - toxicidade característica",
+    "correta": "Neurite óptica (daltonismo, acuidade)",
+    "texto": "Controle oftalmológico.",
+    "ameaca": "TB DROGA: EMB",
+    "alternativas": [
+      "Surdez",
+      "Neurite óptica (daltonismo, acuidade)",
+      "Hepatite exclusiva",
+      "Nefrite apenas"
+    ]
+  },
+  {
+    "inimigo": "Pirazinamida - toxicidade",
+    "correta": "Hepatotoxicidade e hiperuricemia",
+    "texto": "Parte da fase intensiva.",
+    "ameaca": "TB DROGA: PZA",
+    "alternativas": [
+      "Neurite óptica",
+      "Hepatotoxicidade e hiperuricemia",
+      "Só ototoxicidade",
+      "Sem efeito"
+    ]
+  },
+  {
+    "inimigo": "Vancomicina - monitoramento",
+    "correta": "Nível de vale (AUC/MIC) e função renal; red man syndrome na infusão rápida",
+    "texto": "Ajustar em IRC.",
+    "ameaca": "ATB: VANCO",
+    "alternativas": [
+      "Só hepático",
+      "Nível de vale (AUC/MIC) e função renal; red man syndrome na infusão rápida",
+      "Sem monitorar nunca",
+      "Só plaquetas"
+    ]
+  },
+  {
+    "inimigo": "Aminoglicosídeos - toxicidades",
+    "correta": "Oto e nefrotoxicidade; pico e vale em uso prolongado",
+    "texto": "Uso racional e curto quando possível.",
+    "ameaca": "ATB: AMINOGLICOSÍDEO",
+    "alternativas": [
+      "Só rash",
+      "Oto e nefrotoxicidade; pico e vale em uso prolongado",
+      "Só hepatite",
+      "Sem toxicidade"
+    ]
+  },
+  {
+    "inimigo": "Clostridioides - prevenção hospitalar",
+    "correta": "Higiene das mãos com água e sabão (álcool menos eficaz nos esporos); isolamento de contato; uso racional de ATB",
+    "texto": "Limpeza com esporicida.",
+    "ameaca": "CDIFF: PREVENÇÃO",
+    "alternativas": [
+      "Só álcool gel suficiente",
+      "Higiene das mãos com água e sabão (álcool menos eficaz nos esporos); isolamento de contato; uso racional de ATB",
+      "Sem isolamento",
+      "Profilaxia com ATB em todos"
+    ]
+  },
+  {
+    "inimigo": "Infecção urinária em gestante",
+    "correta": "Tratar mesmo se assintomática (bacteriúria); regimes seguros na gestação",
+    "texto": "Risco de pielonefrite e parto prematuro.",
+    "ameaca": "ITU GESTANTE",
+    "alternativas": [
+      "Nunca tratar assintomática",
+      "Tratar mesmo se assintomática (bacteriúria); regimes seguros na gestação",
+      "Quinolona de rotina",
+      "Só pós-parto"
+    ]
+  },
+  {
+    "inimigo": "Mastite puerperal",
+    "correta": "S. aureus frequente; ATB e manter drenagem (amamentação/ordenha)",
+    "texto": "Abscesso pode exigir drenagem.",
+    "ameaca": "MASTITE",
+    "alternativas": [
+      "Suspender amamentação sempre",
+      "S. aureus frequente; ATB e manter drenagem (amamentação/ordenha)",
+      "Só compressa sem ATB se febre",
+      "Fúngica de rotina"
+    ]
+  },
+  {
+    "inimigo": "Endometrite pós-parto",
+    "correta": "Febre, útero doloroso, loquios fétidos; ATB clindamicina+gentamicina clássico",
+    "texto": "Polimicrobiana.",
+    "ameaca": "ENDOMETRITE",
+    "alternativas": [
+      "Só viral",
+      "Febre, útero doloroso, loquios fétidos; ATB clindamicina+gentamicina clássico",
+      "Sem ATB",
+      "Só uterotônico"
+    ]
+  },
+  {
+    "inimigo": "Sepse neonatal precoce - agentes",
+    "correta": "Streptococcus agalactiae (GBS), E. coli, Listeria",
+    "texto": "Ampicilina + aminoglicosídeo empírico.",
+    "ameaca": "SEPSE NEONATAL",
+    "alternativas": [
+      "Só estafilococo coagulase negativo sempre",
+      "Streptococcus agalactiae (GBS), E. coli, Listeria",
+      "Só vírus",
+      "Candida de rotina no 1º dia"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia de GBS no parto",
+    "correta": "Penicilina/ampicilina intraparto em colonizadas ou fatores de risco",
+    "texto": "Reduz sepse neonatal precoce.",
+    "ameaca": "GBS PROFILAXIA",
+    "alternativas": [
+      "Sem benefício",
+      "Penicilina/ampicilina intraparto em colonizadas ou fatores de risco",
+      "Só após o parto",
+      "Ceftriaxona de rotina em todas"
+    ]
+  },
+  {
+    "inimigo": "Impetigo",
+    "correta": "S. aureus e S. pyogenes; crostas melicéricas; ATB tópico ou oral se extenso",
+    "texto": "Contagioso.",
+    "ameaca": "PELE: IMPETIGO",
+    "alternativas": [
+      "Só fúngico",
+      "S. aureus e S. pyogenes; crostas melicéricas; ATB tópico ou oral se extenso",
+      "Só viral",
+      "Sem tratamento"
+    ]
+  },
+  {
+    "inimigo": "Erisipela vs celulite - agente principal erisipela",
+    "correta": "Streptococcus pyogenes",
+    "texto": "Penicilina/amoxicilina frequentemente suficiente.",
+    "ameaca": "PELE: AGENTE ERISIPELA",
+    "alternativas": [
+      "Pseudomonas",
+      "Streptococcus pyogenes",
+      "Candida",
+      "Pasteurella"
+    ]
+  },
+  {
+    "inimigo": "Mordedura humana - ATB",
+    "correta": "Cobrir flora oral (Eikenella, estreptococos, anaeróbios); amox-clav",
+    "texto": "Lavagem e tétano.",
+    "ameaca": "MORDEDURA HUMANA",
+    "alternativas": [
+      "Só celexina estreita",
+      "Cobrir flora oral (Eikenella, estreptococos, anaeróbios); amox-clav",
+      "Sem ATB",
+      "Só tópico"
+    ]
+  },
+  {
+    "inimigo": "Péteriose / rickettsioses - pista",
+    "correta": "Febre + rash + cefaleia + exposição a carrapatos/ácaros; doxiciclina",
+    "texto": "Não esperar confirmação sorológica para tratar se alta suspeita.",
+    "ameaca": "RICKETTSIA",
+    "alternativas": [
+      "Só viral",
+      "Febre + rash + cefaleia + exposição a carrapatos/ácaros; doxiciclina",
+      "Beta-lactâmico de escolha",
+      "Sem tratamento"
+    ]
+  },
+  {
+    "inimigo": "Doença de Lyme (áreas endêmicas)",
+    "correta": "Eritema migrans; Borrelia; doxiciclina",
+    "texto": "Estágios inicial e tardio.",
+    "ameaca": "LYME",
+    "alternativas": [
+      "Só no Brasil igual incidência",
+      "Eritema migrans; Borrelia; doxiciclina",
+      "Sem rash nunca diagnosticar",
+      "ATB por 1 dia"
+    ]
+  },
+  {
+    "inimigo": "Babesiose",
+    "correta": "Parasita eritrocitário; carrapato; hemólise; atovaquona+azitromicina ou clindamicina+quinino",
+    "texto": "Coinfecção com Lyme possível.",
+    "ameaca": "BABESIA",
+    "alternativas": [
+      "Malária idêntica no Brasil central",
+      "Parasita eritrocitário; carrapato; hemólise; atovaquona+azitromicina ou clindamicina+quinino",
+      "Só viral",
+      "Sem tratamento"
+    ]
+  },
+  {
+    "inimigo": "Anaplasmose / Ehrlichiose",
+    "correta": "Febre, leucopenia, plaquetopenia, elevação de enzimas; doxiciclina",
+    "texto": "Carrapato.",
+    "ameaca": "ANAPLASMA",
+    "alternativas": [
+      "Só antibiótico beta-lactâmico",
+      "Febre, leucopenia, plaquetopenia, elevação de enzimas; doxiciclina",
+      "Antiviral",
+      "Sem lab alterada"
+    ]
+  },
+  {
+    "inimigo": "Histoplasmose - diagnóstico",
+    "correta": "Antígeno urinário/sérico, cultura, histopatologia",
+    "texto": "Endêmica em áreas com fezes de aves/morcegos.",
+    "ameaca": "HISTOPLASMA DX",
+    "alternativas": [
+      "Só Rx normal exclui",
+      "Antígeno urinário/sérico, cultura, histopatologia",
+      "Só PCR de rotina em todos laboratórios",
+      "Sorologia única suficiente sempre"
+    ]
+  },
+  {
+    "inimigo": "Paracoccidioidomicose",
+    "correta": "América Latina; mucocutânea e pulmonar; sulfametoxazol-trimetoprima ou itraconazol",
+    "texto": "Pilotos de 'Jorge Lobo' diferem.",
+    "ameaca": "PARACOCCIDIOIDES",
+    "alternativas": [
+      "Só EUA",
+      "América Latina; mucocutânea e pulmonar; sulfametoxazol-trimetoprima ou itraconazol",
+      "Só Candida",
+      "Sem tratamento oral possível"
+    ]
+  },
+  {
+    "inimigo": "Esporotricose",
+    "correta": "Trauma com planta/solo ou zoonose (gato); itraconazol",
+    "texto": "Forma linfocutânea clássica.",
+    "ameaca": "ESPOROTRIX",
+    "alternativas": [
+      "Só IV anfotericina em todos",
+      "Trauma com planta/solo ou zoonose (gato); itraconazol",
+      "Antibiótico",
+      "Autolimitada sempre"
+    ]
+  },
+  {
+    "inimigo": "Criptosporidiose em imunocompetente vs HIV",
+    "correta": "Autolimitada no imunocompetente; grave e persistente no HIV com CD4 baixo",
+    "texto": "Nitazoxanida; restaurar imunidade.",
+    "ameaca": "CRYPTOSPORIDIUM",
+    "alternativas": [
+      "Sempre grave em todos",
+      "Autolimitada no imunocompetente; grave e persistente no HIV com CD4 baixo",
+      "ATB beta-lactâmico curativo",
+      "Só helmintos"
+    ]
+  },
+  {
+    "inimigo": "Ciclosporíase / Cystoisospora",
+    "correta": "Diarreia em imunodeprimidos/viajantes; SMX-TMP",
+    "texto": "Oocistos no parasitológico com coloração especial.",
+    "ameaca": "COCCIDIA",
+    "alternativas": [
+      "Só metformina causa",
+      "Diarreia em imunodeprimidos/viajantes; SMX-TMP",
+      "Sem tratamento",
+      "Só viral"
+    ]
+  },
+  {
+    "inimigo": "Amebíase extraintestinal",
+    "correta": "Abscesso hepático; metronidazol seguido de luminal (paromomicina/iodoquinol)",
+    "texto": "USG/TC.",
+    "ameaca": "AMEBA EXTRAINTESTINAL",
+    "alternativas": [
+      "Só intestinal sempre",
+      "Abscesso hepático; metronidazol seguido de luminal (paromomicina/iodoquinol)",
+      "Cirurgia de rotina em todos",
+      "Albendazol"
+    ]
+  },
+  {
+    "inimigo": "Giardíase crônica",
+    "correta": "Má absorção, esteatorreia; metronidazol/tinidazol/nitazoxanida",
+    "texto": "Cistos resistentes ao cloro.",
+    "ameaca": "GIARDIA TX",
+    "alternativas": [
+      "Só hidratação",
+      "Má absorção, esteatorreia; metronidazol/tinidazol/nitazoxanida",
+      "Albendazol de escolha absoluta isolado",
+      "Sem diagnóstico parasitológico possível"
+    ]
+  },
+  {
+    "inimigo": "Tricomoníase - tratar parceiro",
+    "correta": "Sim; metronidazol; evitar álcool com a droga",
+    "texto": "DST.",
+    "ameaca": "TRICHOMONAS",
+    "alternativas": [
+      "Só a mulher",
+      "Sim; metronidazol; evitar álcool com a droga",
+      "Sem tratamento do homem",
+      "Só tópico"
+    ]
+  },
+  {
+    "inimigo": "Vaginose bacteriana",
+    "correta": "Clue cells, pH alto, corrimento fétido; metronidazol ou clindamicina",
+    "texto": "Não é DST clássica mas associada a risco.",
+    "ameaca": "VB",
+    "alternativas": [
+      "Candida",
+      "Clue cells, pH alto, corrimento fétido; metronidazol ou clindamicina",
+      "Antifúngico",
+      "Sem tratamento se assintomática sempre obrigatório tratar"
+    ]
+  },
+  {
+    "inimigo": "Prostatite aguda",
+    "correta": "Febre, dor perineal, disúria; ATB prolongado (ex.: quinolona se sensível) e cultura",
+    "texto": "Toque cuidadoso.",
+    "ameaca": "PROSTATITE",
+    "alternativas": [
+      "Cistite de 3 dias",
+      "Febre, dor perineal, disúria; ATB prolongado (ex.: quinolona se sensível) e cultura",
+      "Só AINE",
+      "Cirurgia imediata"
+    ]
+  },
+  {
+    "inimigo": "Epididimite em jovem vs idoso",
+    "correta": "Jovem: IST (clamídia/gono); idoso: enterobactérias",
+    "texto": "ATB conforme faixa etária e risco.",
+    "ameaca": "EPIDIDIMITE",
+    "alternativas": [
+      "Sempre igual",
+      "Jovem: IST (clamídia/gono); idoso: enterobactérias",
+      "Só viral",
+      "Sem ATB"
+    ]
+  },
+  {
+    "inimigo": "Orquite viral clássica",
+    "correta": "Caxumba",
+    "texto": "Suporte; considerar infertilidade se bilateral.",
+    "ameaca": "ORQUITE",
+    "alternativas": [
+      "Sarampo",
+      "Caxumba",
+      "Rubéola apenas",
+      "Varicela apenas"
+    ]
+  },
+  {
+    "inimigo": "Mononucleose - evitar esporte de contato",
+    "correta": "Risco de ruptura esplênica",
+    "texto": "Até normalizar baço.",
+    "ameaca": "EBV ESPORTE",
+    "alternativas": [
+      "Sem restrição",
+      "Risco de ruptura esplênica",
+      "Só por febre",
+      "Por 1 dia apenas"
+    ]
+  },
+  {
+    "inimigo": "Citomegalovirose congênita - sequelas",
+    "correta": "Surdez, microcefalia, calcificações periventriculares, retardo",
+    "texto": "Rastreio e reabilitação.",
+    "ameaca": "CMV CONGENITO",
+    "alternativas": [
+      "Sem sequela",
+      "Surdez, microcefalia, calcificações periventriculares, retardo",
+      "Só icterícia transitória",
+      "Só em prematuros sem risco em termo"
+    ]
+  },
+  {
+    "inimigo": "Parvovírus B19",
+    "correta": "Eritema infeccioso; aplasia transitória; hidropsia fetal se gestante suscetível",
+    "texto": "Sorologia/PCR.",
+    "ameaca": "PARVOVIRUS",
+    "alternativas": [
+      "Sarampo",
+      "Eritema infeccioso; aplasia transitória; hidropsia fetal se gestante suscetível",
+      "Só bacteriana",
+      "Sem risco fetal"
+    ]
+  },
+  {
+    "inimigo": "Sarampo - complicações",
+    "correta": "Pneumonia, otite, encefalite, SSPE tardia",
+    "texto": "Vitamina A em casos; vacina.",
+    "ameaca": "SARAMPO COMPL",
+    "alternativas": [
+      "Sempre benigno",
+      "Pneumonia, otite, encefalite, SSPE tardia",
+      "Só rash",
+      "Só em adultos sem risco em criança"
+    ]
+  },
+  {
+    "inimigo": "Rubéola congênita",
+    "correta": "Catarata, surdez, cardiopatia (PCA), microcefalia",
+    "texto": "Vacina antes da gestação.",
+    "ameaca": "RUBEOLA CONGENITA",
+    "alternativas": [
+      "Sem teratogenia",
+      "Catarata, surdez, cardiopatia (PCA), microcefalia",
+      "Só no 3º trimestre risco máximo absoluto",
+      "Tratável com ATB"
+    ]
+  },
+  {
+    "inimigo": "Poliomielite - prevenção",
+    "correta": "Vacina (VIP no calendário atual brasileiro em várias doses)",
+    "texto": "Paralisia flácida assimétrica.",
+    "ameaca": "POLIO",
+    "alternativas": [
+      "Só saneamento sem vacina",
+      "Vacina (VIP no calendário atual brasileiro em várias doses)",
+      "ATB",
+      "Inexistente no mundo"
+    ]
+  },
+  {
+    "inimigo": "Raiva - sintoma clássico",
+    "correta": "Hidrofobia, aerofobia, disfunção autonômica; quase sempre fatal após sintomas",
+    "texto": "Profilaxia pós-exposição é a chave.",
+    "ameaca": "RAIVA CLINICA",
+    "alternativas": [
+      "Resfriado",
+      "Hidrofobia, aerofobia, disfunção autonômica; quase sempre fatal após sintomas",
+      "Curável com ATB após sintomas",
+      "Benigna"
+    ]
+  },
+  {
+    "inimigo": "Síndrome da pele escaldada estafilocócica",
+    "correta": "Toxina esfoliativa de S. aureus; mais em crianças",
+    "texto": "Descamação; ATB e suporte.",
+    "ameaca": "SSSS",
+    "alternativas": [
+      "Stevens-Johnson por vírus",
+      "Toxina esfoliativa de S. aureus; mais em crianças",
+      "Só fúngica",
+      "Sem ATB"
+    ]
+  },
+  {
+    "inimigo": "Síndrome do choque tóxico",
+    "correta": "Toxinas de S. aureus ou S. pyogenes; febre, hipotensão, rash, falência multiorgânica",
+    "texto": "Remover foco + ATB + suporte.",
+    "ameaca": "TSS",
+    "alternativas": [
+      "Só sepse sem toxina",
+      "Toxinas de S. aureus ou S. pyogenes; febre, hipotensão, rash, falência multiorgânica",
+      "Viral",
+      "Alérgica apenas"
+    ]
+  },
+  {
+    "inimigo": "Faringite estreptocócica - critérios de Centor/McIsaac",
+    "correta": "Febre, ausência de tosse, adenopatia dolorosa, exsudato ± idade",
+    "texto": "Teste rápido/cultura e ATB se indicado.",
+    "ameaca": "FARINGITE STREPS",
+    "alternativas": [
+      "Tratar todo dor de garganta com ATB",
+      "Febre, ausência de tosse, adenopatia dolorosa, exsudato ± idade",
+      "Só viral sempre",
+      "Sem critérios úteis"
+    ]
+  },
+  {
+    "inimigo": "Abscesso hepático amebiano - líquido clássico",
+    "correta": "Aspecto de pasta de anchova (anchovy paste)",
+    "texto": "Metronidazol + amebicida luminal.",
+    "ameaca": "AMEBA ABSCESSO",
+    "alternativas": [
+      "Pus amarelo sempre piogênico",
+      "Aspecto de pasta de anchova (anchovy paste)",
+      "Líquor",
+      "Bile pura"
+    ]
+  },
+  {
+    "inimigo": "Febre tifoide - agente e complicação",
+    "correta": "Salmonella Typhi; perfuração intestinal na 3ª semana",
+    "texto": "Ceftriaxona/azitromicina/fluorquinolona conforme resistência.",
+    "ameaca": "TIFOIDE",
+    "alternativas": [
+      "E. coli",
+      "Salmonella Typhi; perfuração intestinal na 3ª semana",
+      "Shigella só",
+      "Vibrio"
+    ]
+  },
+  {
+    "inimigo": "Shigelose - característica",
+    "correta": "Disenteria com sangue/muco; dose infectante baixa; ATB em casos graves",
+    "texto": "Evitar antimotilidade.",
+    "ameaca": "SHIGELLA",
+    "alternativas": [
+      "Cólera aquosa pura",
+      "Disenteria com sangue/muco; dose infectante baixa; ATB em casos graves",
+      "Sempre autolimitada sem risco",
+      "Só vírus"
+    ]
+  },
+  {
+    "inimigo": "Campylobacter - associação tardia",
+    "correta": "Guillain-Barré",
+    "texto": "Diarreia; azitromicina se indicado.",
+    "ameaca": "CAMPYLOBACTER",
+    "alternativas": [
+      "Só reativo articular sem GBS",
+      "Guillain-Barré",
+      "Miastenia",
+      "AVC"
+    ]
+  },
+  {
+    "inimigo": "H. pylori - esquema clássico de erradicação",
+    "correta": "IBP + claritromicina + amoxicilina (ou metronidazol) conforme resistência local",
+    "texto": "Testar erradicação quando indicado.",
+    "ameaca": "HPYLORI TX",
+    "alternativas": [
+      "Só IBP isolado",
+      "IBP + claritromicina + amoxicilina (ou metronidazol) conforme resistência local",
+      "Só antiácido",
+      "Cirurgia de rotina"
+    ]
+  },
+  {
+    "inimigo": "Tétano - sinal clínico",
+    "correta": "Trismo, riso sardonico, opistótono; sensorio preservado",
+    "texto": "Metronidazol/penicilina + IG + suporte.",
+    "ameaca": "TETANO CLINICA",
+    "alternativas": [
+      "Flácida como botulismo",
+      "Trismo, riso sardonico, opistótono; sensorio preservado",
+      "Coma de início",
+      "Paralisia flácida assimétrica"
+    ]
+  },
+  {
+    "inimigo": "Botulismo alimentar vs infantil",
+    "correta": "Alimentar: toxina pré-formada; infantil: esporos no mel/ambiente colonizam intestino",
+    "texto": "Antitoxina; não dar mel a <1 ano.",
+    "ameaca": "BOTULISMO TIPOS",
+    "alternativas": [
+      "Iguais sempre",
+      "Alimentar: toxina pré-formada; infantil: esporos no mel/ambiente colonizam intestino",
+      "Só ferimento",
+      "Só inalatório"
+    ]
+  },
+  {
+    "inimigo": "Antraz cutâneo",
+    "correta": "Pústula maligna; Bacillus anthracis; ciprofloxacino ou doxiciclina",
+    "texto": "Notificação.",
+    "ameaca": "ANTRAZ",
+    "alternativas": [
+      "Só pulmonar",
+      "Pústula maligna; Bacillus anthracis; ciprofloxacino ou doxiciclina",
+      "Streptococo",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Peste - agente e vetor",
+    "correta": "Yersinia pestis; pulga de roedor",
+    "texto": "Bubônica, septicêmica, pneumônica; ATB urgente.",
+    "ameaca": "PESTE",
+    "alternativas": [
+      "Borrelia",
+      "Yersinia pestis; pulga de roedor",
+      "Anopheles",
+      "Aedes"
+    ]
+  },
+  {
+    "inimigo": "Tularemia",
+    "correta": "Francisella tularensis; carrapato/contato com coelhos; doxiciclina ou estreptomicina",
+    "texto": "Úlcera-glandular clássica.",
+    "ameaca": "TULAREMIA",
+    "alternativas": [
+      "Só viral",
+      "Francisella tularensis; carrapato/contato com coelhos; doxiciclina ou estreptomicina",
+      "Streptococo",
+      "Candida"
+    ]
+  },
+  {
+    "inimigo": "Brucelose",
+    "correta": "Febre ondulante; contato com gado/laticínios crus; doxiciclina + rifampicina",
+    "texto": "Osteoarticular frequente.",
+    "ameaca": "BRUCELOSE",
+    "alternativas": [
+      "TB só",
+      "Febre ondulante; contato com gado/laticínios crus; doxiciclina + rifampicina",
+      "Viral",
+      "Malária"
+    ]
+  },
+  {
+    "inimigo": "Febre Q",
+    "correta": "Coxiella burnetii; aerossol de animais; doxiciclina",
+    "texto": "Hepatite e endocardite cultura-negativa.",
+    "ameaca": "FEBRE Q",
+    "alternativas": [
+      "Q de quinino",
+      "Coxiella burnetii; aerossol de animais; doxiciclina",
+      "Rickettsia só carrapato",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Bartonella henselae",
+    "correta": "Doença da arranhadura do gato; linfadenopatia; azitromicina em alguns casos",
+    "texto": "Angiomatose bacilar em HIV.",
+    "ameaca": "BARTONELLA",
+    "alternativas": [
+      "Pasteurella só",
+      "Doença da arranhadura do gato; linfadenopatia; azitromicina em alguns casos",
+      "Só tétano",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Pasteurella multocida",
+    "correta": "Mordedura de gato/cão; celulite rápida; amox-clav",
+    "texto": "Não fechar ferimento primário de rotina.",
+    "ameaca": "PASTEURELLA",
+    "alternativas": [
+      "Só humano",
+      "Mordedura de gato/cão; celulite rápida; amox-clav",
+      "Viral",
+      "Fúngica"
+    ]
+  },
+  {
+    "inimigo": "Capnocytophaga canimorsus",
+    "correta": "Mordedura de cão; grave em asplênicos; sepse",
+    "texto": "ATB e suporte.",
+    "ameaca": "CAPNOCYTOPHAGA",
+    "alternativas": [
+      "Só gato",
+      "Mordedura de cão; grave em asplênicos; sepse",
+      "Sem risco em asplenia",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Vibrio vulnificus",
+    "correta": "Frutos do mar crus / água salgada; bolhas hemorrágicas e sepse em hepatopatas",
+    "texto": "ATB + cirurgia.",
+    "ameaca": "VIBRIO VULNIFICUS",
+    "alternativas": [
+      "Cólera apenas",
+      "Frutos do mar crus / água salgada; bolhas hemorrágicas e sepse em hepatopatas",
+      "Só cólera sem pele",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Aeromonas",
+    "correta": "Água doce; diarreia e ferimentos",
+    "texto": "ATB conforme gravidade.",
+    "ameaca": "AEROMONAS",
+    "alternativas": [
+      "Só salgada",
+      "Água doce; diarreia e ferimentos",
+      "Só viral",
+      "Sem ATB nunca"
+    ]
+  },
+  {
+    "inimigo": "Mycobacterium avium complex em HIV",
+    "correta": "Doença disseminada com CD4 <50; azitromicina/claritromicina + etambutol",
+    "texto": "Profilaxia com azitro se CD4 muito baixo.",
+    "ameaca": "MAC",
+    "alternativas": [
+      "TB igual esquema RHZE",
+      "Doença disseminada com CD4 <50; azitromicina/claritromicina + etambutol",
+      "Só pulmonar em imunocompetente igual",
+      "Sem tratamento"
+    ]
+  },
+  {
+    "inimigo": "Mycobacterium marinum",
+    "correta": "Aquários/água; nódulos linfáticos em mão/braço; claritromicina ou outros",
+    "texto": "Cultura em temperatura adequada.",
+    "ameaca": "M MARINUM",
+    "alternativas": [
+      "TB pulmonar",
+      "Aquários/água; nódulos linfáticos em mão/braço; claritromicina ou outros",
+      "Só viral",
+      "Estafilococo apenas"
+    ]
+  },
+  {
+    "inimigo": "Actinomicose",
+    "correta": "Grãos amarelos; abscesso cervicofacial crônico; penicilina prolongada",
+    "texto": "Anaeróbio.",
+    "ameaca": "ACTINOMICES",
+    "alternativas": [
+      "Nocardia igual tratamento curto",
+      "Grãos amarelos; abscesso cervicofacial crônico; penicilina prolongada",
+      "Fúngico azólico de escolha",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Nocardiose",
+    "correta": "Parcialmente BAAR; imunodeprimidos; pulmão e SNC; TMP-SMX prolongado",
+    "texto": "Cirurgia se abscesso.",
+    "ameaca": "NOCARDIA",
+    "alternativas": [
+      "Actinomyces anaeróbio igual",
+      "Parcialmente BAAR; imunodeprimidos; pulmão e SNC; TMP-SMX prolongado",
+      "Só curta ATB",
+      "Sem imagem de SNC se neuro"
+    ]
+  },
+  {
+    "inimigo": "Listeria monocytogenes",
+    "correta": "Gestantes, idosos, imunodeprimidos; contaminação alimentar; ampicilina",
+    "texto": "Meningite com monócitos às vezes.",
+    "ameaca": "LISTERIA",
+    "alternativas": [
+      "Pneumococo só",
+      "Gestantes, idosos, imunodeprimidos; contaminação alimentar; ampicilina",
+      "Ceftriaxona isolada sempre suficiente",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Corynebacterium diphtheriae - tratamento específico",
+    "correta": "Antitoxina + ATB (penicilina ou eritromicina)",
+    "texto": "Isolamento e vacinação de contactantes.",
+    "ameaca": "DIFTERIA TX",
+    "alternativas": [
+      "Só ATB sem antitoxina",
+      "Antitoxina + ATB (penicilina ou eritromicina)",
+      "Só suporte",
+      "Antiviral"
+    ]
+  },
+  {
+    "inimigo": "Bordetella pertussis - fase",
+    "correta": "Catarral → paroxística → convalescente; azitromicina",
+    "texto": "Vacina e quimioprofilaxia de contactantes.",
+    "ameaca": "COQUELUCHE FASES",
+    "alternativas": [
+      "Só uma fase",
+      "Catarral → paroxística → convalescente; azitromicina",
+      "Sem ATB benefício",
+      "Quinolona em neonato de rotina"
+    ]
+  },
+  {
+    "inimigo": "Haemophilus influenzae tipo b - prevenção",
+    "correta": "Vacina conjugada no calendário",
+    "texto": "Epiglotite, meningite, artrite séptica reduzidas.",
+    "ameaca": "HIB",
+    "alternativas": [
+      "Só polissacarídica em lactentes",
+      "Vacina conjugada no calendário",
+      "Sem vacina",
+      "Só em adultos"
+    ]
+  },
+  {
+    "inimigo": "Neisseria meningitidis - vacinas",
+    "correta": "Conjugadas C e ACWY; meningo B em indicações",
+    "texto": "Profilaxia de contactantes.",
+    "ameaca": "MENINGO VACINA",
+    "alternativas": [
+      "Só pneumo",
+      "Conjugadas C e ACWY; meningo B em indicações",
+      "Inexistentes",
+      "Só após doença"
+    ]
+  },
+  {
+    "inimigo": "Neisseria gonorrhoeae - resistência",
+    "correta": "Ceftriaxona em dose adequada; não usar mais fluoroquinolonas de rotina",
+    "texto": "Tratar clamídia associada empiricamente.",
+    "ameaca": "GONO RESISTENCIA",
+    "alternativas": [
+      "Penicilina oral sempre ok",
+      "Ceftriaxona em dose adequada; não usar mais fluoroquinolonas de rotina",
+      "Só azitro isolada",
+      "Sem parceiro tratar"
+    ]
+  },
+  {
+    "inimigo": "Chlamydia trachomatis - linfogranuloma venéreo",
+    "correta": "L1-L3; úlcera + bubão inguinal; doxiciclina prolongada",
+    "texto": "DST.",
+    "ameaca": "LGV",
+    "alternativas": [
+      "Só uretrite não complicada igual tempo",
+      "L1-L3; úlcera + bubão inguinal; doxiciclina prolongada",
+      "Viral",
+      "Sem ATB"
+    ]
+  },
+  {
+    "inimigo": "Haemophilus ducreyi",
+    "correta": "Cancroide; úlcera dolorosa e bubão; azitromicina ou ceftriaxona",
+    "texto": "DST tropical.",
+    "ameaca": "CANCROIDE",
+    "alternativas": [
+      "Sífilis indolora apenas",
+      "Cancroide; úlcera dolorosa e bubão; azitromicina ou ceftriaxona",
+      "HSV sempre",
+      "Donovanose igual agente"
+    ]
+  },
+  {
+    "inimigo": "Klebsiella granulomatis (donovanose)",
+    "correta": "Úlcera granulomatosa; corpos de Donovan; azitromicina",
+    "texto": "DST.",
+    "ameaca": "DONOVANOSE",
+    "alternativas": [
+      "Cancroide",
+      "Úlcera granulomatosa; corpos de Donovan; azitromicina",
+      "Sífilis",
+      "HSV"
+    ]
+  },
+  {
+    "inimigo": "Mycoplasma genitalium",
+    "correta": "Uretrite persistente; resistência a azitro; moxifloxacino em alguns esquemas",
+    "texto": "DST emergente.",
+    "ameaca": "M GENITALIUM",
+    "alternativas": [
+      "Só gonorreia",
+      "Uretrite persistente; resistência a azitro; moxifloxacino em alguns esquemas",
+      "Sem tratamento",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Trichomonas - homem",
+    "correta": "Muitas vezes assintomático; tratar parceiros",
+    "texto": "Metronidazol.",
+    "ameaca": "TRICH HOMEM",
+    "alternativas": [
+      "Só mulher tem",
+      "Muitas vezes assintomático; tratar parceiros",
+      "Sem DST",
+      "Só fúngico"
+    ]
+  },
+  {
+    "inimigo": "Candidíase oral em HIV",
+    "correta": "Sinal de imunossupressão; fluconazol se necessário",
+    "texto": "Avaliar CD4 e TARV.",
+    "ameaca": "CANDIDA ORAL HIV",
+    "alternativas": [
+      "Normal em todo mundo igual",
+      "Sinal de imunossupressão; fluconazol se necessário",
+      "Só escovar",
+      "Antibiótico"
+    ]
+  },
+  {
+    "inimigo": "Leucoplasia pilosa oral",
+    "correta": "EBV em laterais da língua; HIV",
+    "texto": "Indicador de imunossupressão.",
+    "ameaca": "LEUCOPLASIA PILOSA",
+    "alternativas": [
+      "Candida sempre",
+      "EBV em laterais da língua; HIV",
+      "Bacteriana",
+      "Trauma só"
+    ]
+  },
+  {
+    "inimigo": "Sarcoma de Kaposi",
+    "correta": "HHV-8; lesões cutâneo-mucosas em HIV",
+    "texto": "TARV ± quimio/local.",
+    "ameaca": "KAPOSI",
+    "alternativas": [
+      "HSV",
+      "HHV-8; lesões cutâneo-mucosas em HIV",
+      "Bacteriano",
+      "Fúngico"
+    ]
+  },
+  {
+    "inimigo": "Progressive multifocal leukoencephalopathy",
+    "correta": "JC virus; demielinização em imunossuprimidos",
+    "texto": "TARV é a base no HIV.",
+    "ameaca": "PML",
+    "alternativas": [
+      "Toxoplasma",
+      "JC virus; demielinização em imunossuprimidos",
+      "Bacteriana",
+      "AVC isquêmico simples"
+    ]
+  },
+  {
+    "inimigo": "IRIS (síndrome inflamatória de reconstituição imune)",
+    "correta": "Piora paradoxal após iniciar TARV; tratar infecção de base ± anti-inflamatório",
+    "texto": "Não é falha de TARV.",
+    "ameaca": "IRIS",
+    "alternativas": [
+      "Resistência viral sempre",
+      "Piora paradoxal após iniciar TARV; tratar infecção de base ± anti-inflamatório",
+      "Alergia a TARV apenas",
+      "Nova infecção só"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia com isoniazida (ILTB)",
+    "correta": "Após excluir TB ativa; 6-9 meses (ou esquemas alternativos)",
+    "texto": "Hepatotoxicidade monitorar.",
+    "ameaca": "ILTB",
+    "alternativas": [
+      "RHZE completo em latente",
+      "Após excluir TB ativa; 6-9 meses (ou esquemas alternativos)",
+      "Sem necessidade se BCG",
+      "Só em crianças"
+    ]
+  },
+  {
+    "inimigo": "Teste tuberculínico / IGRA",
+    "correta": "Detectam infecção latente; não diferenciam latente de ativa",
+    "texto": "Interpretar com risco e radiografia.",
+    "ameaca": "TT IGRA",
+    "alternativas": [
+      "Diagnosticam TB ativa isoladamente",
+      "Detectam infecção latente; não diferenciam latente de ativa",
+      "Substituem baciloscopia na ativa",
+      "Inúteis se BCG"
+    ]
+  },
+  {
+    "inimigo": "GeneXpert MTB/RIF",
+    "correta": "PCR rápida para TB e resistência à rifampicina",
+    "texto": "Útil em escarro e extrapulmonar conforme indicação.",
+    "ameaca": "XPERT",
+    "alternativas": [
+      "Só cultura lenta",
+      "PCR rápida para TB e resistência à rifampicina",
+      "Só baciloscopia",
+      "Sorologia"
+    ]
+  },
+  {
+    "inimigo": "TB extrapulmonar - exemplos",
+    "correta": "Pleural, ganglionar, meníngea, óssea, miliar",
+    "texto": "Mesmo esquema com possível prolongamento (meníngea/óssea).",
+    "ameaca": "TB EXTRA",
+    "alternativas": [
+      "Só pulmonar existe",
+      "Pleural, ganglionar, meníngea, óssea, miliar",
+      "Só cutânea",
+      "Sem tratamento padrão"
+    ]
+  },
+  {
+    "inimigo": "Meningite TB - liquor",
+    "correta": "Linfócitos, proteínas muito altas, glicose baixa; ADA pode ajudar",
+    "texto": "RHZE + corticoide; prolongar.",
+    "ameaca": "TB MENINGITE",
+    "alternativas": [
+      "Neutrófilos e glicose normal",
+      "Linfócitos, proteínas muito altas, glicose baixa; ADA pode ajudar",
+      "Viral típico",
+      "Normal"
+    ]
+  },
+  {
+    "inimigo": "Hansen - reação tipo 1 e 2",
+    "correta": "Tipo 1: upgrade/downgrade celular; tipo 2: eritema nodoso hansênico",
+    "texto": "Corticoide/talidomida conforme tipo.",
+    "ameaca": "HANSEN REACAO",
+    "alternativas": [
+      "Sem reações",
+      "Tipo 1: upgrade/downgrade celular; tipo 2: eritema nodoso hansênico",
+      "Só infecção secundária",
+      "Alérgica a dapsona apenas"
+    ]
+  },
+  {
+    "inimigo": "Picada de escorpião / aranha - não é infecção mas diagnóstico diferencial de celulite",
+    "correta": "História e lesão local; antiveneno quando indicado",
+    "texto": "Não ATB de rotina se não houver infecção secundária.",
+    "ameaca": "ACIDENTE PECONHENTO",
+    "alternativas": [
+      "Sempre celulite bacteriana",
+      "História e lesão local; antiveneno quando indicado",
+      "ATB obrigatório",
+      "Ignorar"
+    ]
+  },
+  {
+    "inimigo": "Febre de origem indeterminada - definição clássica",
+    "correta": "Febre ≥3 semanas sem diagnóstico após investigação inicial",
+    "texto": "Infecção, neoplasma, autoimune.",
+    "ameaca": "FOI",
+    "alternativas": [
+      "Febre de 1 dia",
+      "Febre ≥3 semanas sem diagnóstico após investigação inicial",
+      "Só viral",
+      "Só hospitalar"
+    ]
+  },
+  {
+    "inimigo": "Endocardite cultura-negativa - causas",
+    "correta": "ATB prévio, Coxiella, Bartonella, HACEK, fungos",
+    "texto": "Sorologias e meios especiais.",
+    "ameaca": "ENDOCARDITE CN",
+    "alternativas": [
+      "Impossível",
+      "ATB prévio, Coxiella, Bartonella, HACEK, fungos",
+      "Só vírus",
+      "Sempre contaminada"
+    ]
+  },
+  {
+    "inimigo": "HACEK",
+    "correta": "Haemophilus, Aggregatibacter, Cardiobacterium, Eikenella, Kingella - endocardite",
+    "texto": "Ceftriaxona frequentemente.",
+    "ameaca": "HACEK",
+    "alternativas": [
+      "Só estafilococos",
+      "Haemophilus, Aggregatibacter, Cardiobacterium, Eikenella, Kingella - endocardite",
+      "Só fungos",
+      "Vírus"
+    ]
+  },
+  {
+    "inimigo": "Infecção por Clostridium perfringens",
+    "correta": "Gangrena gasosa / mionecrose; toxina; cirurgia radical + ATB",
+    "texto": "Trauma e isquemia.",
+    "ameaca": "C PERFRINGENS",
+    "alternativas": [
+      "C. difficile apenas",
+      "Gangrena gasosa / mionecrose; toxina; cirurgia radical + ATB",
+      "Só alimentar sem tecido",
+      "Viral"
+    ]
+  },
+  {
+    "inimigo": "Síndrome hemolítico-urêmica típica",
+    "correta": "E. coli produtora de toxina Shiga (STEC) pós-diarreia; evitar ATB na fase diarreica",
+    "texto": "Suporte renal.",
+    "ameaca": "SHU",
+    "alternativas": [
+      "Shigella só sem HUS",
+      "E. coli produtora de toxina Shiga (STEC) pós-diarreia; evitar ATB na fase diarreica",
+      "Sempre ATB imediato melhora",
+      "Viral puro"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🔬 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA INFECTOLOGIA] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[CENÁRIO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🦠`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE AVALIAÇÃO DE INFECTOLOGIA CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE INFECTOLOGIA INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

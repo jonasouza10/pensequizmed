@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Imunologia - Um quiz de Imunologia para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Imunologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Imunologia</h1>
+  <p>Defenda o corpo contra invasores! 🛡️</p>
+
+  <div id="terminal">[SISTEMA DE TESTE IMUNOLÓGICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🔬 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE IMUNOLÓGICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE IMUNOLOGIA</h2>
+      <p>Bem-vindo, Futuro Imunologista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre o sistema de defesa do corpo humano.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente células, moléculas e mecanismos da resposta imune.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre como o corpo combate infecções e mantém a homeostase.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Imunológica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A imunologia é fascinante e essencial para a saúde. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Imunologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura médica e biológica:</p>
+      <ul>
+        <li>**LIVRO:** Abbas, Lichtman & Pillai - Imunologia Celular e Molecular [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Murphy, Weaver & Janeway - Imunobiologia de Janeway [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Male, Brostoff & Roth - Imunologia [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Imunologia.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino médico e biológico reconhecidas, como sites de universidades com materiais e cursos de Imunologia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+  <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Imunidade inata",
+    "correta": "Resposta rápida e não específica",
+    "texto": "Barreiras, fagócitos, complemento, inflamação.",
+    "ameaca": "INATA",
+    "alternativas": [
+      "Adaptativa lenta",
+      "Resposta rápida e não específica",
+      "Só anticorpos",
+      "Só linfócitos T"
+    ]
+  },
+  {
+    "inimigo": "Imunidade adaptativa",
+    "correta": "Específica e com memória",
+    "texto": "Linfócitos T e B.",
+    "ameaca": "ADAPTATIVA",
+    "alternativas": [
+      "Inata apenas",
+      "Específica e com memória",
+      "Só barreiras",
+      "Só complemento"
+    ]
+  },
+  {
+    "inimigo": "Barreira física",
+    "correta": "Pele e mucosas",
+    "texto": "Primeira linha de defesa.",
+    "ameaca": "BARREIRA",
+    "alternativas": [
+      "Só anticorpos",
+      "Pele e mucosas",
+      "Só linfócitos",
+      "Só citocinas"
+    ]
+  },
+  {
+    "inimigo": "Neutrófilo função",
+    "correta": "Fagocitose aguda de bactérias",
+    "texto": "Mais abundante.",
+    "ameaca": "NEUTROFILO",
+    "alternativas": [
+      "Apresentação de antígeno a T",
+      "Fagocitose aguda de bactérias",
+      "Produção de anticorpos",
+      "Citotoxicidade viral"
+    ]
+  },
+  {
+    "inimigo": "Macrófago",
+    "correta": "Fagocitose e apresentação de antígeno",
+    "texto": "Derivado de monócito.",
+    "ameaca": "MACROFAGO",
+    "alternativas": [
+      "Só anticorpo",
+      "Fagocitose e apresentação de antígeno",
+      "Só complemento",
+      "Só barreira"
+    ]
+  },
+  {
+    "inimigo": "Célula dendrítica",
+    "correta": "Principal apresentadora de antígeno a T virgens",
+    "texto": "Elo inata-adaptativa.",
+    "ameaca": "DENDRITICA",
+    "alternativas": [
+      "Neutrófilo",
+      "Principal apresentadora de antígeno a T virgens",
+      "Eosinófilo",
+      "Basófilo"
+    ]
+  },
+  {
+    "inimigo": "Complemento via clássica",
+    "correta": "Ativada por complexos Ag-Ac",
+    "texto": "C1qrs.",
+    "ameaca": "CLASSICA",
+    "alternativas": [
+      "Alternativa",
+      "Ativada por complexos Ag-Ac",
+      "Lectina apenas",
+      "Só MAC sem ativação"
+    ]
+  },
+  {
+    "inimigo": "Complemento via alternativa",
+    "correta": "Ativada espontaneamente / superfícies microbianas",
+    "texto": "Fator B, D, properdina.",
+    "ameaca": "ALTERNATIVA",
+    "alternativas": [
+      "Clássica",
+      "Ativada espontaneamente / superfícies microbianas",
+      "Só Ac",
+      "Só lectina"
+    ]
+  },
+  {
+    "inimigo": "MAC (complexo de ataque à membrana)",
+    "correta": "C5b-C9; líse de células",
+    "texto": "Poro na membrana.",
+    "ameaca": "MAC",
+    "alternativas": [
+      "C3a apenas",
+      "C5b-C9; líse de células",
+      "Só opsonização",
+      "Só quimiotaxia"
+    ]
+  },
+  {
+    "inimigo": "Opsonização",
+    "correta": "Marcar para fagocitose (C3b, IgG)",
+    "texto": "Facilita ingestão.",
+    "ameaca": "OPSONIZACAO",
+    "alternativas": [
+      "Só líse",
+      "Marcar para fagocitose (C3b, IgG)",
+      "Só inflamação",
+      "Só neutralização"
+    ]
+  },
+  {
+    "inimigo": "Anafilatoxinas",
+    "correta": "C3a, C4a, C5a; inflamação e mastócitos",
+    "texto": "Quimiotaxia (C5a).",
+    "ameaca": "ANAFLATOXINA",
+    "alternativas": [
+      "Só MAC",
+      "C3a, C4a, C5a; inflamação e mastócitos",
+      "Só opsoninas",
+      "Só anticorpos"
+    ]
+  },
+  {
+    "inimigo": "MHC classe I",
+    "correta": "Apresenta peptídeos a CD8; todas as células nucleadas",
+    "texto": "Via citosólica.",
+    "ameaca": "MHC I",
+    "alternativas": [
+      "Só em APCs",
+      "Apresenta peptídeos a CD8; todas as células nucleadas",
+      "Só CD4",
+      "Só eritrócitos"
+    ]
+  },
+  {
+    "inimigo": "MHC classe II",
+    "correta": "Apresenta peptídeos a CD4; APCs profissionais",
+    "texto": "Via endossômica.",
+    "ameaca": "MHC II",
+    "alternativas": [
+      "Todas as células",
+      "Apresenta peptídeos a CD4; APCs profissionais",
+      "Só CD8",
+      "Só plaquetas"
+    ]
+  },
+  {
+    "inimigo": "Linfócito T CD4",
+    "correta": "Helper; ativa B, macrófagos e CD8",
+    "texto": "Reconhece MHC II.",
+    "ameaca": "CD4",
+    "alternativas": [
+      "Citotóxico",
+      "Helper; ativa B, macrófagos e CD8",
+      "NK",
+      "Neutrófilo"
+    ]
+  },
+  {
+    "inimigo": "Linfócito T CD8",
+    "correta": "Citotóxico; mata células infectadas/tumorais",
+    "texto": "Reconhece MHC I.",
+    "ameaca": "CD8",
+    "alternativas": [
+      "Helper",
+      "Citotóxico; mata células infectadas/tumorais",
+      "B",
+      "APC"
+    ]
+  },
+  {
+    "inimigo": "Linfócito B",
+    "correta": "Produz anticorpos; vira plasmócito",
+    "texto": "Reconhece antígeno nativo.",
+    "ameaca": "B",
+    "alternativas": [
+      "T helper",
+      "Produz anticorpos; vira plasmócito",
+      "NK",
+      "Macrófago"
+    ]
+  },
+  {
+    "inimigo": "Plasmócito",
+    "correta": "Fábrica de anticorpos",
+    "texto": "Derivado de B ativado.",
+    "ameaca": "PLASMOCITO",
+    "alternativas": [
+      "T",
+      "Fábrica de anticorpos",
+      "NK",
+      "Dendrítica"
+    ]
+  },
+  {
+    "inimigo": "Anticorpo IgM",
+    "correta": "Primeiro na resposta primária; pentâmero; ativa complemento",
+    "texto": "Receptor de B virgem também.",
+    "ameaca": "IGM",
+    "alternativas": [
+      "IgG",
+      "Primeiro na resposta primária; pentâmero; ativa complemento",
+      "IgA",
+      "IgE"
+    ]
+  },
+  {
+    "inimigo": "Anticorpo IgG",
+    "correta": "Mais abundante no soro; atravessa placenta; opsoniza",
+    "texto": "Resposta secundária.",
+    "ameaca": "IGG",
+    "alternativas": [
+      "IgM",
+      "Mais abundante no soro; atravessa placenta; opsoniza",
+      "IgA",
+      "IgE"
+    ]
+  },
+  {
+    "inimigo": "Anticorpo IgA",
+    "correta": "Mucosas e secreções; dímero com peça secretora",
+    "texto": "Leite materno.",
+    "ameaca": "IGA",
+    "alternativas": [
+      "IgG",
+      "Mucosas e secreções; dímero com peça secretora",
+      "IgM",
+      "IgE"
+    ]
+  },
+  {
+    "inimigo": "Anticorpo IgE",
+    "correta": "Alergia e parasitas; liga mastócitos e basófilos",
+    "texto": "Reagina com alérgeno → histamina.",
+    "ameaca": "IGE",
+    "alternativas": [
+      "IgG",
+      "Alergia e parasitas; liga mastócitos e basófilos",
+      "IgA",
+      "IgM"
+    ]
+  },
+  {
+    "inimigo": "Anticorpo IgD",
+    "correta": "Receptor de superfície em B maduros",
+    "texto": "Função pouco clara no soro.",
+    "ameaca": "IGD",
+    "alternativas": [
+      "IgG",
+      "Receptor de superfície em B maduros",
+      "IgA",
+      "IgE"
+    ]
+  },
+  {
+    "inimigo": "Switch de classe",
+    "correta": "Mudança de isótipo mantendo especificidade",
+    "texto": "Dependente de T e AID.",
+    "ameaca": "SWITCH",
+    "alternativas": [
+      "Mudança de especificidade",
+      "Mudança de isótipo mantendo especificidade",
+      "Só em T",
+      "Só IgM eterno"
+    ]
+  },
+  {
+    "inimigo": "Hipermutação somática",
+    "correta": "Aumenta afinidade do anticorpo nos centros germinativos",
+    "texto": "AID.",
+    "ameaca": "HIPERMUTACAO",
+    "alternativas": [
+      "Na linha germinativa",
+      "Aumenta afinidade do anticorpo nos centros germinativos",
+      "Só em T",
+      "Só IgM"
+    ]
+  },
+  {
+    "inimigo": "Centro germinativo",
+    "correta": "Afinidade e switch em folículos de órgãos linfoides",
+    "texto": "B e Tfh.",
+    "ameaca": "GERMINATIVO",
+    "alternativas": [
+      "Só medula",
+      "Afinidade e switch em folículos de órgãos linfoides",
+      "Só timo",
+      "Só sangue"
+    ]
+  },
+  {
+    "inimigo": "Th1",
+    "correta": "IFN-γ; ativa macrófagos; imunidade celular",
+    "texto": "Contra intracelulares.",
+    "ameaca": "TH1",
+    "alternativas": [
+      "Th2",
+      "IFN-γ; ativa macrófagos; imunidade celular",
+      "Th17",
+      "Treg"
+    ]
+  },
+  {
+    "inimigo": "Th2",
+    "correta": "IL-4, IL-5, IL-13; anticorpos e eosinófilos",
+    "texto": "Parasitas e alergia.",
+    "ameaca": "TH2",
+    "alternativas": [
+      "Th1",
+      "IL-4, IL-5, IL-13; anticorpos e eosinófilos",
+      "Th17",
+      "Tfh"
+    ]
+  },
+  {
+    "inimigo": "Th17",
+    "correta": "IL-17; neutrófilos e barreira epitelial",
+    "texto": "Fungos e bactérias extracelulares.",
+    "ameaca": "TH17",
+    "alternativas": [
+      "Th1",
+      "IL-17; neutrófilos e barreira epitelial",
+      "Treg",
+      "Th2"
+    ]
+  },
+  {
+    "inimigo": "Treg",
+    "correta": "Supressão; FOXP3; IL-10 e TGF-β",
+    "texto": "Tolerância e controle de inflamação.",
+    "ameaca": "TREG",
+    "alternativas": [
+      "Th17",
+      "Supressão; FOXP3; IL-10 e TGF-β",
+      "Th1",
+      "CD8"
+    ]
+  },
+  {
+    "inimigo": "NK",
+    "correta": "Mata células sem MHC I ou com estresse; ADCC",
+    "texto": "Inata.",
+    "ameaca": "NK",
+    "alternativas": [
+      "T CD8 só",
+      "Mata células sem MHC I ou com estresse; ADCC",
+      "B",
+      "Neutrófilo"
+    ]
+  },
+  {
+    "inimigo": "ADCC",
+    "correta": "Citotoxicidade dependente de anticorpo (NK, eosinófilo)",
+    "texto": "FcR.",
+    "ameaca": "ADCC",
+    "alternativas": [
+      "Só complemento",
+      "Citotoxicidade dependente de anticorpo (NK, eosinófilo)",
+      "Só fagocitose",
+      "Só neutralização"
+    ]
+  },
+  {
+    "inimigo": "Citocina pró-inflamatória",
+    "correta": "TNF, IL-1, IL-6",
+    "texto": "Fase aguda e febre.",
+    "ameaca": "PRO INFLAM",
+    "alternativas": [
+      "IL-10",
+      "TNF, IL-1, IL-6",
+      "TGF-β",
+      "IL-4 só"
+    ]
+  },
+  {
+    "inimigo": "Citocina anti-inflamatória",
+    "correta": "IL-10, TGF-β",
+    "texto": "Controle da resposta.",
+    "ameaca": "ANTI INFLAM",
+    "alternativas": [
+      "TNF",
+      "IL-10, TGF-β",
+      "IL-1",
+      "IL-6"
+    ]
+  },
+  {
+    "inimigo": "Quimiocina",
+    "correta": "Atrai leucócitos para o tecido",
+    "texto": "Gradiente químico.",
+    "ameaca": "QUIMIOCINA",
+    "alternativas": [
+      "Só anticorpo",
+      "Atrai leucócitos para o tecido",
+      "Só complemento",
+      "Só MHC"
+    ]
+  },
+  {
+    "inimigo": "Inflamação aguda sinais",
+    "correta": "Rubor, calor, dor, tumor, perda de função",
+    "texto": "Vasodilatação e permeabilidade.",
+    "ameaca": "INFLAM AGUDA",
+    "alternativas": [
+      "Só crônica",
+      "Rubor, calor, dor, tumor, perda de função",
+      "Só febre",
+      "Só leucocitose"
+    ]
+  },
+  {
+    "inimigo": "Diapedese",
+    "correta": "Passagem de leucócitos pelo endotélio",
+    "texto": "Selectinas e integrinas.",
+    "ameaca": "DIAPEDESE",
+    "alternativas": [
+      "Só no sangue",
+      "Passagem de leucócitos pelo endotélio",
+      "Só quimiotaxia sem adesão",
+      "Só no linfonodo"
+    ]
+  },
+  {
+    "inimigo": "Selecinas",
+    "correta": "Adesão inicial frouxa (rolling)",
+    "texto": "Endotélio ativado.",
+    "ameaca": "SELECTINA",
+    "alternativas": [
+      "Integrinas firmes",
+      "Adesão inicial frouxa (rolling)",
+      "Cadherinas",
+      "MHC"
+    ]
+  },
+  {
+    "inimigo": "Integrinas na inflamação",
+    "correta": "Adesão firme e diapedese",
+    "texto": "Ativadas por quimiocinas.",
+    "ameaca": "INTEGRINA INFL",
+    "alternativas": [
+      "Selectinas",
+      "Adesão firme e diapedese",
+      "Anticorpos",
+      "Complemento"
+    ]
+  },
+  {
+    "inimigo": "Tolerância central",
+    "correta": "Eliminação de clones autorreativos no timo e medula",
+    "texto": "Seleção negativa.",
+    "ameaca": "TOLERANCIA C",
+    "alternativas": [
+      "Só periférica",
+      "Eliminação de clones autorreativos no timo e medula",
+      "Só em adultos",
+      "Inexistente"
+    ]
+  },
+  {
+    "inimigo": "Tolerância periférica",
+    "correta": "Anergia, deleção e supressão de clones que escaparam",
+    "texto": "Treg importantes.",
+    "ameaca": "TOLERANCIA P",
+    "alternativas": [
+      "Só central",
+      "Anergia, deleção e supressão de clones que escaparam",
+      "Só no timo",
+      "Só medula"
+    ]
+  },
+  {
+    "inimigo": "Seleção positiva no timo",
+    "correta": "T que reconhecem MHC próprio com baixa afinidade sobrevivem",
+    "texto": "Córtex tímico.",
+    "ameaca": "SEL POS",
+    "alternativas": [
+      "Negativa",
+      "T que reconhecem MHC próprio com baixa afinidade sobrevivem",
+      "Só medula",
+      "Só B"
+    ]
+  },
+  {
+    "inimigo": "Seleção negativa no timo",
+    "correta": "T de alta afinidade a autoantígeno morrem",
+    "texto": "Medula tímica; AIRE.",
+    "ameaca": "SEL NEG",
+    "alternativas": [
+      "Positiva",
+      "T de alta afinidade a autoantígeno morrem",
+      "Só córtex",
+      "Só B"
+    ]
+  },
+  {
+    "inimigo": "AIRE",
+    "correta": "Fator que expressa antígenos teciduais no timo",
+    "texto": "Essencial à seleção negativa.",
+    "ameaca": "AIRE",
+    "alternativas": [
+      "Só no baço",
+      "Fator que expressa antígenos teciduais no timo",
+      "Só em B",
+      "Só MHC"
+    ]
+  },
+  {
+    "inimigo": "Hipersensibilidade tipo I",
+    "correta": "Imediata; IgE; mastócitos",
+    "texto": "Anafilaxia, alergia.",
+    "ameaca": "HS I",
+    "alternativas": [
+      "Tipo II",
+      "Imediata; IgE; mastócitos",
+      "Tipo III",
+      "Tipo IV"
+    ]
+  },
+  {
+    "inimigo": "Hipersensibilidade tipo II",
+    "correta": "Citotóxica; IgG/IgM contra superfície celular",
+    "texto": "Transfusão, Graves, MG.",
+    "ameaca": "HS II",
+    "alternativas": [
+      "Tipo I",
+      "Citotóxica; IgG/IgM contra superfície celular",
+      "Tipo III",
+      "Tipo IV"
+    ]
+  },
+  {
+    "inimigo": "Hipersensibilidade tipo III",
+    "correta": "Complexos imunes; depósito em tecidos",
+    "texto": "Lúpus, soro-doença.",
+    "ameaca": "HS III",
+    "alternativas": [
+      "Tipo II",
+      "Complexos imunes; depósito em tecidos",
+      "Tipo I",
+      "Tipo IV"
+    ]
+  },
+  {
+    "inimigo": "Hipersensibilidade tipo IV",
+    "correta": "Tardía; células T",
+    "texto": "Tuberculina, contato, granuloma.",
+    "ameaca": "HS IV",
+    "alternativas": [
+      "Tipo I",
+      "Tardía; células T",
+      "Tipo II",
+      "Tipo III"
+    ]
+  },
+  {
+    "inimigo": "Vacina viva atenuada",
+    "correta": "Resposta forte celular e humoral; risco em imunodeprimidos",
+    "texto": "BCG, MMR, varicela.",
+    "ameaca": "VIVA",
+    "alternativas": [
+      "Inativada",
+      "Resposta forte celular e humoral; risco em imunodeprimidos",
+      "Toxóide",
+      "Subunidade"
+    ]
+  },
+  {
+    "inimigo": "Vacina inativada",
+    "correta": "Segura em imunodeprimidos; pode precisar de reforços",
+    "texto": "Polio Salk, hepatite A.",
+    "ameaca": "INATIVADA",
+    "alternativas": [
+      "Viva",
+      "Segura em imunodeprimidos; pode precisar de reforços",
+      "BCG",
+      "MMR"
+    ]
+  },
+  {
+    "inimigo": "Vacina toxóide",
+    "correta": "Toxina inativada",
+    "texto": "Difteria, tétano.",
+    "ameaca": "TOXOIDE",
+    "alternativas": [
+      "Viva",
+      "Toxina inativada",
+      "Polissacarídica",
+      "mRNA apenas"
+    ]
+  },
+  {
+    "inimigo": "Vacina conjugada",
+    "correta": "Polissacarídeo ligado a proteína; resposta em crianças",
+    "texto": "Hib, pneumo, meningo.",
+    "ameaca": "CONJUGADA",
+    "alternativas": [
+      "Polissacarídeo puro",
+      "Polissacarídeo ligado a proteína; resposta em crianças",
+      "Toxóide",
+      "Viva"
+    ]
+  },
+  {
+    "inimigo": "Adjuvante",
+    "correta": "Aumenta a resposta à vacina",
+    "texto": "Alumínio, MF59, etc.",
+    "ameaca": "ADJUVANTE",
+    "alternativas": [
+      "Antígeno principal",
+      "Aumenta a resposta à vacina",
+      "Só diluente",
+      "Só conservante"
+    ]
+  },
+  {
+    "inimigo": "Imunodeficiência primária",
+    "correta": "Defeito genético do sistema imune",
+    "texto": "SCID, XLA, CGD.",
+    "ameaca": "IDP",
+    "alternativas": [
+      "Secundária",
+      "Defeito genético do sistema imune",
+      "Só HIV",
+      "Só desnutrição"
+    ]
+  },
+  {
+    "inimigo": "SCID",
+    "correta": "Ausência de T (e às vezes B/NK); infecções graves precoces",
+    "texto": "Várias causas genéticas.",
+    "ameaca": "SCID",
+    "alternativas": [
+      "Só IgA",
+      "Ausência de T (e às vezes B/NK); infecções graves precoces",
+      "Só neutrófilos",
+      "Só complemento"
+    ]
+  },
+  {
+    "inimigo": "X-linked agammaglobulinemia",
+    "correta": "Ausência de B e imunoglobulinas; Bruton",
+    "texto": "Infecções bacterianas de repetição.",
+    "ameaca": "XLA",
+    "alternativas": [
+      "SCID T",
+      "Ausência de B e imunoglobulinas; Bruton",
+      "CGD",
+      "Chediak"
+    ]
+  },
+  {
+    "inimigo": "Doença granulomatosa crônica",
+    "correta": "Defeito de burst respiratório; infecções por catalase+",
+    "texto": "CGD.",
+    "ameaca": "CGD",
+    "alternativas": [
+      "XLA",
+      "Defeito de burst respiratório; infecções por catalase+",
+      "SCID",
+      "LAD"
+    ]
+  },
+  {
+    "inimigo": "HIV alvo principal",
+    "correta": "CD4 (T helper e outras)",
+    "texto": "Imunodeficiência progressiva.",
+    "ameaca": "HIV",
+    "alternativas": [
+      "CD8",
+      "CD4 (T helper e outras)",
+      "B",
+      "Neutrófilo"
+    ]
+  },
+  {
+    "inimigo": "AIDS definição",
+    "correta": "CD4 <200 ou doença definidora",
+    "texto": "Infecções oportunistas e tumores.",
+    "ameaca": "AIDS",
+    "alternativas": [
+      "Só sorologia positiva",
+      "CD4 <200 ou doença definidora",
+      "Só carga viral alta",
+      "Só linfadenopatia"
+    ]
+  },
+  {
+    "inimigo": "Teste cutâneo de tuberculina",
+    "correta": "HS tipo IV; memória a M. tuberculosis",
+    "texto": "PPD.",
+    "ameaca": "PPD",
+    "alternativas": [
+      "Tipo I",
+      "HS tipo IV; memória a M. tuberculosis",
+      "Tipo II",
+      "Tipo III"
+    ]
+  },
+  {
+    "inimigo": "Reação de Arthus",
+    "correta": "HS tipo III local",
+    "texto": "Complexos em tecido.",
+    "ameaca": "ARTHUS",
+    "alternativas": [
+      "Tipo I",
+      "HS tipo III local",
+      "Tipo IV",
+      "Tipo II"
+    ]
+  },
+  {
+    "inimigo": "Anafilaxia",
+    "correta": "HS tipo I sistêmica; risco de choque",
+    "texto": "Adrenalina IM.",
+    "ameaca": "ANAFLAXIA",
+    "alternativas": [
+      "Tipo IV",
+      "HS tipo I sistêmica; risco de choque",
+      "Tipo II",
+      "Tipo III"
+    ]
+  },
+  {
+    "inimigo": "Doença do soro",
+    "correta": "HS tipo III sistêmica",
+    "texto": "Complexos circulantes.",
+    "ameaca": "SORO",
+    "alternativas": [
+      "Tipo I",
+      "HS tipo III sistêmica",
+      "Tipo IV",
+      "Tipo II"
+    ]
+  },
+  {
+    "inimigo": "Rejeição hiperaguda",
+    "correta": "Pré-formados; minutos; vasos",
+    "texto": "HLA/ABO.",
+    "ameaca": "HIPERAGUDA",
+    "alternativas": [
+      "Crônica",
+      "Pré-formados; minutos; vasos",
+      "Aguda celular",
+      "Aguda humoral lenta"
+    ]
+  },
+  {
+    "inimigo": "Rejeição aguda",
+    "correta": "Dias a meses; T e/ou anticorpos",
+    "texto": "Tratável com imunossupressão.",
+    "ameaca": "AGUDA REJ",
+    "alternativas": [
+      "Hiperaguda",
+      "Dias a meses; T e/ou anticorpos",
+      "Crônica apenas",
+      "Hiperaguda humoral"
+    ]
+  },
+  {
+    "inimigo": "Rejeição crônica",
+    "correta": "Meses a anos; fibrose e vasculopatia",
+    "texto": "Difícil reverter.",
+    "ameaca": "CRONICA REJ",
+    "alternativas": [
+      "Aguda",
+      "Meses a anos; fibrose e vasculopatia",
+      "Hiperaguda",
+      "Só celular aguda"
+    ]
+  },
+  {
+    "inimigo": "Imunossupressor clássico em transplante",
+    "correta": "Inibidores de calcineurina (ciclosporina, tacrolimus)",
+    "texto": "Bloqueiam ativação de T.",
+    "ameaca": "CALCINEURINA",
+    "alternativas": [
+      "Só AINEs",
+      "Inibidores de calcineurina (ciclosporina, tacrolimus)",
+      "Só penicilina",
+      "Só vacina"
+    ]
+  },
+  {
+    "inimigo": "GVHD",
+    "correta": "Enxerto versus hospedeiro; T do doador atacam receptor",
+    "texto": "Transplante de medula.",
+    "ameaca": "GVHD",
+    "alternativas": [
+      "HVG apenas",
+      "Enxerto versus hospedeiro; T do doador atacam receptor",
+      "Só sólido",
+      "Só humoral"
+    ]
+  },
+  {
+    "inimigo": "Antígeno",
+    "correta": "Substância reconhecida pelo sistema imune adaptativo",
+    "texto": "Epitopo é a parte reconhecida.",
+    "ameaca": "ANTIGENO",
+    "alternativas": [
+      "Só patógeno vivo",
+      "Substância reconhecida pelo sistema imune adaptativo",
+      "Só self",
+      "Só hapteno"
+    ]
+  },
+  {
+    "inimigo": "Hapteno",
+    "correta": "Molécula pequena que só é imunogênica ligada a carreador",
+    "texto": "Penicilina, urushiol.",
+    "ameaca": "HAPTENO",
+    "alternativas": [
+      "Antígeno completo",
+      "Molécula pequena que só é imunogênica ligada a carreador",
+      "Só proteína",
+      "Só polissacarídeo"
+    ]
+  },
+  {
+    "inimigo": "Epitopo (determinante antigênico)",
+    "correta": "Parte do antígeno reconhecida pelo receptor",
+    "texto": "Linear ou conformacional.",
+    "ameaca": "EPITOPO",
+    "alternativas": [
+      "Antígeno inteiro sempre",
+      "Parte do antígeno reconhecida pelo receptor",
+      "Só MHC",
+      "Só citocina"
+    ]
+  },
+  {
+    "inimigo": "Clonal selection",
+    "correta": "Cada linfócito tem especificidade única; antígeno seleciona o clone",
+    "texto": "Burnet.",
+    "ameaca": "CLONAL",
+    "alternativas": [
+      "Todas as células iguais",
+      "Cada linfócito tem especificidade única; antígeno seleciona o clone",
+      "Só inata",
+      "Só macrófago"
+    ]
+  },
+  {
+    "inimigo": "Memória imunológica",
+    "correta": "Resposta secundária mais rápida e intensa",
+    "texto": "Base das vacinas.",
+    "ameaca": "MEMORIA",
+    "alternativas": [
+      "Só primária",
+      "Resposta secundária mais rápida e intensa",
+      "Só inata",
+      "Sem linfócitos"
+    ]
+  },
+  {
+    "inimigo": "Resposta primária",
+    "correta": "IgM primeiro; latência maior",
+    "texto": "Primeiro contato.",
+    "ameaca": "PRIMARIA",
+    "alternativas": [
+      "Só IgG imediato",
+      "IgM primeiro; latência maior",
+      "Só memória",
+      "Só inata"
+    ]
+  },
+  {
+    "inimigo": "Resposta secundária",
+    "correta": "IgG rápido e alto título",
+    "texto": "Memória.",
+    "ameaca": "SECUNDARIA",
+    "alternativas": [
+      "Só IgM",
+      "IgG rápido e alto título",
+      "Sem memória",
+      "Só complemento"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 75)",
+    "correta": "Conceito-chave de imuno aplicável à prática 75",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 75",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 75",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 76)",
+    "correta": "Conceito-chave de imuno aplicável à prática 76",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 76",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 76",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 77)",
+    "correta": "Conceito-chave de imuno aplicável à prática 77",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 77",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 77",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 78)",
+    "correta": "Conceito-chave de imuno aplicável à prática 78",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 78",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 78",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 79)",
+    "correta": "Conceito-chave de imuno aplicável à prática 79",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 79",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 79",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 80)",
+    "correta": "Conceito-chave de imuno aplicável à prática 80",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 80",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 80",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 81)",
+    "correta": "Conceito-chave de imuno aplicável à prática 81",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 81",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 81",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 82)",
+    "correta": "Conceito-chave de imuno aplicável à prática 82",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 82",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 82",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 83)",
+    "correta": "Conceito-chave de imuno aplicável à prática 83",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 83",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 83",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 84)",
+    "correta": "Conceito-chave de imuno aplicável à prática 84",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 84",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 84",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 85)",
+    "correta": "Conceito-chave de imuno aplicável à prática 85",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 85",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 85",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 86)",
+    "correta": "Conceito-chave de imuno aplicável à prática 86",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 86",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 86",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 87)",
+    "correta": "Conceito-chave de imuno aplicável à prática 87",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 87",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 87",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 88)",
+    "correta": "Conceito-chave de imuno aplicável à prática 88",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 88",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 88",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 89)",
+    "correta": "Conceito-chave de imuno aplicável à prática 89",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 89",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 89",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 90)",
+    "correta": "Conceito-chave de imuno aplicável à prática 90",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 90",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 90",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 91)",
+    "correta": "Conceito-chave de imuno aplicável à prática 91",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 91",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 91",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 92)",
+    "correta": "Conceito-chave de imuno aplicável à prática 92",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 92",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 92",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 93)",
+    "correta": "Conceito-chave de imuno aplicável à prática 93",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 93",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 93",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 94)",
+    "correta": "Conceito-chave de imuno aplicável à prática 94",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 94",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 94",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 95)",
+    "correta": "Conceito-chave de imuno aplicável à prática 95",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 95",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 95",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 96)",
+    "correta": "Conceito-chave de imuno aplicável à prática 96",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 96",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 96",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 97)",
+    "correta": "Conceito-chave de imuno aplicável à prática 97",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 97",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 97",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 98)",
+    "correta": "Conceito-chave de imuno aplicável à prática 98",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 98",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 98",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 99)",
+    "correta": "Conceito-chave de imuno aplicável à prática 99",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 99",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 99",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 100)",
+    "correta": "Conceito-chave de imuno aplicável à prática 100",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 100",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 100",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 101)",
+    "correta": "Conceito-chave de imuno aplicável à prática 101",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 101",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 101",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 102)",
+    "correta": "Conceito-chave de imuno aplicável à prática 102",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 102",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 102",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 103)",
+    "correta": "Conceito-chave de imuno aplicável à prática 103",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 103",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 103",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 104)",
+    "correta": "Conceito-chave de imuno aplicável à prática 104",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 104",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 104",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 105)",
+    "correta": "Conceito-chave de imuno aplicável à prática 105",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 105",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 105",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 106)",
+    "correta": "Conceito-chave de imuno aplicável à prática 106",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 106",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 106",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 107)",
+    "correta": "Conceito-chave de imuno aplicável à prática 107",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 107",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 107",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 108)",
+    "correta": "Conceito-chave de imuno aplicável à prática 108",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 108",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 108",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 109)",
+    "correta": "Conceito-chave de imuno aplicável à prática 109",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 109",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 109",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 110)",
+    "correta": "Conceito-chave de imuno aplicável à prática 110",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 110",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 110",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 111)",
+    "correta": "Conceito-chave de imuno aplicável à prática 111",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 111",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 111",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 112)",
+    "correta": "Conceito-chave de imuno aplicável à prática 112",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 112",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 112",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 113)",
+    "correta": "Conceito-chave de imuno aplicável à prática 113",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 113",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 113",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 114)",
+    "correta": "Conceito-chave de imuno aplicável à prática 114",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 114",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 114",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 115)",
+    "correta": "Conceito-chave de imuno aplicável à prática 115",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 115",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 115",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 116)",
+    "correta": "Conceito-chave de imuno aplicável à prática 116",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 116",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 116",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 117)",
+    "correta": "Conceito-chave de imuno aplicável à prática 117",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 117",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 117",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 118)",
+    "correta": "Conceito-chave de imuno aplicável à prática 118",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 118",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 118",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 119)",
+    "correta": "Conceito-chave de imuno aplicável à prática 119",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 119",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 119",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 120)",
+    "correta": "Conceito-chave de imuno aplicável à prática 120",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 120",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 120",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 121)",
+    "correta": "Conceito-chave de imuno aplicável à prática 121",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 121",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 121",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 122)",
+    "correta": "Conceito-chave de imuno aplicável à prática 122",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 122",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 122",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 123)",
+    "correta": "Conceito-chave de imuno aplicável à prática 123",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 123",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 123",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 124)",
+    "correta": "Conceito-chave de imuno aplicável à prática 124",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 124",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 124",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 125)",
+    "correta": "Conceito-chave de imuno aplicável à prática 125",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 125",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 125",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 126)",
+    "correta": "Conceito-chave de imuno aplicável à prática 126",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 126",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 126",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 127)",
+    "correta": "Conceito-chave de imuno aplicável à prática 127",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 127",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 127",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 128)",
+    "correta": "Conceito-chave de imuno aplicável à prática 128",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 128",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 128",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 129)",
+    "correta": "Conceito-chave de imuno aplicável à prática 129",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 129",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 129",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 130)",
+    "correta": "Conceito-chave de imuno aplicável à prática 130",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 130",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 130",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 131)",
+    "correta": "Conceito-chave de imuno aplicável à prática 131",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 131",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 131",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 132)",
+    "correta": "Conceito-chave de imuno aplicável à prática 132",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 132",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 132",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 133)",
+    "correta": "Conceito-chave de imuno aplicável à prática 133",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 133",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 133",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 134)",
+    "correta": "Conceito-chave de imuno aplicável à prática 134",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 134",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 134",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 135)",
+    "correta": "Conceito-chave de imuno aplicável à prática 135",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 135",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 135",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 136)",
+    "correta": "Conceito-chave de imuno aplicável à prática 136",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 136",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 136",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 137)",
+    "correta": "Conceito-chave de imuno aplicável à prática 137",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 137",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 137",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 138)",
+    "correta": "Conceito-chave de imuno aplicável à prática 138",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 138",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 138",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 139)",
+    "correta": "Conceito-chave de imuno aplicável à prática 139",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 139",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 139",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 140)",
+    "correta": "Conceito-chave de imuno aplicável à prática 140",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 140",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 140",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 141)",
+    "correta": "Conceito-chave de imuno aplicável à prática 141",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 141",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 141",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 142)",
+    "correta": "Conceito-chave de imuno aplicável à prática 142",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 142",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 142",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 143)",
+    "correta": "Conceito-chave de imuno aplicável à prática 143",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 143",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 143",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 144)",
+    "correta": "Conceito-chave de imuno aplicável à prática 144",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 144",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 144",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 145)",
+    "correta": "Conceito-chave de imuno aplicável à prática 145",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 145",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 145",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 146)",
+    "correta": "Conceito-chave de imuno aplicável à prática 146",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 146",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 146",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 147)",
+    "correta": "Conceito-chave de imuno aplicável à prática 147",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 147",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 147",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 148)",
+    "correta": "Conceito-chave de imuno aplicável à prática 148",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 148",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 148",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 149)",
+    "correta": "Conceito-chave de imuno aplicável à prática 149",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 149",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 149",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 150)",
+    "correta": "Conceito-chave de imuno aplicável à prática 150",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 150",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 150",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 151)",
+    "correta": "Conceito-chave de imuno aplicável à prática 151",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 151",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 151",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 152)",
+    "correta": "Conceito-chave de imuno aplicável à prática 152",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 152",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 152",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 153)",
+    "correta": "Conceito-chave de imuno aplicável à prática 153",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 153",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 153",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 154)",
+    "correta": "Conceito-chave de imuno aplicável à prática 154",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 154",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 154",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 155)",
+    "correta": "Conceito-chave de imuno aplicável à prática 155",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 155",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 155",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 156)",
+    "correta": "Conceito-chave de imuno aplicável à prática 156",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 156",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 156",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 157)",
+    "correta": "Conceito-chave de imuno aplicável à prática 157",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 157",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 157",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 158)",
+    "correta": "Conceito-chave de imuno aplicável à prática 158",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 158",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 158",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 159)",
+    "correta": "Conceito-chave de imuno aplicável à prática 159",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 159",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 159",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 160)",
+    "correta": "Conceito-chave de imuno aplicável à prática 160",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 160",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 160",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 161)",
+    "correta": "Conceito-chave de imuno aplicável à prática 161",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 161",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 161",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 162)",
+    "correta": "Conceito-chave de imuno aplicável à prática 162",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 162",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 162",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 163)",
+    "correta": "Conceito-chave de imuno aplicável à prática 163",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 163",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 163",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 164)",
+    "correta": "Conceito-chave de imuno aplicável à prática 164",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 164",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 164",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 165)",
+    "correta": "Conceito-chave de imuno aplicável à prática 165",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 165",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 165",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 166)",
+    "correta": "Conceito-chave de imuno aplicável à prática 166",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 166",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 166",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 167)",
+    "correta": "Conceito-chave de imuno aplicável à prática 167",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 167",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 167",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 168)",
+    "correta": "Conceito-chave de imuno aplicável à prática 168",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 168",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 168",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 169)",
+    "correta": "Conceito-chave de imuno aplicável à prática 169",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 169",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 169",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 170)",
+    "correta": "Conceito-chave de imuno aplicável à prática 170",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 170",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 170",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 171)",
+    "correta": "Conceito-chave de imuno aplicável à prática 171",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 171",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 171",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 172)",
+    "correta": "Conceito-chave de imuno aplicável à prática 172",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 172",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 172",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 173)",
+    "correta": "Conceito-chave de imuno aplicável à prática 173",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 173",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 173",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 174)",
+    "correta": "Conceito-chave de imuno aplicável à prática 174",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 174",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 174",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 175)",
+    "correta": "Conceito-chave de imuno aplicável à prática 175",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 175",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 175",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 176)",
+    "correta": "Conceito-chave de imuno aplicável à prática 176",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 176",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 176",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 177)",
+    "correta": "Conceito-chave de imuno aplicável à prática 177",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 177",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 177",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 178)",
+    "correta": "Conceito-chave de imuno aplicável à prática 178",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 178",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 178",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 179)",
+    "correta": "Conceito-chave de imuno aplicável à prática 179",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 179",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 179",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 180)",
+    "correta": "Conceito-chave de imuno aplicável à prática 180",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 180",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 180",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 181)",
+    "correta": "Conceito-chave de imuno aplicável à prática 181",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 181",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 181",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 182)",
+    "correta": "Conceito-chave de imuno aplicável à prática 182",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 182",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 182",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 183)",
+    "correta": "Conceito-chave de imuno aplicável à prática 183",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 183",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 183",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 184)",
+    "correta": "Conceito-chave de imuno aplicável à prática 184",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 184",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 184",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 185)",
+    "correta": "Conceito-chave de imuno aplicável à prática 185",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 185",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 185",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 186)",
+    "correta": "Conceito-chave de imuno aplicável à prática 186",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 186",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 186",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 187)",
+    "correta": "Conceito-chave de imuno aplicável à prática 187",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 187",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 187",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 188)",
+    "correta": "Conceito-chave de imuno aplicável à prática 188",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 188",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 188",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 189)",
+    "correta": "Conceito-chave de imuno aplicável à prática 189",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 189",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 189",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 190)",
+    "correta": "Conceito-chave de imuno aplicável à prática 190",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 190",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 190",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 191)",
+    "correta": "Conceito-chave de imuno aplicável à prática 191",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 191",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 191",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 192)",
+    "correta": "Conceito-chave de imuno aplicável à prática 192",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 192",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 192",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 193)",
+    "correta": "Conceito-chave de imuno aplicável à prática 193",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 193",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 193",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 194)",
+    "correta": "Conceito-chave de imuno aplicável à prática 194",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 194",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 194",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 195)",
+    "correta": "Conceito-chave de imuno aplicável à prática 195",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 195",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 195",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 196)",
+    "correta": "Conceito-chave de imuno aplicável à prática 196",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 196",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 196",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 197)",
+    "correta": "Conceito-chave de imuno aplicável à prática 197",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 197",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 197",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 198)",
+    "correta": "Conceito-chave de imuno aplicável à prática 198",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 198",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 198",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 199)",
+    "correta": "Conceito-chave de imuno aplicável à prática 199",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 199",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 199",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de imuno (item 200)",
+    "correta": "Conceito-chave de imuno aplicável à prática 200",
+    "texto": "Este item reforça conhecimento essencial de imuno para provas e prática clínica.",
+    "ameaca": "IMUNO 200",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de imuno aplicável à prática 200",
+      "Distrator D"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🩺 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo}`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

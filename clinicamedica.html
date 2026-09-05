@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Clínica Médica - Um quiz abrangente sobre diagnósticos e manejos em medicina interna.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Clínica Médica</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Clínica Médica</h1>
+  <p>Domine os desafios do diagnóstico e tratamento em medicina interna! 🏥</p>
+
+  <div id="terminal">[SISTEMA DE CLÍNICA MÉDICA INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 👩‍⚕️ Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR AVALIAÇÃO DE CLÍNICA MÉDICA</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE CLÍNICA MÉDICA</h2>
+      <p>Bem-vindo, Clínico! Este simulador foi desenvolvido para aprimorar seus conhecimentos em Medicina Interna, abrangendo diversas áreas da clínica médica.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Avaliar seu entendimento sobre o diagnóstico, fisiopatologia e manejo de doenças comuns na clínica médica.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis, baseadas em evidências e diretrizes atuais.</li>
+        <li>Reforçar o raciocínio clínico para a tomada de decisões em cenários médicos.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão de Clínica Médica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão ou o cenário clínico ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada, e uma breve explicação será fornecida.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A Medicina Interna é o alicerce do conhecimento médico. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Clínica Médica foram elaboradas com base em documentos oficiais e literatura de referência da Medicina Interna, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas:</p>
+      <ul>
+        <li>**LIVRO:** Harrison's Principles of Internal Medicine [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Cecil Textbook of Medicine / Goldman's Cecil Medicine [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Braunwald's Heart Disease: A Textbook of Cardiovascular Medicine [Ano da Edição], Editora [Nome da Editora]. (Para Cardiologia)</li>
+        <li>**LIVRO:** Fauci, Braunwald, Kasper, Hauser, Longo, Jameson, Loscalzo - Harrison Medicina Interna [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**DIRETRIZES CLÍNICAS:** Publicações de sociedades médicas nacionais e internacionais (ex: SBC, SBD, SBN, SBEM, American Heart Association, European Society of Cardiology).</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões sistemáticas publicados em periódicos científicos de alto impacto (ex: NEJM, Lancet, JAMA).</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui a consulta a livros didáticos, diretrizes clínicas e a constante atualização científica.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Principal causa de morte em pacientes com DM2?",
+    "correta": "Doenca cardiovascular",
+    "texto": "IAM e AVC superam as complicacoes microvasculares como causa de morte no DM2.",
+    "ameaca": "DM2: PRINCIPAL CAUSA DE MORTE?",
+    "alternativas": [
+      "IRC",
+      "Retinopatia",
+      "Neuropatia",
+      "Doenca cardiovascular"
+    ]
+  },
+  {
+    "inimigo": "Limiar de PA para iniciar farmaco em HAS sem comorbidades?",
+    "correta": "140/90 mmHg",
+    "texto": "Para a maioria sem comorbidades, inicia-se farmaco se PA >= 140/90 mmHg + mudancas de estilo de vida.",
+    "ameaca": "HAS: LIMIAR PARA FARMACO?",
+    "alternativas": [
+      "120/80",
+      "130/85",
+      "135/85",
+      "140/90 mmHg"
+    ]
+  },
+  {
+    "inimigo": "Achado ECG mais caracteristico de STEMI?",
+    "correta": "Supradesnivelamento do segmento ST",
+    "texto": "Supra de ST em 2+ derivacoes contiguas indica oclusao total e reperfusao urgente.",
+    "ameaca": "ECG: ACHADO DE STEMI?",
+    "alternativas": [
+      "Inversao de T",
+      "Onda Q",
+      "BRE",
+      "Supradesnivelamento do segmento ST"
+    ]
+  },
+  {
+    "inimigo": "Padrao respiratorio com ciclos profundos seguidos de apneia na ICC grave?",
+    "correta": "Respiracao de Cheyne-Stokes",
+    "texto": "Padrao periodico comum em ICC avancada e lesoes neurologicas.",
+    "ameaca": "PADRAO RESPIRATORIO NA ICC?",
+    "alternativas": [
+      "Kussmaul",
+      "Biot",
+      "Suspirosa",
+      "Respiracao de Cheyne-Stokes"
+    ]
+  },
+  {
+    "inimigo": "Dor epigastrica em queimacao que piora com jejum e melhora com alimentacao?",
+    "correta": "Ulcera duodenal",
+    "texto": "Classico da ulcera duodenal; ulcera gastrica costuma piorar com alimentacao.",
+    "ameaca": "DOR EPIGASTRICA E ALIMENTACAO?",
+    "alternativas": [
+      "Gastrite aguda",
+      "Calculo biliar",
+      "Pancreatite",
+      "Ulcera duodenal"
+    ]
+  },
+  {
+    "inimigo": "Principal biomarcador de lesao miocardica no IAM?",
+    "correta": "Troponina de alta sensibilidade",
+    "texto": "TnI/TnT de alta sensibilidade sao os mais especificos e sensiveis.",
+    "ameaca": "BIOMARCADOR DO IAM?",
+    "alternativas": [
+      "CK-MB",
+      "Mioglobina",
+      "DHL",
+      "Troponina de alta sensibilidade"
+    ]
+  },
+  {
+    "inimigo": "Fraqueza progressiva, fasciculacoes, atrofia, sem alteracao sensitiva?",
+    "correta": "Esclerose Lateral Amiotrófica (ELA)",
+    "texto": "Acomete neuronios motores superior e inferior; sensibilidade preservada.",
+    "ameaca": "DOENCA NEURODEGENERATIVA?",
+    "alternativas": [
+      "Parkinson",
+      "EM",
+      "Miastenia",
+      "Esclerose Lateral Amiotrófica (ELA)"
+    ]
+  },
+  {
+    "inimigo": "Tratamento de 1a linha na crise asmatica leve a moderada?",
+    "correta": "Beta-2 agonistas de curta acao (SABA)",
+    "texto": "Salbutamol relaxa a musculatura bronquica e alivia sintomas rapidamente.",
+    "ameaca": "ASMA: 1A LINHA NA CRISE?",
+    "alternativas": [
+      "Corticoide inalatorio",
+      "Corticoide oral",
+      "Antileucotrieno",
+      "Beta-2 agonistas de curta acao (SABA)"
+    ]
+  },
+  {
+    "inimigo": "Hormonio deficiente na anemia da IRC?",
+    "correta": "Eritropoetina",
+    "texto": "Produzida nos rins; sua falta reduz eritropoese na medula.",
+    "ameaca": "IRC: HORMONIO DA ANEMIA?",
+    "alternativas": [
+      "Insulina",
+      "Tiroxina",
+      "PTH",
+      "Eritropoetina"
+    ]
+  },
+  {
+    "inimigo": "Exame padrao-ouro para diagnostico de TEP?",
+    "correta": "Angio-TC de torax",
+    "texto": "Visualiza trombos nas arterias pulmonares; metodo de escolha.",
+    "ameaca": "TEP: EXAME PADRAO-OURO?",
+    "alternativas": [
+      "Cintilografia V/Q",
+      "D-dimero",
+      "ECG",
+      "Angio-TC de torax"
+    ]
+  },
+  {
+    "inimigo": "Meta de HbA1c na maioria dos adultos com DM2?",
+    "correta": "Abaixo de 7%",
+    "texto": "Individualizar; <7% equilibra beneficio e risco de hipoglicemia.",
+    "ameaca": "DM2: META DE HBA1C?",
+    "alternativas": [
+      "<6%",
+      "<8%",
+      "<9%",
+      "Abaixo de 7%"
+    ]
+  },
+  {
+    "inimigo": "Farmaco de 1a linha no DM2 (sem contraindicacao)?",
+    "correta": "Metformina",
+    "texto": "Reduz hepatic gluconeogenesis; peso neutro/perda; beneficio CV.",
+    "ameaca": "DM2: 1A LINHA?",
+    "alternativas": [
+      "SU",
+      "Insulina",
+      "SGLT2 apenas",
+      "Metformina"
+    ]
+  },
+  {
+    "inimigo": "Classe que reduz hospitalizacao por ICC e progressao renal no DM2?",
+    "correta": "Inibidores SGLT2",
+    "texto": "Empagliflozina, dapagliflozina etc. tem beneficio cardiorrenal independente da glicemia.",
+    "ameaca": "DM2: CLASSE COM BENEFICIO CARDIORENAL?",
+    "alternativas": [
+      "SU",
+      "DPP4",
+      "Glinidas",
+      "Inibidores SGLT2"
+    ]
+  },
+  {
+    "inimigo": "Sinais de alarme na cefaleia (red flags)?",
+    "correta": "Inicio sudito, deficit neurologico, febre, idade >50 com nova cefaleia",
+    "texto": "Indicam HSA, meningite, tumor, arterite temporal etc.",
+    "ameaca": "CEFALEIA: RED FLAGS?",
+    "alternativas": [
+      "Apenas dor intensa",
+      "Apenas nauseas",
+      "Apenas fotofobia",
+      "Inicio sudito, deficit neurologico, febre, idade >50 com nova cefaleia"
+    ]
+  },
+  {
+    "inimigo": "Tratamento agudo da enxaqueca moderada-grave?",
+    "correta": "Triptanos (se sem contraindicacao)",
+    "texto": "Agonistas 5-HT1B/1D; evitar em doenca coronariana e AVC.",
+    "ameaca": "ENXAQUECA: TRATAMENTO AGUDO?",
+    "alternativas": [
+      "Apenas paracetamol",
+      "Opioides de rotina",
+      "Antibiótico",
+      "Triptanos (se sem contraindicacao)"
+    ]
+  },
+  {
+    "inimigo": "Criterio diagnostico de DPOC pela espirometria?",
+    "correta": "VEF1/CVF < 0,70 pos-broncodilatador",
+    "texto": "Obstrucao nao totalmente reversivel apos broncodilatador.",
+    "ameaca": "DPOC: CRITERIO ESPIROMETRICO?",
+    "alternativas": [
+      "VEF1 < 80%",
+      "CVF < 70%",
+      "Resposta total ao broncodilatador",
+      "VEF1/CVF < 0,70 pos-broncodilatador"
+    ]
+  },
+  {
+    "inimigo": "Tratamento de base na DPOC estavel com sintomas?",
+    "correta": "Broncodilatadores de longa acao (LAMA/LABA)",
+    "texto": "Melhoram sintomas e reduzem exacerbacoes; corticóide inalatorio se eosinofilos altos ou exacerbacoes.",
+    "ameaca": "DPOC: TRATAMENTO DE BASE?",
+    "alternativas": [
+      "Apenas SABA",
+      "Antibiotico cronico",
+      "Oxigenio de rotina",
+      "Broncodilatadores de longa acao (LAMA/LABA)"
+    ]
+  },
+  {
+    "inimigo": "Indicacao classica de O2 domiciliar continuo na DPOC?",
+    "correta": "PaO2 <= 55 mmHg ou SatO2 <= 88% em ar ambiente",
+    "texto": "Melhora sobrevida quando hipoxemia grave em repouso.",
+    "ameaca": "DPOC: INDICACAO DE O2 DOMICILIAR?",
+    "alternativas": [
+      "Qualquer dispneia",
+      "VEF1 < 50%",
+      "Apenas durante exercicio",
+      "PaO2 <= 55 mmHg ou SatO2 <= 88% em ar ambiente"
+    ]
+  },
+  {
+    "inimigo": "CURB-65 avalia gravidade de?",
+    "correta": "Pneumonia adquirida na comunidade",
+    "texto": "Confusao, Ureia, FR, PA, idade >=65; orienta internacao.",
+    "ameaca": "PAC: ESCORE DE GRAVIDADE?",
+    "alternativas": [
+      "TEP",
+      "Asma",
+      "DPOC",
+      "Pneumonia adquirida na comunidade"
+    ]
+  },
+  {
+    "inimigo": "Antibiotico empirico tipico na PAC ambulatorial sem comorbidades?",
+    "correta": "Amoxicilina ou macrolideo (conforme resistencia local)",
+    "texto": "Cobrir pneumococo e atipicos conforme epidemiologia.",
+    "ameaca": "PAC AMBULATORIAL: ATIBIOTICO?",
+    "alternativas": [
+      "Vancomicina",
+      "Meropenem",
+      "Apenas antiviral",
+      "Amoxicilina ou macrolideo (conforme resistencia local)"
+    ]
+  },
+  {
+    "inimigo": "Achado classico de TB pulmonar primaria no RX?",
+    "correta": "Complexo de Ghon / linfonodo hilar",
+    "texto": "Na reativacao: cavitacao apical e infiltrados.",
+    "ameaca": "TB: ACHADO CLASSICO?",
+    "alternativas": [
+      "Derrame massivo isolado",
+      "Pneumotorax espontaneo",
+      "Atelectasia total",
+      "Complexo de Ghon / linfonodo hilar"
+    ]
+  },
+  {
+    "inimigo": "Esquema basico de tratamento da TB sensivel (Brasil)?",
+    "correta": "RHZE por 2 meses + RH por 4 meses",
+    "texto": "Rifampicina, Isoniazida, Pirazinamida, Etambutol na fase intensiva.",
+    "ameaca": "TB: ESQUEMA BASICO?",
+    "alternativas": [
+      "Apenas RH 6 meses",
+      "Estreptomicina + RH",
+      "Apenas isoniazida",
+      "RHZE por 2 meses + RH por 4 meses"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Sepse (Sepsis-3)?",
+    "correta": "Infeccao suspeita/confirmada + aumento de >=2 pontos no SOFA",
+    "texto": "qSOFA e triagem a beira-leito (FR, PA, mental).",
+    "ameaca": "SEPSE: DEFINICAO Sepsis-3?",
+    "alternativas": [
+      "Apenas febre",
+      "Apenas leucocitose",
+      "SIRS + infeccao",
+      "Infeccao suspeita/confirmada + aumento de >=2 pontos no SOFA"
+    ]
+  },
+  {
+    "inimigo": "Bundle da 1a hora na sepse?",
+    "correta": "Culturas, antibiotico, lactato, fluidos se hipotensao/lactato alto",
+    "texto": "Antibiotico precoce e ressuscitacao com cristaloides.",
+    "ameaca": "SEPSE: BUNDLE DA 1A HORA?",
+    "alternativas": [
+      "Apenas antitérmico",
+      "Apenas O2",
+      "Apenas corticóide",
+      "Culturas, antibiotico, lactato, fluidos se hipotensao/lactato alto"
+    ]
+  },
+  {
+    "inimigo": "Meta de PAM na ressuscitacao inicial do choque septico?",
+    "correta": ">= 65 mmHg",
+    "texto": "Noradrenalina e 1a linha de vasopressor se fluidos insuficientes.",
+    "ameaca": "CHOQUE SEPTICO: META DE PAM?",
+    "alternativas": [
+      ">= 50",
+      ">= 80",
+      ">= 90",
+      ">= 65 mmHg"
+    ]
+  },
+  {
+    "inimigo": "Principais criterios de Framingham para ICC?",
+    "correta": "Ortopneia, estase jugular, crepitacoes, cardiomegalia, B3, edema",
+    "texto": "2 maiores ou 1 maior + 2 menores.",
+    "ameaca": "ICC: CRITERIOS DE FRAMINGHAM?",
+    "alternativas": [
+      "Apenas dispneia",
+      "Apenas edema",
+      "Apenas BNP alto",
+      "Ortopneia, estase jugular, crepitacoes, cardiomegalia, B3, edema"
+    ]
+  },
+  {
+    "inimigo": "Terapia que reduz mortalidade na ICC com FE reduzida?",
+    "correta": "IECA/BRA/ARNI, betabloqueador, antagonista mineralocorticoide, SGLT2i",
+    "texto": "Quádrupla terapia modificadora de doenca.",
+    "ameaca": "ICC-FER: TERAPIA QUE REDUZ MORTALIDADE?",
+    "alternativas": [
+      "Apenas digoxina",
+      "Apenas diuretico",
+      "Apenas nitrato",
+      "IECA/BRA/ARNI, betabloqueador, antagonista mineralocorticoide, SGLT2i"
+    ]
+  },
+  {
+    "inimigo": "Diuretico de escolha no edema agudo de pulmao?",
+    "correta": "Furosemida (EV)",
+    "texto": "Alça; reduzir pre-carga rapidamente.",
+    "ameaca": "EAP: DIURETICO DE ESCOLHA?",
+    "alternativas": [
+      "HCTZ",
+      "Espironolactona",
+      "Manitol",
+      "Furosemida (EV)"
+    ]
+  },
+  {
+    "inimigo": "Antiagregante de 1a linha na SCA e pos-IAM?",
+    "correta": "AAS (acido acetilsalicilico)",
+    "texto": "Associar P2Y12 (clopidogrel, ticagrelor, prasugrel) conforme cenario.",
+    "ameaca": "SCA: ANTIAGREGANTE DE BASE?",
+    "alternativas": [
+      "Varfarina isolada",
+      "Apenas heparina",
+      "Dipiridamol",
+      "AAS (acido acetilsalicilico)"
+    ]
+  },
+  {
+    "inimigo": "Tempo ideal porta-balão no STEMI?",
+    "correta": "<= 90 minutos",
+    "texto": "Angioplastia primaria e estrategia preferencial de reperfusao.",
+    "ameaca": "STEMI: TEMPO PORTA-BALAO?",
+    "alternativas": [
+      "<= 30 min",
+      "<= 6 h",
+      "<= 24 h",
+      "<= 90 minutos"
+    ]
+  },
+  {
+    "inimigo": "Quando preferir trombolise no STEMI?",
+    "correta": "Se angioplastia nao disponivel em tempo habil (<=120 min do 1o contato)",
+    "texto": "Fibrinolise o mais precoce possivel se PCI primaria inviavel.",
+    "ameaca": "STEMI: QUANDO TROMBOLISE?",
+    "alternativas": [
+      "Sempre primeiro",
+      "Nunca",
+      "Apos 24h",
+      "Se angioplastia nao disponivel em tempo habil (<=120 min do 1o contato)"
+    ]
+  },
+  {
+    "inimigo": "CHA2DS2-VASc indica anticoagulação na FA nao valvar quando?",
+    "correta": "Escore >=2 em homens ou >=3 em mulheres (considerar >=1/2)",
+    "texto": "Ponderar risco de sangramento (HAS-BLED).",
+    "ameaca": "FA: QUANDO ANTICOAGULAR?",
+    "alternativas": [
+      "Sempre",
+      "Nunca se assintomatica",
+      "Apenas se IAM previo",
+      "Escore >=2 em homens ou >=3 em mulheres (considerar >=1/2)"
+    ]
+  },
+  {
+    "inimigo": "Anticoagulante preferido na FA nao valvar (maioria)?",
+    "correta": "DOAC (rivaroxabana, apixabana, dabigatrana, edoxabana)",
+    "texto": "Nao inferior/superior a varfarina com menos ICH na maioria dos estudos.",
+    "ameaca": "FA: ANTICOAGULANTE PREFERIDO?",
+    "alternativas": [
+      "AAS isolado",
+      "Apenas heparina",
+      "Clopidogrel isolado",
+      "DOAC (rivaroxabana, apixabana, dabigatrana, edoxabana)"
+    ]
+  },
+  {
+    "inimigo": "Meta de INR na FA com valva metalica mitral?",
+    "correta": "2,5 a 3,5 (varfarina)",
+    "texto": "DOAC contraindicados em protese metalica e estenose mitral moderada-grave.",
+    "ameaca": "VALVA METALICA: META DE INR?",
+    "alternativas": [
+      "1,5-2,0",
+      "2,0-3,0",
+      "3,5-4,5",
+      "2,5 a 3,5 (varfarina)"
+    ]
+  },
+  {
+    "inimigo": "Achado classico de estenose mitral na ausculta?",
+    "correta": "Estalido de abertura + rumore diastolico no foco mitral",
+    "texto": "Associado a FA e hipertensao pulmonar.",
+    "ameaca": "ESTENOSE MITRAL: AUSCULTA?",
+    "alternativas": [
+      "Sopro sistolico em foco aortico",
+      "Click mesossistolico",
+      "Sopro continuo",
+      "Estalido de abertura + rumore diastolico no foco mitral"
+    ]
+  },
+  {
+    "inimigo": "Sopro de estenose aortica?",
+    "correta": "Sistolico em crescendo-decrescendo no foco aortico irradiando para carotidas",
+    "texto": "Sintomas: angina, síncope, ICC = indica valvuloplastia/TAVI se grave.",
+    "ameaca": "ESTENOSE AORTICA: SOPRO?",
+    "alternativas": [
+      "Diastolico em foco mitral",
+      "Continuo",
+      "Diastolico em foco aortico",
+      "Sistolico em crescendo-decrescendo no foco aortico irradiando para carotidas"
+    ]
+  },
+  {
+    "inimigo": "Tratamento definitivo da estenose aortica grave sintomatica?",
+    "correta": "Troca valvar (cirurgica ou TAVI)",
+    "texto": "Nao ha farmaco que altere a progressao da estenose calcifica.",
+    "ameaca": "EAo GRAVE SINTOMATICA: TRATAMENTO?",
+    "alternativas": [
+      "Apenas betabloqueador",
+      "Apenas diuretico",
+      "Antibiotico",
+      "Troca valvar (cirurgica ou TAVI)"
+    ]
+  },
+  {
+    "inimigo": "Criterios de Duke modificados diagnosticam?",
+    "correta": "Endocardite infecciosa",
+    "texto": "Maiores: hemoculturas tipicas e evidencia de envolvimento endocardico.",
+    "ameaca": "DUKE: DIAGNOSTICA O QUE?",
+    "alternativas": [
+      "Miocardite",
+      "Pericardite",
+      "Febre reumatica",
+      "Endocardite infecciosa"
+    ]
+  },
+  {
+    "inimigo": "Antibiotico empirico inicial na endocardite nativa aguda grave?",
+    "correta": "Vancomicina + ceftriaxona (ou equivalente local)",
+    "texto": "Ajustar apos culturas; considerar cirurgiao cardiaco precocemente.",
+    "ameaca": "ENDOCARDITE: EMPIRICO INICIAL?",
+    "alternativas": [
+      "Apenas amoxicilina",
+      "Apenas azitromicina",
+      "Apenas fluconazol",
+      "Vancomicina + ceftriaxona (ou equivalente local)"
+    ]
+  },
+  {
+    "inimigo": "Quando usar corticóide na pericardite aguda?",
+    "correta": "Se contraindicacao a AINE/colchicina ou etiologia autoimune/uremia",
+    "texto": "AINE + colchicina e 1a linha na idiopatica/viral.",
+    "ameaca": "PERICARDITE: QUANDO CORTICOIDE?",
+    "alternativas": [
+      "Sempre de 1a linha",
+      "Nunca",
+      "Apenas se derrame minimo",
+      "Se contraindicacao a AINE/colchicina ou etiologia autoimune/uremia"
+    ]
+  },
+  {
+    "inimigo": "Triade de Beck no tamponamento?",
+    "correta": "Hipotensao, estase jugular, bulhas abafadas",
+    "texto": "Pulsus paradoxus e eletro com baixa voltagem/alternancia tambem sugerem.",
+    "ameaca": "TAMPONAMENTO: TRIADE DE BECK?",
+    "alternativas": [
+      "Febre, sopro, petequias",
+      "Dor, atrito, supra",
+      "Dispneia, edema, B3",
+      "Hipotensao, estase jugular, bulhas abafadas"
+    ]
+  },
+  {
+    "inimigo": "Tratamento de emergencia do tamponamento com choque?",
+    "correta": "Pericardiocentese",
+    "texto": "Reanimacao e drenagem imediata.",
+    "ameaca": "TAMPONAMENTO COM CHOQUE: CONDUTA?",
+    "alternativas": [
+      "Apenas diuretico",
+      "Betabloqueador",
+      "Trombolise",
+      "Pericardiocentese"
+    ]
+  },
+  {
+    "inimigo": "Classificacao de Killip avalia?",
+    "correta": "Gravidade da ICC no IAM",
+    "texto": "I sem ICC; IV choque cardiogenico.",
+    "ameaca": "KILLIP: AVALIA O QUE?",
+    "alternativas": [
+      "TEP",
+      "Pneumonia",
+      "AVC",
+      "Gravidade da ICC no IAM"
+    ]
+  },
+  {
+    "inimigo": "Choque cardiogenico no IAM: 1a medida hemodinamica?",
+    "correta": "Reperfusao urgente + suporte (inotrópicos/vasopressores, dispositivo se preciso)",
+    "texto": "PCI primaria e prioritaria.",
+    "ameaca": "CHOQUE CARDIOGENICO NO IAM?",
+    "alternativas": [
+      "Apenas fluidos em grande volume",
+      "Apenas diuretico",
+      "Trombolise isolada sempre",
+      "Reperfusao urgente + suporte (inotrópicos/vasopressores, dispositivo se preciso)"
+    ]
+  },
+  {
+    "inimigo": "Meta de LDL em muito alto risco CV?",
+    "correta": "LDL < 50 mg/dL (ou reducao >=50%) conforme diretriz",
+    "texto": "Estatina de alta intensidade +/- ezetimiba/PCSK9.",
+    "ameaca": "PREVENCAO: META DE LDL EM MUITO ALTO RISCO?",
+    "alternativas": [
+      "<130",
+      "<100",
+      "<160",
+      "LDL < 50 mg/dL (ou reducao >=50%) conforme diretriz"
+    ]
+  },
+  {
+    "inimigo": "Estatina de alta intensidade (exemplos)?",
+    "correta": "Atorvastatina 40-80 mg ou Rosuvastatina 20-40 mg",
+    "texto": "Reduz LDL em cerca de >=50%.",
+    "ameaca": "ESTATINA ALTA INTENSIDADE?",
+    "alternativas": [
+      "Sinvastatina 10 mg",
+      "Pravastatina 20 mg",
+      "Lovastatina 20 mg",
+      "Atorvastatina 40-80 mg ou Rosuvastatina 20-40 mg"
+    ]
+  },
+  {
+    "inimigo": "Quando investigar hipertensao secundaria?",
+    "correta": "Inicio jovem, HAS resistente, achados de alerta (hipoK, sopro, ronco grave)",
+    "texto": "Causas: renovascular, aldosteronismo, SAOS, feocromocitoma, coarctacao.",
+    "ameaca": "HAS: QUANDO INVESTIGAR SECUNDARIA?",
+    "alternativas": [
+      "Nunca",
+      "Apenas se idade >80",
+      "Apenas se PA <140",
+      "Inicio jovem, HAS resistente, achados de alerta (hipoK, sopro, ronco grave)"
+    ]
+  },
+  {
+    "inimigo": "Farmaco de 1a linha na HAS (classes)?",
+    "correta": "Tiazidico-like, IECA/BRA, bloqueador de canal de calcio diidropiridinico",
+    "texto": "Combinacoes em dose fixa melhoram adesao.",
+    "ameaca": "HAS: 1A LINHA?",
+    "alternativas": [
+      "Apenas betabloqueador",
+      "Apenas alfalitico",
+      "Apenas vasodilatador direto",
+      "Tiazidico-like, IECA/BRA, bloqueador de canal de calcio diidropiridinico"
+    ]
+  },
+  {
+    "inimigo": "Betabloqueador e 1a linha na HAS quando?",
+    "correta": "Pos-IAM, ICC com FE reduzida, angina, controle de FC",
+    "texto": "Nao e 1a linha isolado na HAS nao complicada.",
+    "ameaca": "HAS: QUANDO BETABLOQUEADOR?",
+    "alternativas": [
+      "Sempre 1a linha",
+      "Nunca",
+      "Apenas em idosos",
+      "Pos-IAM, ICC com FE reduzida, angina, controle de FC"
+    ]
+  },
+  {
+    "inimigo": "Crisis hipertensiva com lesao de orgao-alvo chama-se?",
+    "correta": "Emergencia hipertensiva",
+    "texto": "Reducao controlada de PA em minutos a horas (ex.: nitroprussiato, labetalol).",
+    "ameaca": "HAS: EMERGENCIA vs URGENCIA?",
+    "alternativas": [
+      "Urgencia hipertensiva",
+      "HAS estavel",
+      "HAS mascarada",
+      "Emergencia hipertensiva"
+    ]
+  },
+  {
+    "inimigo": "Meta de PA no AVC isquemico agudo sem trombolise (geralmente)?",
+    "correta": "Nao tratar se <220/120 (exceto comorbidades)",
+    "texto": "Com trombolise: manter <185/110 antes e <180/105 apos.",
+    "ameaca": "AVC ISQUEMICO: META DE PA?",
+    "alternativas": [
+      "Reduzir para 120/80 sempre",
+      "Reduzir 50% em 1h",
+      "Manter >200",
+      "Nao tratar se <220/120 (exceto comorbidades)"
+    ]
+  },
+  {
+    "inimigo": "Janela da trombolise IV no AVC isquemico?",
+    "correta": "Ate 4,5 horas do inicio dos sintomas (selecionados)",
+    "texto": "rtPA se criterios de inclusao/exclusao preenchidos.",
+    "ameaca": "AVC: JANELA DA TROMBOLISE?",
+    "alternativas": [
+      "Ate 1h",
+      "Ate 12h",
+      "Ate 24h",
+      "Ate 4,5 horas do inicio dos sintomas (selecionados)"
+    ]
+  },
+  {
+    "inimigo": "Trombectomia mecanica no AVC: janela tipica?",
+    "correta": "Ate 6h (ate 24h em criterios DAWN/DEFUSE-3)",
+    "texto": "Oclusao de grande vaso em territorio anterior.",
+    "ameaca": "AVC: TROMBECTOMIA?",
+    "alternativas": [
+      "Apenas <1h",
+      "Nunca apos 3h",
+      "Apenas em hemorragia",
+      "Ate 6h (ate 24h em criterios DAWN/DEFUSE-3)"
+    ]
+  },
+  {
+    "inimigo": "Prevenção secundaria apos AVC isquemico nao cardioembolico?",
+    "correta": "Antiagregante + estatina + controle de fatores de risco",
+    "texto": "AAS ou clopidogrel; dupla antiagregacao por tempo curto em alguns casos.",
+    "ameaca": "AVC: PREVENCAO SECUNDARIA?",
+    "alternativas": [
+      "Apenas anticoagulante sempre",
+      "Apenas fisioterapia",
+      "Sem farmaco",
+      "Antiagregante + estatina + controle de fatores de risco"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia de crise convulsiva apos AVC hemorragico?",
+    "correta": "Nao de rotina",
+    "texto": "Tratar se crise ocorrer; profilaxia rotineira nao recomendada.",
+    "ameaca": "AVC HEMORRAGICO: PROFILAXIA DE CRISE?",
+    "alternativas": [
+      "Sempre fenitoina",
+      "Sempre levetiracetam",
+      "Sempre valproato",
+      "Nao de rotina"
+    ]
+  },
+  {
+    "inimigo": "Tratamento da crise convulsiva status epilepticus inicial?",
+    "correta": "Benzodiazepinico EV (lorazepam/diazepam) + anticonvulsivante de manutencao",
+    "texto": "ABC, glicemia, e farmaco de 2a linha (fenitoina, levetiracetam, valproato).",
+    "ameaca": "STATUS EPILEPTICUS: 1A LINHA?",
+    "alternativas": [
+      "Apenas fenitoina",
+      "Apenas barbiturico",
+      "Apenas propofol de inicio",
+      "Benzodiazepinico EV (lorazepam/diazepam) + anticonvulsivante de manutencao"
+    ]
+  },
+  {
+    "inimigo": "Triade de meningite bacteriana?",
+    "correta": "Febre, rigidez de nuca, alteracao do nivel de consciencia",
+    "texto": "Punção lombar apos TC se sinais de hipertensao intracraniana; antibiotico precoce.",
+    "ameaca": "MENINGITE: TRIADE?",
+    "alternativas": [
+      "Apenas cefaleia",
+      "Apenas febre",
+      "Apenas vomito",
+      "Febre, rigidez de nuca, alteracao do nivel de consciencia"
+    ]
+  },
+  {
+    "inimigo": "Antibiotico empirico na meningite comunitaria do adulto?",
+    "correta": "Ceftriaxona + vancomicina (+ ampicilina se >50a ou fatores de risco para Listeria)",
+    "texto": "Dexametasona antes ou com a 1a dose de antibiotico se pneumococo suspeito.",
+    "ameaca": "MENINGITE: EMPIRICO NO ADULTO?",
+    "alternativas": [
+      "Apenas penicilina",
+      "Apenas azitromicina",
+      "Apenas aciclovir",
+      "Ceftriaxona + vancomicina (+ ampicilina se >50a ou fatores de risco para Listeria)"
+    ]
+  },
+  {
+    "inimigo": "Quando adicionar aciclovir empirico na meningoencefalite?",
+    "correta": "Suspeita de encefalite herpetica (alteracao comportamental, temporal na TC/RM)",
+    "texto": "HSV e a causa viral tratavel mais importante.",
+    "ameaca": "ENCEFALITE: QUANDO ACICLOVIR?",
+    "alternativas": [
+      "Nunca empirico",
+      "Apenas se PCR positivo",
+      "Apenas em criancas",
+      "Suspeita de encefalite herpetica (alteracao comportamental, temporal na TC/RM)"
+    ]
+  },
+  {
+    "inimigo": "Criterio diagnostico de DM (glicemia de jejum)?",
+    "correta": ">= 126 mg/dL em 2 ocasiões (ou sintomas + >=200)",
+    "texto": "Tambem HbA1c >=6,5% ou TOTG 2h >=200.",
+    "ameaca": "DM: CRITERIO DE GLICEMIA DE JEJUM?",
+    "alternativas": [
+      ">=100",
+      ">=110",
+      ">=140",
+      ">= 126 mg/dL em 2 ocasiões (ou sintomas + >=200)"
+    ]
+  },
+  {
+    "inimigo": "Quando iniciar insulina no DM2 recém-diagnosed com descompensacao?",
+    "correta": "Glicemia muito alta, cetonas, perda de peso importante, sintomas graves",
+    "texto": "Metformina se tolerada; insulina se hiperglicemia sintomatica grave.",
+    "ameaca": "DM2: QUANDO INSULINA NO INICIO?",
+    "alternativas": [
+      "Nunca no DM2",
+      "Apenas apos 10 anos",
+      "Apenas se HbA1c <7",
+      "Glicemia muito alta, cetonas, perda de peso importante, sintomas graves"
+    ]
+  },
+  {
+    "inimigo": "Triade de Whipple na hipoglicemia?",
+    "correta": "Sintomas + glicemia baixa + resolucao com glicose",
+    "texto": "Confirma hipoglicemia verdadeira.",
+    "ameaca": "HIPOGLICEMIA: TRIADE DE WHIPPLE?",
+    "alternativas": [
+      "Apenas tremor",
+      "Apenas suor",
+      "Apenas confusao",
+      "Sintomas + glicemia baixa + resolucao com glicose"
+    ]
+  },
+  {
+    "inimigo": "Tratamento da hipoglicemia grave em paciente inconsciente?",
+    "correta": "Glicose EV 50% ou glucagon IM/SC",
+    "texto": "Nao oferecer via oral se risco de aspiracao.",
+    "ameaca": "HIPOGLICEMIA GRAVE: CONDUTA?",
+    "alternativas": [
+      "Apenas agua com acucar oral",
+      "Insulina",
+      "Metformina",
+      "Glicose EV 50% ou glucagon IM/SC"
+    ]
+  },
+  {
+    "inimigo": "Criterios de cetoacidose diabetica?",
+    "correta": "Hiperglicemia + cetonemia/cetonuria + acidose metabolica",
+    "texto": "AG elevado; tratar com soro, insulina, reposicao de K.",
+    "ameaca": "CAD: CRITERIOS?",
+    "alternativas": [
+      "Apenas glicemia >200",
+      "Apenas cetose sem acidose",
+      "Apenas pH alto",
+      "Hiperglicemia + cetonemia/cetonuria + acidose metabolica"
+    ]
+  },
+  {
+    "inimigo": "Reposicao de potassio na CAD antes da insulina se?",
+    "correta": "K < 3,3 mEq/L",
+    "texto": "Insulina empurra K para dentro da celula; risco de arritmia se hipoK grave.",
+    "ameaca": "CAD: K ANTES DA INSULINA?",
+    "alternativas": [
+      "K >5,5",
+      "K normal sempre esperar",
+      "Nunca repor K",
+      "K < 3,3 mEq/L"
+    ]
+  },
+  {
+    "inimigo": "Diferenca principal entre CAD e EHH?",
+    "correta": "EHH: hiperosmolaridade extrema, sem cetose significativa, mais em idosos DM2",
+    "texto": "CAD: cetose e acidose; mais em DM1/jovens.",
+    "ameaca": "CAD vs EHH?",
+    "alternativas": [
+      "EHH tem mais cetose",
+      "CAD tem osmolaridade sempre maior",
+      "Iguais",
+      "EHH: hiperosmolaridade extrema, sem cetose significativa, mais em idosos DM2"
+    ]
+  },
+  {
+    "inimigo": "TSH alto + T4 livre baixo = ?",
+    "correta": "Hipotireoidismo primario",
+    "texto": "Repor levotiroxina; meta de TSH conforme idade e comorbidades.",
+    "ameaca": "TIREOIDE: TSH ALTO E T4 BAIXO?",
+    "alternativas": [
+      "Hipertireoidismo",
+      "Hipotireoidismo central",
+      "Eutiroidismo",
+      "Hipotireoidismo primario"
+    ]
+  },
+  {
+    "inimigo": "TSH baixo + T4 livre alto = ?",
+    "correta": "Hipertireoidismo primario",
+    "texto": "Investigar causa (Graves, nodulo toxico, tireoidite).",
+    "ameaca": "TIREOIDE: TSH BAIXO E T4 ALTO?",
+    "alternativas": [
+      "Hipotireoidismo",
+      "Sindrome do eutireoideo doente",
+      "Deficiencia de iodo apenas",
+      "Hipertireoidismo primario"
+    ]
+  },
+  {
+    "inimigo": "Tratamento sintomatico inicial no hipertireoidismo com sintomas adrenergicos?",
+    "correta": "Betabloqueador (propranolol)",
+    "texto": "Controle de FC e tremor enquanto trata a causa.",
+    "ameaca": "HIPERTIREOIDISMO: SINTOMATICO?",
+    "alternativas": [
+      "Apenas iodo",
+      "Apenas cirurg ia",
+      "Apenas levotiroxina",
+      "Betabloqueador (propranolol)"
+    ]
+  },
+  {
+    "inimigo": "Tratamento definitivo do Graves (opcoes)?",
+    "correta": "Antitireoidiano, iodo radioativo ou cirurgia",
+    "texto": "Escolher conforme idade, gravidez, tamanho do bocio, preferencia.",
+    "ameaca": "GRAVES: TRATAMENTO DEFINITIVO?",
+    "alternativas": [
+      "Apenas betabloqueador",
+      "Apenas iodo inorganico cronico",
+      "Apenas corticóide",
+      "Antitireoidiano, iodo radioativo ou cirurgia"
+    ]
+  },
+  {
+    "inimigo": "Quando suspender metimazol/PTU por efeito adverso grave?",
+    "correta": "Agranulocitose ou hepatotoxicidade grave",
+    "texto": "Orientar a procurar pronto-socorro se febre/dor de garganta.",
+    "ameaca": "ANTITIREOIDIANO: SUSPENDER SE?",
+    "alternativas": [
+      "Apenas rash leve",
+      "Apenas nauseas leves",
+      "Nunca",
+      "Agranulocitose ou hepatotoxicidade grave"
+    ]
+  },
+  {
+    "inimigo": "Hipercalcemia + PTH alto = ?",
+    "correta": "Hiperparatireoidismo primario",
+    "texto": "Pedras, ossos, gemidos; cirurgia se criterios preenchidos.",
+    "ameaca": "HIPERCALCEMIA: PTH ALTO?",
+    "alternativas": [
+      "Malignidade humor al",
+      "Intoxicacao por vitamina D",
+      "Sarcoidose",
+      "Hiperparatireoidismo primario"
+    ]
+  },
+  {
+    "inimigo": "Hipercalcemia + PTH baixo: pensar em?",
+    "correta": "Malignidade (PTHrP ou lise ossea) ou vitamina D",
+    "texto": "Investigar cancer oculto.",
+    "ameaca": "HIPERCALCEMIA: PTH BAIXO?",
+    "alternativas": [
+      "Hiperparatireoidismo primario",
+      "Hipotireoidismo",
+      "Deficiencia de vitamina D",
+      "Malignidade (PTHrP ou lise ossea) ou vitamina D"
+    ]
+  },
+  {
+    "inimigo": "Tratamento agudo da hipercalcemia grave sintomatica?",
+    "correta": "Hidratacao vigorosa com SF + bifosfonato (ou denosumabe) +/- calcitonina",
+    "texto": "Furosemida so apos volume repleto se necessario.",
+    "ameaca": "HIPERCALCEMIA GRAVE: CONDUTA?",
+    "alternativas": [
+      "Apenas diuretico de inicio",
+      "Apenas restricao de Ca oral",
+      "Calcio EV",
+      "Hidratacao vigorosa com SF + bifosfonato (ou denosumabe) +/- calcitonina"
+    ]
+  },
+  {
+    "inimigo": "Criterio de sindrome metabolica (NCEP-ATP III) inclui?",
+    "correta": "Cintura, triglicerideos, HDL, PA, glicemia de jejum",
+    "texto": ">=3 criterios.",
+    "ameaca": "SINDROME METABOLICA: CRITERIOS?",
+    "alternativas": [
+      "Apenas IMC",
+      "Apenas colesterol total",
+      "Apenas HbA1c",
+      "Cintura, triglicerideos, HDL, PA, glicemia de jejum"
+    ]
+  },
+  {
+    "inimigo": "Farmaco de escolha na gota aguda (sem contraindicacao)?",
+    "correta": "AINE, colchicina ou corticóide",
+    "texto": "Alopurinol nao iniciar na crise aguda (manter se ja em uso).",
+    "ameaca": "GOTA AGUDA: TRATAMENTO?",
+    "alternativas": [
+      "Alopurinol de ataque",
+      "Antibiotico",
+      "Alopurinol isolado",
+      "AINE, colchicina ou corticóide"
+    ]
+  },
+  {
+    "inimigo": "Quando iniciar hipouricemiante na gota?",
+    "correta": "Apos resolucao da crise; se recorrente, tofo, nefrolitiase, hiperuricemia grave",
+    "texto": "Colchicina de profilaxia ao iniciar alopurinol.",
+    "ameaca": "GOTA: QUANDO ALLOPURINOL?",
+    "alternativas": [
+      "Na crise aguda sempre",
+      "Nunca",
+      "Apenas se acido urico normal",
+      "Apos resolucao da crise; se recorrente, tofo, nefrolitiase, hiperuricemia grave"
+    ]
+  },
+  {
+    "inimigo": "Fator reumatoide e anti-CCP na AR?",
+    "correta": "Anti-CCP mais especifico; ambos auxiliam diagnostico e prognostico",
+    "texto": "Diagnostico e clinico (criterios ACR/EULAR).",
+    "ameaca": "AR: SOROLOGIA?",
+    "alternativas": [
+      "Apenas VHS",
+      "Apenas PCR",
+      "Apenas ANA",
+      "Anti-CCP mais especifico; ambos auxiliam diagnostico e prognostico"
+    ]
+  },
+  {
+    "inimigo": "DMARD de 1a linha na artrite reumatoide?",
+    "correta": "Metotrexato",
+    "texto": "Associar acido folico; monitorar hemograma e enzimas hepaticas.",
+    "ameaca": "AR: DMARD DE 1A LINHA?",
+    "alternativas": [
+      "Apenas AINE",
+      "Apenas prednisona cronica alta",
+      "Antibiótico",
+      "Metotrexato"
+    ]
+  },
+  {
+    "inimigo": "Criterio classico de LES (exemplo)?",
+    "correta": "Rash malar, fotossensibilidade, artrite, serosite, renal, neurologico, hematologico, imunologico, ANA",
+    "texto": ">=4 criterios ACR ou criterios SLICC/EULAR mais recentes.",
+    "ameaca": "LES: CRITERIOS?",
+    "alternativas": [
+      "Apenas ANA positivo",
+      "Apenas artralgia",
+      "Apenas fadiga",
+      "Rash malar, fotossensibilidade, artrite, serosite, renal, neurologico, hematologico, imunologico, ANA"
+    ]
+  },
+  {
+    "inimigo": "Farmaco de base no LES (maioria)?",
+    "correta": "Hidroxicloroquina",
+    "texto": "Reduz flares e trombose; monitorar retina.",
+    "ameaca": "LES: FARMACO DE BASE?",
+    "alternativas": [
+      "Apenas prednisona alta cronica",
+      "Metotrexato sempre",
+      "Ciclofosfamida de rotina",
+      "Hidroxicloroquina"
+    ]
+  },
+  {
+    "inimigo": "ANCA-c (PR3) associado a?",
+    "correta": "Granulomatose com poliangiite (Wegener)",
+    "texto": "Via aerea superior/inferior + rim.",
+    "ameaca": "ANCA-c: ASSOCIADO A?",
+    "alternativas": [
+      "Micropolangiite apenas",
+      "Churg-Strauss apenas",
+      "Goodpasture",
+      "Granulomatose com poliangiite (Wegener)"
+    ]
+  },
+  {
+    "inimigo": "Anti-MBG associado a?",
+    "correta": "Doenca de Goodpasture",
+    "texto": "Hemorragia alveolar + glomerulonefrite rapidamente progressiva.",
+    "ameaca": "ANTI-MBG: ASSOCIADO A?",
+    "alternativas": [
+      "Wegener",
+      "LES",
+      "IgA",
+      "Doenca de Goodpasture"
+    ]
+  },
+  {
+    "inimigo": "Sindrome nefrotica: criterios?",
+    "correta": "Proteinuria >3,5 g/dia, hipoalbuminemia, edema, hiperlipidemia",
+    "texto": "Causas: membranosa, mínima, FSGS, diabetica.",
+    "ameaca": "SINDROME NEFROTICA?",
+    "alternativas": [
+      "Hematúria + HAS",
+      "Oliguria + azotemia apenas",
+      "Apenas edema",
+      "Proteinuria >3,5 g/dia, hipoalbuminemia, edema, hiperlipidemia"
+    ]
+  },
+  {
+    "inimigo": "Sindrome nefritica: criterios?",
+    "correta": "Hematúria, cilindros hematicos, oliguria, HAS, edema discreto",
+    "texto": "Ex.: GN pos-estreptococica, IgA, LES.",
+    "ameaca": "SINDROME NEFRITICA?",
+    "alternativas": [
+      "Proteinuria nefrotica isolada",
+      "Apenas hiperlipidemia",
+      "Apenas hipoalbuminemia",
+      "Hematúria, cilindros hematicos, oliguria, HAS, edema discreto"
+    ]
+  },
+  {
+    "inimigo": "IRA pre-renal: caracteristica do sedimento e Na urinario?",
+    "correta": "Sedimento branco / hialino; Na urinario baixo (<20) e FENa <1%",
+    "texto": "Resposta a volume; relacao BUN/creatinina alta.",
+    "ameaca": "IRA PRE-RENAL?",
+    "alternativas": [
+      "Cilindros granulosos largos; Na alto",
+      "Eosinofiluria",
+      "Cristais de oxalato sempre",
+      "Sedimento branco / hialino; Na urinario baixo (<20) e FENa <1%"
+    ]
+  },
+  {
+    "inimigo": "IRA intrinseca ATN: sedimento tipico?",
+    "correta": "Cilindros granulosos (barro marrom) e celulas epiteliais",
+    "texto": "Apos isquemia ou nefrotóxicos.",
+    "ameaca": "NTA: SEDIMENTO?",
+    "alternativas": [
+      "Apenas hialinos",
+      "Eosinofilos apenas",
+      "Hematicos dismorficos apenas",
+      "Cilindros granulosos (barro marrom) e celulas epiteliais"
+    ]
+  },
+  {
+    "inimigo": "Indicacoes de dialise de emergencia (AEIOU)?",
+    "correta": "Acidose grave, Eletrolitos (hiperK), Intoxicacoes, Overload (volume), Uremia sintomatica",
+    "texto": "Nao esperar valor fixo de creatinina isolado.",
+    "ameaca": "DIALISE DE EMERGENCIA?",
+    "alternativas": [
+      "Apenas creatinina >2",
+      "Apenas ureia >100",
+      "Apenas anuria de 6h",
+      "Acidose grave, Eletrolitos (hiperK), Intoxicacoes, Overload (volume), Uremia sintomatica"
+    ]
+  },
+  {
+    "inimigo": "Hipercalemia com ECG alterado: 1a medida?",
+    "correta": "Calcio gluconato EV (estabilizar membrana)",
+    "texto": "Depois insulina+glicose, beta-agonista, bicarbonato se acidose, remover K (resina/dialise).",
+    "ameaca": "HIPERCALEMIA COM ECG: 1A MEDIDA?",
+    "alternativas": [
+      "Apenas resina",
+      "Apenas furosemida",
+      "Apenas dieta",
+      "Calcio gluconato EV (estabilizar membrana)"
+    ]
+  },
+  {
+    "inimigo": "Hiponatremia grave sintomatica (convulsao): tratamento?",
+    "correta": "Bolus de solucao salina a 3%",
+    "texto": "Correcao controlada para evitar mielinolise pontina.",
+    "ameaca": "HIPONATREMIA GRAVE SINTOMATICA?",
+    "alternativas": [
+      "Agua livre oral",
+      "Solucao hipotônica",
+      "Apenas restricao hidrica lenta",
+      "Bolus de solucao salina a 3%"
+    ]
+  },
+  {
+    "inimigo": "Causa comum de hiponatremia euvolêmica?",
+    "correta": "SIADH",
+    "texto": "Urina inapropriadamente concentrada; tratar causa e restricao hidrica.",
+    "ameaca": "HIPONATREMIA EUVOLEMICA?",
+    "alternativas": [
+      "Desidratacao hipovolêmica",
+      "ICC",
+      "Cirrose",
+      "SIADH"
+    ]
+  },
+  {
+    "inimigo": "Acidose metabolica com anion gap elevado: causas (MUDPILES)?",
+    "correta": "Metanol, Uremia, Cetoacidose, Paraldeido/Fenformina, Isoniazida/Ferro, Lactato, Etilenoglicol, Salicilato",
+    "texto": "Calcular AG e osmolar gap.",
+    "ameaca": "ACIDOSE COM AG ELEVADO?",
+    "alternativas": [
+      "Diarreia",
+      "RTA distal",
+      "Acetazolamida",
+      "Metanol, Uremia, Cetoacidose, Paraldeido/Fenformina, Isoniazida/Ferro, Lactato, Etilenoglicol, Salicilato"
+    ]
+  },
+  {
+    "inimigo": "Acidose metabolica com AG normal: causas comuns?",
+    "correta": "Diarreia e acidose tubular renal",
+    "texto": "Perda de bicarbonato ou incapacidade de acidificar urina.",
+    "ameaca": "ACIDOSE COM AG NORMAL?",
+    "alternativas": [
+      "Cetoacidose",
+      "Lactato",
+      "Uremia",
+      "Diarreia e acidose tubular renal"
+    ]
+  },
+  {
+    "inimigo": "Alcalose metabolica de contratacao: tratamento?",
+    "correta": "SF 0,9% + reposicao de K",
+    "texto": "Perda de HCl (vomito) ou diureticos; cloreto-responsiva.",
+    "ameaca": "ALCALOSE METABOLICA?",
+    "alternativas": [
+      "Acetazolamida de 1a linha sempre",
+      "Apenas restricao de Na",
+      "Acido cloridrico EV de rotina",
+      "SF 0,9% + reposicao de K"
+    ]
+  },
+  {
+    "inimigo": "Hepatite A: transmissao e cronicidade?",
+    "correta": "Fecal-oral; nao cronifica",
+    "texto": "Vacina disponivel; suporte.",
+    "ameaca": "HEPATITE A?",
+    "alternativas": [
+      "Parenteral; cronifica sempre",
+      "Sexual apenas; cronifica",
+      "Vertical; sempre fulminante",
+      "Fecal-oral; nao cronifica"
+    ]
+  },
+  {
+    "inimigo": "Hepatite B: marcador de replicacao ativa?",
+    "correta": "HBeAg positivo e/ou HBV DNA elevado",
+    "texto": "HBsAg indica infeccao; anti-HBs indica imunidade.",
+    "ameaca": "HBV: MARCADOR DE REPLICACAO?",
+    "alternativas": [
+      "Apenas anti-HBc IgG",
+      "Apenas anti-HBs",
+      "Apenas HBsAg isolado",
+      "HBeAg positivo e/ou HBV DNA elevado"
+    ]
+  },
+  {
+    "inimigo": "Hepatite C: tratamento atual?",
+    "correta": "Antivirais de acao direta (DAA) com alta taxa de cura",
+    "texto": "Genotipo e grau de fibrose orientam esquema; nao mais interferon de rotina.",
+    "ameaca": "HCV: TRATAMENTO?",
+    "alternativas": [
+      "Apenas interferon eterno",
+      "Apenas ribavirina isolada",
+      "Apenas suporte",
+      "Antivirais de acao direta (DAA) com alta taxa de cura"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Child-Pugh avalia?",
+    "correta": "Prognostico da cirrose (bilirrubina, albumina, INR, ascite, encefalopatia)",
+    "texto": "A/B/C orienta risco cirurgico e transplant e.",
+    "ameaca": "CIRROSE: CHILD-PUGH?",
+    "alternativas": [
+      "Apenas creatinina",
+      "Apenas VEF1",
+      "Apenas FE",
+      "Prognostico da cirrose (bilirrubina, albumina, INR, ascite, encefalopatia)"
+    ]
+  },
+  {
+    "inimigo": "Ascite no cirrotico: 1a linha de tratamento?",
+    "correta": "Restricao de Na + espironolactona +/- furosemida",
+    "texto": "Paracentese se tensa; albumina se grande volume.",
+    "ameaca": "ASCITE: 1A LINHA?",
+    "alternativas": [
+      "Apenas antibiotico",
+      "Apenas TIPS de inicio",
+      "Apenas agua livre",
+      "Restricao de Na + espironolactona +/- furosemida"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia secundaria de varizes esofagicas apos sangramento?",
+    "correta": "Betabloqueador nao seletivo + ligadura endoscopica",
+    "texto": "Prevenir ressangramento.",
+    "ameaca": "VARIZES: PROFILAXIA SECUNDARIA?",
+    "alternativas": [
+      "Apenas antiacido",
+      "Apenas nitrato isolado",
+      "Apenas cirurgia de porto-cava de rotina",
+      "Betabloqueador nao seletivo + ligadura endoscopica"
+    ]
+  },
+  {
+    "inimigo": "Encefalopatia hepatica: tratamento?",
+    "correta": "Lactulose +/- rifaximina; tratar precipitantes",
+    "texto": "Reduzir amonia e flora produtora.",
+    "ameaca": "ENCEFALOPATIA HEPATICA?",
+    "alternativas": [
+      "Apenas proteina zero permanente",
+      "Apenas neomicina de rotina",
+      "Apenas flumazenil",
+      "Lactulose +/- rifaximina; tratar precipitantes"
+    ]
+  },
+  {
+    "inimigo": "HDA: 1a medida?",
+    "correta": "ABC, acesso, volume, IBP EV, correção de coagulopatia; endoscopia precoce",
+    "texto": "Estratificar Glasgow-Blatchford/Rockall.",
+    "ameaca": "HDA: 1A MEDIDA?",
+    "alternativas": [
+      "Apenas AINE",
+      "Apenas cirurgia imediata",
+      "Apenas colonoscopia",
+      "ABC, acesso, volume, IBP EV, correção de coagulopatia; endoscopia precoce"
+    ]
+  },
+  {
+    "inimigo": "HDB em paciente hemodinamicamente instavel: pensar em?",
+    "correta": "HDA com sangue digerido ou HDB massiva; estabilizar e endoscopia alta primeiro frequentemente",
+    "texto": "Colonoscopia apos preparo se estavel.",
+    "ameaca": "HDB INSTAVEL?",
+    "alternativas": [
+      "Sempre so hemorroida",
+      "Sempre so diverticulo",
+      "Sempre angiografia de 1a linha",
+      "HDA com sangue digerido ou HDB massiva; estabilizar e endoscopia alta primeiro frequentemente"
+    ]
+  },
+  {
+    "inimigo": "Pancreatite aguda: criterios diagnosticos?",
+    "correta": "2 de 3: dor tipica, lipase/amilase >3x, imagem compativel",
+    "texto": "Causas: calculo e alcool principais.",
+    "ameaca": "PANCREATITE: DIAGNOSTICO?",
+    "alternativas": [
+      "Apenas amilase leve",
+      "Apenas febre",
+      "Apenas leucocitose",
+      "2 de 3: dor tipica, lipase/amilase >3x, imagem compativel"
+    ]
+  },
+  {
+    "inimigo": "Pancreatite: tratamento inicial?",
+    "correta": "Hidratacao generosa, analgesia, nutricao precoce se tolerada; sem antibiotico de rotina",
+    "texto": "CPRE se colangite/obstrucao.",
+    "ameaca": "PANCREATITE: TRATAMENTO INICIAL?",
+    "alternativas": [
+      "Antibiotico em todos",
+      "Cirurgia imediata em todos",
+      "Jejum prolongado obrigatorio",
+      "Hidratacao generosa, analgesia, nutricao precoce se tolerada; sem antibiotico de rotina"
+    ]
+  },
+  {
+    "inimigo": "Colecistite aguda: sinal classico?",
+    "correta": "Murphy positivo",
+    "texto": "USG: paredes espessadas, liquido perivesicular, calculo impactado.",
+    "ameaca": "COLECISTITE: SINAL?",
+    "alternativas": [
+      "Blumberg",
+      "Rovsing",
+      "Psoas",
+      "Murphy positivo"
+    ]
+  },
+  {
+    "inimigo": "Colangite aguda: triade de Charcot?",
+    "correta": "Dor em HD, ictericia, febre",
+    "texto": "Pentade de Reynolds: + hipotensao e confusao = gravidade.",
+    "ameaca": "COLANGITE: TRIADE DE CHARCOT?",
+    "alternativas": [
+      "Dor, vomito, diarreia",
+      "Tosse, febre, dor",
+      "Cefaleia, febre, rigidez",
+      "Dor em HD, ictericia, febre"
+    ]
+  },
+  {
+    "inimigo": "Colangite: conduta?",
+    "correta": "Antibiotico + descompressao biliar (CPRE)",
+    "texto": "Emergencia se septicemia.",
+    "ameaca": "COLANGITE: CONDUTA?",
+    "alternativas": [
+      "Apenas analgesico",
+      "Apenas colecistectomia imediata sem drenagem",
+      "Apenas SF",
+      "Antibiotico + descompressao biliar (CPRE)"
+    ]
+  },
+  {
+    "inimigo": "Rastreamento de cancer colorretal na populacao de risco medio?",
+    "correta": "Colonoscopia a partir dos 45-50 anos (conforme diretriz) a cada 10 anos se normal",
+    "texto": "Alternativas: FIT anual, sigmoidoscopia etc.",
+    "ameaca": "CCR: RASTREAMENTO?",
+    "alternativas": [
+      "Nunca se assintomatico",
+      "Apenas se historia familiar",
+      "Apenas RX",
+      "Colonoscopia a partir dos 45-50 anos (conforme diretriz) a cada 10 anos se normal"
+    ]
+  },
+  {
+    "inimigo": "Anemia ferropriva no idoso homem ou mulher pos-menopausa: investigar?",
+    "correta": "Perda gastrointestinal (endoscopia + colonoscopia)",
+    "texto": "Ate excluir neoplasia.",
+    "ameaca": "ANEMIA FERROPRIVA NO IDOSO?",
+    "alternativas": [
+      "Apenas reposicao sem investigar",
+      "Apenas dieta",
+      "Apenas helmintos tropicais sempre",
+      "Perda gastrointestinal (endoscopia + colonoscopia)"
+    ]
+  },
+  {
+    "inimigo": "Anemia megaloblastica: causas principais?",
+    "correta": "Deficiencia de B12 ou folato",
+    "texto": "B12: neuropatia e anti-FI na perniciosa.",
+    "ameaca": "ANEMIA MEGALOBLASTICA?",
+    "alternativas": [
+      "So ferro",
+      "So talassemia",
+      "So anemia de doenca cronica",
+      "Deficiencia de B12 ou folato"
+    ]
+  },
+  {
+    "inimigo": "Anemia de doenca cronica: ferro serico, ferritina, TIBC?",
+    "correta": "Ferro baixo, ferritina normal/alta, TIBC baixo",
+    "texto": "Diferencia de ferropriva (ferritina baixa, TIBC alto).",
+    "ameaca": "ANEMIA DE DOENCA CRONICA?",
+    "alternativas": [
+      "Ferro baixo, ferritina baixa, TIBC alto",
+      "Ferro alto, ferritina baixa",
+      "Tudo normal",
+      "Ferro baixo, ferritina normal/alta, TIBC baixo"
+    ]
+  },
+  {
+    "inimigo": "Transfusao de hemacias: limiar tipico no paciente estavel sem SCA?",
+    "correta": "Hb < 7 g/dL",
+    "texto": "Em SCA pode ser <8; individualizar.",
+    "ameaca": "TRANSFUSAO: LIMIAR?",
+    "alternativas": [
+      "Hb <10 sempre",
+      "Hb <12",
+      "Qualquer anemia",
+      "Hb < 7 g/dL"
+    ]
+  },
+  {
+    "inimigo": "Neutropenia febril: conduta inicial?",
+    "correta": "Culturas + antibiotico de amplo espectro imediato (ex.: piperacilina-tazobactam ou cefepime)",
+    "texto": "Nao esperar resultados.",
+    "ameaca": "NEUTROPENIA FEBRIL?",
+    "alternativas": [
+      "Aguardar hemograma de 48h",
+      "Apenas antitérmico",
+      "Apenas G-CSF isolado",
+      "Culturas + antibiotico de amplo espectro imediato (ex.: piperacilina-tazobactam ou cefepime)"
+    ]
+  },
+  {
+    "inimigo": "TTP: tratamento de 1a linha?",
+    "correta": "Plasmaferese (troca plasmatica)",
+    "texto": "Nao transfusar plaquetas de rotina; risco de piorar.",
+    "ameaca": "TTP: TRATAMENTO?",
+    "alternativas": [
+      "Apenas corticóide isolado",
+      "Apenas plaquetas",
+      "Apenas esplenectomia de inicio",
+      "Plasmaferese (troca plasmatica)"
+    ]
+  },
+  {
+    "inimigo": "Hemofilia A: deficiencia de?",
+    "correta": "Fator VIII",
+    "texto": "Hemofilia B: fator IX; tratamento com fator ou emicizumabe.",
+    "ameaca": "HEMOFILIA A?",
+    "alternativas": [
+      "Fator IX",
+      "Fator VII",
+      "Vitamina K",
+      "Fator VIII"
+    ]
+  },
+  {
+    "inimigo": "Anticoagulacao na TVP/TEP: duracao minima tipica se provocado?",
+    "correta": "3 meses",
+    "texto": "Nao provocado ou recorrente: considerar prolongado.",
+    "ameaca": "TVP: DURACAO MINIMA?",
+    "alternativas": [
+      "1 semana",
+      "1 mes",
+      "1 ano sempre",
+      "3 meses"
+    ]
+  },
+  {
+    "inimigo": "Quando filtro de veia cava?",
+    "correta": "Contraindicacao absoluta a anticoagulacao com TVP/TEP agudo, ou falha apesar de anticoagulação",
+    "texto": "Nao de rotina.",
+    "ameaca": "FILTRO DE VCI?",
+    "alternativas": [
+      "Em toda TVP",
+      "Em todo TEP",
+      "Sempre pos-cirurgia",
+      "Contraindicacao absoluta a anticoagulacao com TVP/TEP agudo, ou falha apesar de anticoagulação"
+    ]
+  },
+  {
+    "inimigo": "Asma: degrau de controle se sintomas frequentes?",
+    "correta": "Corticoide inalatorio em dose baixa-media +/- LABA",
+    "texto": "SABA isolado nao e ideal como unica terapia de manutencao.",
+    "ameaca": "ASMA: CONTROLE?",
+    "alternativas": [
+      "Apenas SABA diario",
+      "Apenas antibiotico",
+      "Apenas antitussigeno",
+      "Corticoide inalatorio em dose baixa-media +/- LABA"
+    ]
+  },
+  {
+    "inimigo": "Exacerbacao de asma: corticóide sistemico?",
+    "correta": "Sim, por 5-7 dias na maioria das exacerbacoes moderadas-graves",
+    "texto": "Nao precisa taper se curso curto.",
+    "ameaca": "ASMA: CORTICOIDE NA EXACERBACAO?",
+    "alternativas": [
+      "Nunca",
+      "Apenas inalatorio",
+      "Por 3 meses",
+      "Sim, por 5-7 dias na maioria das exacerbacoes moderadas-graves"
+    ]
+  },
+  {
+    "inimigo": "Quando sospeitar de asma grave/dificil?",
+    "correta": "Altas doses de CI + LABA e ainda nao controlada, ou ≥2 exacerbacoes/ano graves",
+    "texto": "Avaliar adesao, tecnica, comorbidades, fenotipo.",
+    "ameaca": "ASMA GRAVE?",
+    "alternativas": [
+      "Qualquer sibilo",
+      "Apenas se alergia",
+      "Apenas infantil",
+      "Altas doses de CI + LABA e ainda nao controlada, ou ≥2 exacerbacoes/ano graves"
+    ]
+  },
+  {
+    "inimigo": "Fibrose pulmonar idiopatica: achado tipico na TC?",
+    "correta": "Padrao UIP (faveolamento basal subpleural, reticulado)",
+    "texto": "Prognostico reservado; antifibroticos em selecionados.",
+    "ameaca": "FPI: TC?",
+    "alternativas": [
+      "Vidro fosco difuso apenas",
+      "Cavitacoes apicais",
+      "Derrame massivo",
+      "Padrao UIP (faveolamento basal subpleural, reticulado)"
+    ]
+  },
+  {
+    "inimigo": "Derrame pleural exudato vs transudato (Light)?",
+    "correta": "Exudato se protein a pleural/soro >0,5 ou LDH pleural/soro >0,6 ou LDH pleural >2/3 do limite superior serico",
+    "texto": "Transudato: ICC, cirrose, nefrose.",
+    "ameaca": "DERRAME: CRITERIOS DE LIGHT?",
+    "alternativas": [
+      "Apenas aspecto turvo",
+      "Apenas celularidade",
+      "Apenas glicose",
+      "Exudato se protein a pleural/soro >0,5 ou LDH pleural/soro >0,6 ou LDH pleural >2/3 do limite superior serico"
+    ]
+  },
+  {
+    "inimigo": "Derrame parapneumonico complicado/empiema: conduta?",
+    "correta": "Drenagem + antibiotico",
+    "texto": "pH baixo, glicose baixa, pus = drenar.",
+    "ameaca": "EMPIEMA?",
+    "alternativas": [
+      "Apenas antibiotico sem drenagem",
+      "Apenas observação",
+      "Apenas diuretico",
+      "Drenagem + antibiotico"
+    ]
+  },
+  {
+    "inimigo": "SAOS: tratamento de 1a linha no adulto?",
+    "correta": "CPAP",
+    "texto": "Apos confirmacao polissonografica; perder peso.",
+    "ameaca": "SAOS: 1A LINHA?",
+    "alternativas": [
+      "Apenas oxigenio",
+      "Apenas cirurgia de rotina",
+      "Apenas hipnotico",
+      "CPAP"
+    ]
+  },
+  {
+    "inimigo": "Quando rastrear AAA em homem?",
+    "correta": "Tabagista 65-75 anos com ultrassom abdominal (conforme diretriz)",
+    "texto": "Cirurgia se diametro >=5,5 cm ou crescimento rapido.",
+    "ameaca": "AAA: RASTREAMENTO?",
+    "alternativas": [
+      "Todas as mulheres jovens",
+      "Nunca",
+      "Apenas se dor",
+      "Tabagista 65-75 anos com ultrassom abdominal (conforme diretriz)"
+    ]
+  },
+  {
+    "inimigo": "Claudicacao intermitente: 1a linha de tratamento?",
+    "correta": "Parar de fumar, exercicio supervisionado, antiagregante, estatina",
+    "texto": "Revascularizacao se limitante apos terapia clinica.",
+    "ameaca": "DAP: 1A LINHA?",
+    "alternativas": [
+      "Cirurgia imediata em todos",
+      "Apenas analgésico",
+      "Apenas vasodilatador periferico isolado",
+      "Parar de fumar, exercicio supervisionado, antiagregante, estatina"
+    ]
+  },
+  {
+    "inimigo": "Erisipela vs celulite: diferenca classica?",
+    "correta": "Erisipela: placa bem delimitada, frequentemente estreptococo; celulite: limites menos nítidos",
+    "texto": "Ambas: antibiotico e elevacao do membro.",
+    "ameaca": "ERISIPELA vs CELULITE?",
+    "alternativas": [
+      "Erisipela e sempre estafilococo MRSA",
+      "Celulite nunca precisa antibiotico",
+      "Iguais em tudo",
+      "Erisipela: placa bem delimitada, frequentemente estreptococo; celulite: limites menos nítidos"
+    ]
+  },
+  {
+    "inimigo": "Osteomielite cronica: tratamento?",
+    "correta": "Antibiotico prolongado + desbridamento cirurgico frequentemente",
+    "texto": "Cultura ossea orienta terapia.",
+    "ameaca": "OSTEOMIELITE CRONICA?",
+    "alternativas": [
+      "Apenas 3 dias de antibiotico oral",
+      "Apenas analgésico",
+      "Apenas imobilizacao",
+      "Antibiotico prolongado + desbridamento cirurgico frequentemente"
+    ]
+  },
+  {
+    "inimigo": "Artrite septica: conduta?",
+    "correta": "Punção + drenagem + antibiotico EV",
+    "texto": "Emergencia ortopedica; nao aguardar cultura para iniciar empirico apos coleta.",
+    "ameaca": "ARTRITE SEPTICA?",
+    "alternativas": [
+      "Apenas AINE",
+      "Apenas repouso",
+      "Apenas corticóide intra-articular",
+      "Punção + drenagem + antibiotico EV"
+    ]
+  },
+  {
+    "inimigo": "Quando profilaxia de endocardite em procedimento dentario?",
+    "correta": "Apenas em alto risco (protese valvar, EI previa, cardiopatia congênita complexa nao corrigida etc.)",
+    "texto": "Amoxicilina 2g 30-60 min antes.",
+    "ameaca": "PROFILAXIA DE EI?",
+    "alternativas": [
+      "Em toda HAS",
+      "Em todo sopro inocente",
+      "Em toda protese de quadril",
+      "Apenas em alto risco (protese valvar, EI previa, cardiopatia congênita complexa nao corrigida etc.)"
+    ]
+  },
+  {
+    "inimigo": "Rastreamento de cancer de mama?",
+    "correta": "Mamografia periodica a partir dos 40-50 anos (conforme diretriz local)",
+    "texto": "Intervalo anual ou bienal conforme idade e risco.",
+    "ameaca": "CANCER DE MAMA: RASTREAMENTO?",
+    "alternativas": [
+      "Nunca se assintomatica",
+      "Apenas ultrassom em todas",
+      "Apenas autoexame",
+      "Mamografia periodica a partir dos 40-50 anos (conforme diretriz local)"
+    ]
+  },
+  {
+    "inimigo": "Rastreamento de cancer de colo uterino?",
+    "correta": "Papanicolau / teste de HPV conforme faixa etaria e diretriz",
+    "texto": "Inicio em geral aos 25 anos; intervalo conforme resultado.",
+    "ameaca": "COLO UTERINO: RASTREAMENTO?",
+    "alternativas": [
+      "Apenas se sintomas",
+      "Apenas apos 60",
+      "Nunca se vacinada",
+      "Papanicolau / teste de HPV conforme faixa etaria e diretriz"
+    ]
+  },
+  {
+    "inimigo": "PSA: uso no rastreamento?",
+    "correta": "Discutir riscos/beneficios individualmente (50-69a tipicamente)",
+    "texto": "Nao rastrear indiscriminadamente sem shared decision.",
+    "ameaca": "PSA: RASTREAMENTO?",
+    "alternativas": [
+      "Obrigatorio em todo homem >40",
+      "Nunca solicitar",
+      "Apenas se sintomas urinarios sempre",
+      "Discutir riscos/beneficios individualmente (50-69a tipicamente)"
+    ]
+  },
+  {
+    "inimigo": "Osteoporose: diagnostico densitometrico?",
+    "correta": "T-score <= -2,5 no colo femoral ou coluna",
+    "texto": "Osteopenia: -1 a -2,5; tratar se alto risco de fratura.",
+    "ameaca": "OSTEOPOROSE: T-SCORE?",
+    "alternativas": [
+      "<= -1",
+      "<= 0",
+      "Qualquer dor ossea",
+      "T-score <= -2,5 no colo femoral ou coluna"
+    ]
+  },
+  {
+    "inimigo": "Tratamento de 1a linha na osteoporose pos-menopausa?",
+    "correta": "Bifosfonatos (alendronato, risedronato etc.) + Ca/vit D se deficiencia",
+    "texto": "Denosumabe, teriparatida, romosozumabe em selecionados.",
+    "ameaca": "OSTEOPOROSE: 1A LINHA?",
+    "alternativas": [
+      "Apenas calcio isolado",
+      "Apenas estrógeno de rotina em todas",
+      "Apenas exercicio",
+      "Bifosfonatos (alendronato, risedronato etc.) + Ca/vit D se deficiencia"
+    ]
+  },
+  {
+    "inimigo": "Delirium: caracteristica essencial?",
+    "correta": "Inicio agudo e curso flutuante da atencao e consciencia",
+    "texto": "Tratar causa; evitar contencao e benzodiazepinicos de rotina.",
+    "ameaca": "DELIRIUM?",
+    "alternativas": [
+      "Demencia cronica estavel",
+      "Depressao isolada",
+      "Psicose primaria sempre",
+      "Inicio agudo e curso flutuante da atencao e consciencia"
+    ]
+  },
+  {
+    "inimigo": "Demencia de Alzheimer: 1a linha sintomatica?",
+    "correta": "Inibidores de acetilcolinesterase (donepezila, rivastigmina, galantamina) +/- memantina",
+    "texto": "Nao modificam a progressao de forma curativa.",
+    "ameaca": "ALZHEIMER: FARMACO?",
+    "alternativas": [
+      "Apenas antipsicotico de rotina",
+      "Apenas benzodiazepinico",
+      "Antibiotico",
+      "Inibidores de acetilcolinesterase (donepezila, rivastigmina, galantamina) +/- memantina"
+    ]
+  },
+  {
+    "inimigo": "Parkinson: tratamento de 1a linha em sintomas motores incapacitantes?",
+    "correta": "Levodopa + carbidopa (ou benserazida)",
+    "texto": "Agonistas dopaminergicos em jovens selecionados.",
+    "ameaca": "PARKINSON: 1A LINHA?",
+    "alternativas": [
+      "Apenas anticolinergico em todos",
+      "Apenas amantadina isolada",
+      "Apenas deep brain em todos de inicio",
+      "Levodopa + carbidopa (ou benserazida)"
+    ]
+  },
+  {
+    "inimigo": "Miastenia gravis: teste e tratamento de crise?",
+    "correta": "Anticorpo anti-AChR; crise: IgIV ou plasmaferese + suporte ventilatorio",
+    "texto": "Inibidores de acetilcolinesterase e imunossupressao na cronica.",
+    "ameaca": "MIASTENIA?",
+    "alternativas": [
+      "Apenas EMG normal sempre",
+      "Apenas corticóide isolado na crise",
+      "Antibiotico",
+      "Anticorpo anti-AChR; crise: IgIV ou plasmaferese + suporte ventilatorio"
+    ]
+  },
+  {
+    "inimigo": "Guillain-Barre: tratamento?",
+    "correta": "IgIV ou plasmaferese; suporte ventilatorio se necessario",
+    "texto": "Nao usar corticóide como terapia principal.",
+    "ameaca": "GUILLAIN-BARRE?",
+    "alternativas": [
+      "Apenas corticóide",
+      "Apenas antibiotico",
+      "Apenas fisioterapia isolada",
+      "IgIV ou plasmaferese; suporte ventilatorio se necessario"
+    ]
+  },
+  {
+    "inimigo": "Esclerose multipla: surto agudo?",
+    "correta": "Metilprednisolona EV em altas doses",
+    "texto": "DMTs (modificadores) na prevencao de surtos.",
+    "ameaca": "EM: SURTO AGUDO?",
+    "alternativas": [
+      "Apenas interferon na crise",
+      "Apenas plasmaferese de rotina em todo surto",
+      "Antibiotico",
+      "Metilprednisolona EV em altas doses"
+    ]
+  },
+  {
+    "inimigo": "Quando iniciar estatina na prevencao primaria?",
+    "correta": "Risco CV calculado elevado ou LDL muito alto ou DM em faixa etaria",
+    "texto": "Calcular escore de risco (ASCVD, QRISK, etc.).",
+    "ameaca": "ESTATINA: PREVENCAO PRIMARIA?",
+    "alternativas": [
+      "Em todo adulto >20",
+      "Nunca se LDL <190",
+      "Apenas se IAM previo",
+      "Risco CV calculado elevado ou LDL muito alto ou DM em faixa etaria"
+    ]
+  },
+  {
+    "inimigo": "Meta de PA em paciente com DM (maioria das diretrizes)?",
+    "correta": "<130/80 mmHg se tolerado",
+    "texto": "IECA/BRA preferidos se albuminuria.",
+    "ameaca": "DM + HAS: META DE PA?",
+    "alternativas": [
+      "<150/95",
+      "<140/90 apenas se jovem",
+      "<160/100",
+      "<130/80 mmHg se tolerado"
+    ]
+  },
+  {
+    "inimigo": "Albuminuria no DM: farmaco que reduz progressao?",
+    "correta": "IECA ou BRA (e SGLT2i / finerenona em cenarios)",
+    "texto": "Independente da PA se albuminuria significativa.",
+    "ameaca": "DM: NEFROPROTECAO?",
+    "alternativas": [
+      "Apenas diuretico de alça",
+      "Apenas bloqueador de Ca",
+      "Apenas AAS",
+      "IECA ou BRA (e SGLT2i / finerenona em cenarios)"
+    ]
+  },
+  {
+    "inimigo": "Vacina anual indicada em idosos e comorbidades?",
+    "correta": "Influenza",
+    "texto": "Tambem pneumococica e herpes zoster conforme idade/risco.",
+    "ameaca": "VACINA: ANUAL EM IDOSOS?",
+    "alternativas": [
+      "Sarampo anual",
+      "Febre amarela anual obrigatoria em todos",
+      "BCG anual",
+      "Influenza"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia de TVP em paciente clinico internado de alto risco?",
+    "correta": "HBPM ou heparina nao fracionada SC (se sem alto risco de sangramento)",
+    "texto": "Meias/compressao mecanica se anticoagulacao contraindicada.",
+    "ameaca": "PROFILAXIA DE TVP HOSPITALAR?",
+    "alternativas": [
+      "Apenas deambular",
+      "Apenas AAS",
+      "Apenas filtro de cava de rotina",
+      "HBPM ou heparina nao fracionada SC (se sem alto risco de sangramento)"
+    ]
+  },
+  {
+    "inimigo": "Criterio de alta na pneumonia (exemplo)?",
+    "correta": "Estabilidade clinica (PA, FC, FR, Sat, afebril) e via oral tolerada",
+    "texto": "Nao e obrigatorio RX normal na alta.",
+    "ameaca": "PAC: ALTA?",
+    "alternativas": [
+      "RX normal obrigatorio",
+      "Afebril por 7 dias no hospital",
+      "Leucocitos normais obrigatorios",
+      "Estabilidade clinica (PA, FC, FR, Sat, afebril) e via oral tolerada"
+    ]
+  },
+  {
+    "inimigo": "Quando solicitar hemoculturas na pneumonia?",
+    "correta": "PAC grave, internacao em UTI, ou suspeita de bacteremia/endocardite associada",
+    "texto": "Nao obrigatorias em todo ambulatorial leve.",
+    "ameaca": "PAC: HEMOCULTURAS?",
+    "alternativas": [
+      "Em toda PAC ambulatorial",
+      "Nunca",
+      "Apenas apos antibiotico",
+      "PAC grave, internacao em UTI, ou suspeita de bacteremia/endocardite associada"
+    ]
+  },
+  {
+    "inimigo": "D-dimero negativo em baixa probabilidade de TEP?",
+    "correta": "Afasta TEP com boa seguranca (se ensaio sensivel)",
+    "texto": "Nao usar isolado em alta probabilidade.",
+    "ameaca": "TEP: D-DIMERO?",
+    "alternativas": [
+      "Confirma TEP sempre",
+      "Nunca afasta",
+      "So serve em gravidez",
+      "Afasta TEP com boa seguranca (se ensaio sensivel)"
+    ]
+  },
+  {
+    "inimigo": "Wells score alto para TEP: proximo passo?",
+    "correta": "Imagem direta (Angio-TC) sem depender do D-dimero",
+    "texto": "D-dimero nao afasta se alta probabilidade.",
+    "ameaca": "TEP: WELLS ALTO?",
+    "alternativas": [
+      "Apenas D-dimero",
+      "Apenas observar",
+      "Apenas AAS",
+      "Imagem direta (Angio-TC) sem depender do D-dimero"
+    ]
+  },
+  {
+    "inimigo": "Tratamento do TEP hemodinamicamente instavel?",
+    "correta": "Trombolise sistêmica se sem contraindicacao absoluta + suporte",
+    "texto": "Emboléctomia em centros selecionados se falha/contraindicacao.",
+    "ameaca": "TEP MASSIVO?",
+    "alternativas": [
+      "Apenas heparina sem reperfusao",
+      "Apenas filtro de cava",
+      "Apenas O2",
+      "Trombolise sistêmica se sem contraindicacao absoluta + suporte"
+    ]
+  },
+  {
+    "inimigo": "Qual a principal via de transmissao da hepatite B?",
+    "correta": "Parenteral e sexual (tambem vertical)",
+    "texto": "Vacina e HBIG na prevencao perinatal.",
+    "ameaca": "HBV: TRANSMISSAO?",
+    "alternativas": [
+      "Apenas fecal-oral",
+      "Apenas aerea",
+      "Apenas agua",
+      "Parenteral e sexual (tambem vertical)"
+    ]
+  },
+  {
+    "inimigo": "Marcador que indica imunidade a hepatite B pos-vacina?",
+    "correta": "Anti-HBs positivo isolado",
+    "texto": "HBsAg negativo, anti-HBc negativo.",
+    "ameaca": "HBV: IMUNIDADE POS-VACINA?",
+    "alternativas": [
+      "HBsAg positivo",
+      "Anti-HBc IgM",
+      "HBeAg",
+      "Anti-HBs positivo isolado"
+    ]
+  },
+  {
+    "inimigo": "Tratamento da hepatite B cronica com indicacao?",
+    "correta": "Analogos nucleos(t)idicos (tenofovir, entecavir) ou interferon em selecionados",
+    "texto": "Indicado se inflamacao/fibrose e viremia.",
+    "ameaca": "HBV CRONICA: TRATAMENTO?",
+    "alternativas": [
+      "Apenas suporte",
+      "Apenas corticoide",
+      "Apenas DAA do HCV",
+      "Analogos nucleos(t)idicos (tenofovir, entecavir) ou interferon em selecionados"
+    ]
+  },
+  {
+    "inimigo": "Criterio de cured virologica no HCV apos DAA?",
+    "correta": "RNA indetectavel 12 semanas apos o fim do tratamento (SVR12)",
+    "texto": "Equivalente a cura na grande maioria.",
+    "ameaca": "HCV: SVR12?",
+    "alternativas": [
+      "HBsAg negativo",
+      "Anti-HCV negativo",
+      "ALT normal apenas",
+      "RNA indetectavel 12 semanas apos o fim do tratamento (SVR12)"
+    ]
+  },
+  {
+    "inimigo": "Ascite espontaneamente infectada (PBE): diagnostico?",
+    "correta": "PMN >= 250/mm3 no liquido ascitico",
+    "texto": "Antibiotico (ex.: cefotaxima) + albumina em selecionados.",
+    "ameaca": "PBE: DIAGNOSTICO?",
+    "alternativas": [
+      "Cultura obrigatoria positiva sempre",
+      "Apenas proteina alta",
+      "Apenas glicose baixa",
+      "PMN >= 250/mm3 no liquido ascitico"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia primaria de PBE?",
+    "correta": "Se proteina no liquido <1,5 g/dL + fator de gravidade (Child, creatinina, Na)",
+    "texto": "Norfluoxacino ou equivalente.",
+    "ameaca": "PBE: PROFILAXIA PRIMARIA?",
+    "alternativas": [
+      "Em toda ascite",
+      "Nunca",
+      "Apenas apos 5 episodios",
+      "Se proteina no liquido <1,5 g/dL + fator de gravidade (Child, creatinina, Na)"
+    ]
+  },
+  {
+    "inimigo": "Sindrome hepatorrenal: caracteristica?",
+    "correta": "IRA funcional no cirrotico com ascite, sem choque, apos excluir outras causas",
+    "texto": "Tipo 1 rapido e grave; vasoconstritores + albumina.",
+    "ameaca": "SINDROME HEPATORRENAL?",
+    "alternativas": [
+      "Necrose tubular sempre",
+      "GN sempre",
+      "Pos-renal sempre",
+      "IRA funcional no cirrotico com ascite, sem choque, apos excluir outras causas"
+    ]
+  },
+  {
+    "inimigo": "Encefalopatia hepatica grau 4?",
+    "correta": "Coma",
+    "texto": "West Haven: 0-4.",
+    "ameaca": "ENCEFALOPATIA: GRAU 4?",
+    "alternativas": [
+      "Confusao leve",
+      "Asterixe apenas",
+      "Sonolencia",
+      "Coma"
+    ]
+  },
+  {
+    "inimigo": "Varizes esofagicas: profilaxia primaria se medio-grande calibre?",
+    "correta": "Betabloqueador nao seletivo ou ligadura",
+    "texto": "Evitar 1o sangramento.",
+    "ameaca": "VARIZES: PROFILAXIA PRIMARIA?",
+    "alternativas": [
+      "Apenas IBP",
+      "Apenas dieta",
+      "Apenas TIPS de rotina",
+      "Betabloqueador nao seletivo ou ligadura"
+    ]
+  },
+  {
+    "inimigo": "HDA varicosa: farmaco vasoativo?",
+    "correta": "Terlipressina, somatostatina ou octreotide",
+    "texto": "Associar antibiotico e endoscopia precoce.",
+    "ameaca": "HDA VARICOSA: FARMACO?",
+    "alternativas": [
+      "Apenas AAS",
+      "Apenas heparina",
+      "Apenas nitrato isolado",
+      "Terlipressina, somatostatina ou octreotide"
+    ]
+  },
+  {
+    "inimigo": "Ulcera peptica: erradicar H. pylori quando?",
+    "correta": "Sempre que documentado em doenca peptica ulcerosa",
+    "texto": "Esquemas triplo/quadruple conforme resistencia.",
+    "ameaca": "H. PYLORI: QUANDO ERRADICAR?",
+    "alternativas": [
+      "Nunca",
+      "Apenas se cancer",
+      "Apenas se dispepsia funcional sem teste",
+      "Sempre que documentado em doenca peptica ulcerosa"
+    ]
+  },
+  {
+    "inimigo": "Teste de escolha para confirmar erradicacao de H. pylori?",
+    "correta": "Teste respiratorio com ureia ou antigeno fecal (apos 4 semanas sem antibiotico e 2 sem IBP)",
+    "texto": "Sorologia nao serve para controle de cura.",
+    "ameaca": "H. PYLORI: CONTROLE DE CURA?",
+    "alternativas": [
+      "Sorologia IgG",
+      "Apenas clinica",
+      "Endoscopia obrigatoria sempre",
+      "Teste respiratorio com ureia ou antigeno fecal (apos 4 semanas sem antibiotico e 2 sem IBP)"
+    ]
+  },
+  {
+    "inimigo": "Doenca de Crohn vs RCU: diferenca classica?",
+    "correta": "Crohn: transmural, salteada, pode afetar todo o TGI; RCU: mucosa, continua do reto",
+    "texto": "Fistulas e granulomas mais no Crohn.",
+    "ameaca": "CROHN vs RCU?",
+    "alternativas": [
+      "Iguais",
+      "RCU e transmural",
+      "Crohn so no reto",
+      "Crohn: transmural, salteada, pode afetar todo o TGI; RCU: mucosa, continua do reto"
+    ]
+  },
+  {
+    "inimigo": "RCU grave: tratamento inicial?",
+    "correta": "Corticoide EV; se refrataria, infliximabe/ciclosporina; colectomia se necessario",
+    "texto": "Anticoagulacao profilatica por risco de TVP.",
+    "ameaca": "RCU GRAVE?",
+    "alternativas": [
+      "Apenas mesalazina oral",
+      "Apenas dieta",
+      "Apenas antibiotico",
+      "Corticoide EV; se refrataria, infliximabe/ciclosporina; colectomia se necessario"
+    ]
+  },
+  {
+    "inimigo": "Celíaca: anticorpo mais usado no rastreio?",
+    "correta": "Anti-transglutaminase IgA (com dosagem de IgA total)",
+    "texto": "Biopsia duodenal confirma se necessario.",
+    "ameaca": "CELIACA: SOROLOGIA?",
+    "alternativas": [
+      "Anti-HBs",
+      "FAN",
+      "ANCA",
+      "Anti-transglutaminase IgA (com dosagem de IgA total)"
+    ]
+  },
+  {
+    "inimigo": "Dieta na celíaca?",
+    "correta": "Sem gluten (trigo, centeio, cevada) por toda a vida",
+    "texto": "Aveia sem contaminacao pode ser tolerada por muitos.",
+    "ameaca": "CELIACA: DIETA?",
+    "alternativas": [
+      "Sem lactose apenas",
+      "Sem carne",
+      "Sem acucar",
+      "Sem gluten (trigo, centeio, cevada) por toda a vida"
+    ]
+  },
+  {
+    "inimigo": "IBS: criterios de Roma?",
+    "correta": "Dor abdominal recorrente relacionada a defecacao ou mudanca de habito intestinal",
+    "texto": "Sem red flags; tratamento sintomatico.",
+    "ameaca": "IBS: ROMA?",
+    "alternativas": [
+      "Sempre sangue nas fezes",
+      "Sempre perda de peso",
+      "Sempre anemia",
+      "Dor abdominal recorrente relacionada a defecacao ou mudanca de habito intestinal"
+    ]
+  },
+  {
+    "inimigo": "Constipacao cronica: 1a linha?",
+    "correta": "Fibras + agua + osmóticos (polietilenoglicol)",
+    "texto": "Investigar se red flags.",
+    "ameaca": "CONSTIPACAO: 1A LINHA?",
+    "alternativas": [
+      "Apenas enemas diarios",
+      "Apenas opioide",
+      "Apenas cirurgia",
+      "Fibras + agua + osmóticos (polietilenoglicol)"
+    ]
+  },
+  {
+    "inimigo": "Diarreia aguda aquosa sem sangue: conduta geral?",
+    "correta": "Reidratacao; antibiotico so se indicado (viagem, imunossupressao, gravidade)",
+    "texto": "Evitar antimotilidade se sangue/febre alta.",
+    "ameaca": "DIARREIA AGUDA?",
+    "alternativas": [
+      "Antibiotico em todos",
+      "Jejuar 3 dias",
+      "Colonoscopia urgente em todos",
+      "Reidratacao; antibiotico so se indicado (viagem, imunossupressao, gravidade)"
+    ]
+  },
+  {
+    "inimigo": "Clostridioides difficile: 1a linha tipica?",
+    "correta": "Fidaxomicina ou vancomicina oral (conforme gravidade e diretriz)",
+    "texto": "Suspender antibiotico desencadeante se possivel.",
+    "ameaca": "C. DIFFICILE?",
+    "alternativas": [
+      "Metronidazol EV sempre",
+      "Apenas probiotico",
+      "Apenas loperamida",
+      "Fidaxomicina ou vancomicina oral (conforme gravidade e diretriz)"
+    ]
+  },
+  {
+    "inimigo": "Pancreatite biliar com colangite: alem do suporte?",
+    "correta": "CPRE precoce",
+    "texto": "Colecistectomia na mesma internacao se leve e resolvida.",
+    "ameaca": "PANCREATITE BILIAR + COLANGITE?",
+    "alternativas": [
+      "Apenas observa",
+      "Cirurgia pancreatica imediata",
+      "Apenas antibiotico sem drenagem",
+      "CPRE precoce"
+    ]
+  },
+  {
+    "inimigo": "Criterio de Ranson / BISAP / APACHE avaliam?",
+    "correta": "Gravidade / prognostico da pancreatite aguda",
+    "texto": "Nao diagnosticam.",
+    "ameaca": "PANCREATITE: ESCORES?",
+    "alternativas": [
+      "Diagnostico de TB",
+      "Gravidade de asma",
+      "Risco de AVC",
+      "Gravidade / prognostico da pancreatite aguda"
+    ]
+  },
+  {
+    "inimigo": "Colecistolitiase assintomatica: conduta usual?",
+    "correta": "Observacao (colecistectomia se sintomas ou grupos selecionados)",
+    "texto": "Nao operar todo calculo silencioso.",
+    "ameaca": "CALCULO ASSINTOMATICO?",
+    "alternativas": [
+      "Colecistectomia em todos",
+      "Litotripsia em todos",
+      "Antibiotico cronico",
+      "Observacao (colecistectomia se sintomas ou grupos selecionados)"
+    ]
+  },
+  {
+    "inimigo": "Colangite esclerosante primaria: associacao?",
+    "correta": "Retocolite ulcerativa",
+    "texto": "RM/colangio; risco de colangiocarcinoma.",
+    "ameaca": "CEP: ASSOCIACAO?",
+    "alternativas": [
+      "Doenca de Crohn apenas",
+      "Celíaca",
+      "Hepatite A",
+      "Retocolite ulcerativa"
+    ]
+  },
+  {
+    "inimigo": "Cirrose biliar primaria (colangite biliar primaria): anticorpo?",
+    "correta": "Anti-mitocondria (AMA)",
+    "texto": "Tratamento: acido ursodesoxicolico; obeticholico em selecionados.",
+    "ameaca": "CBP: ANTICORPO?",
+    "alternativas": [
+      "Anti-LKM",
+      "ASMA",
+      "Anti-CCP",
+      "Anti-mitocondria (AMA)"
+    ]
+  },
+  {
+    "inimigo": "Hepatite autoimune: tratamento?",
+    "correta": "Corticoide +/- azatioprina",
+    "texto": "Diagnostico por sorologia, IgG e biopsia.",
+    "ameaca": "HAI: TRATAMENTO?",
+    "alternativas": [
+      "Apenas ursodesoxicolico",
+      "Apenas DAA",
+      "Apenas suporte",
+      "Corticoide +/- azatioprina"
+    ]
+  },
+  {
+    "inimigo": "Esteatohepatite nao alcoolica (NASH): pilares do tratamento?",
+    "correta": "Perda de peso, exercicio, controle de sindrome metabolica",
+    "texto": "Farmacos emergentes em pesquisa/aprovacao seletiva.",
+    "ameaca": "NASH: TRATAMENTO?",
+    "alternativas": [
+      "Apenas antibiotico",
+      "Apenas corticoide",
+      "Apenas interfer on",
+      "Perda de peso, exercicio, controle de sindrome metabolica"
+    ]
+  },
+  {
+    "inimigo": "Quando suspeitar de hemocromatose?",
+    "correta": "Ferro alto, ferritina alta, saturacao de transferrina alta; fadiga, artropatia, diabetes bronzeado",
+    "texto": "Genetica HFE; flebotomias.",
+    "ameaca": "HEMOCROMATOSE?",
+    "alternativas": [
+      "Ferro baixo sempre",
+      "Ferritina baixa",
+      "Apenas anemia",
+      "Ferro alto, ferritina alta, saturacao de transferrina alta; fadiga, artropatia, diabetes bronzeado"
+    ]
+  },
+  {
+    "inimigo": "Doenca de Wilson: marcadores?",
+    "correta": "Ceruloplasmina baixa, cobre urinario alto, anel de Kayser-Fleischer",
+    "texto": "Tratamento quelante ou zinco.",
+    "ameaca": "WILSON?",
+    "alternativas": [
+      "Ferro alto",
+      "Alfa-1 antitripsina alta",
+      "Cobre serico sempre alto livre isolado sem contexto",
+      "Ceruloplasmina baixa, cobre urinario alto, anel de Kayser-Fleischer"
+    ]
+  },
+  {
+    "inimigo": "Deficiencia de alfa-1 antitripsina: manifestacoes?",
+    "correta": "Enfisema basal em jovem e/ou doenca hepatica",
+    "texto": "Reposicao em selecionados; transplante.",
+    "ameaca": "ALFA-1 ANTITRIPSINA?",
+    "alternativas": [
+      "Apenas asma",
+      "Apenas bronquiectasia sem enfisema",
+      "Apenas cirrose sem pulmao",
+      "Enfisema basal em jovem e/ou doenca hepatica"
+    ]
+  },
+  {
+    "inimigo": "Quando indicar transplante hepatico (exemplo)?",
+    "correta": "Cirrose descompensada com MELD alto, falencia fulminante, HCC dentro de criterios",
+    "texto": "Avaliacao multidisciplinar.",
+    "ameaca": "TRANSPLANTE HEPATICO?",
+    "alternativas": [
+      "Qualquer esteatose",
+      "Qualquer hepatite A",
+      "Qualquer elevacao de ALT",
+      "Cirrose descompensada com MELD alto, falencia fulminante, HCC dentro de criterios"
+    ]
+  },
+  {
+    "inimigo": "MELD usa quais variaveis?",
+    "correta": "Bilirrubina, INR, creatinina (e Na no MELD-Na)",
+    "texto": "Prioriza orgao no transplante.",
+    "ameaca": "MELD?",
+    "alternativas": [
+      "Apenas albumina",
+      "Apenas AST",
+      "Apenas plaquetas",
+      "Bilirrubina, INR, creatinina (e Na no MELD-Na)"
+    ]
+  },
+  {
+    "inimigo": "ICC direita isolada: causa classica?",
+    "correta": "Hipertensao pulmonar / cor pulmonale / TEP cronico / valva pulmonar",
+    "texto": "Estase sistemica sem congestao pulmonar previa.",
+    "ameaca": "ICC DIREITA?",
+    "alternativas": [
+      "Apenas estenose mitral sempre",
+      "Apenas IAM anterior sempre",
+      "Apenas hipertireoidismo",
+      "Hipertensao pulmonar / cor pulmonale / TEP cronico / valva pulmonar"
+    ]
+  },
+  {
+    "inimigo": "BNP/NT-proBNP baixo na dispneia?",
+    "correta": "Torna ICC pouco provavel",
+    "texto": "Elevado nao confirma sozinho (TEP, idade, IR elevam).",
+    "ameaca": "BNP BAIXO?",
+    "alternativas": [
+      "Confirma ICC",
+      "Confirma TEP",
+      "Confirma asma",
+      "Torna ICC pouco provavel"
+    ]
+  },
+  {
+    "inimigo": "Restricao hidrica na hiponatremia do SIADH?",
+    "correta": "Sim, 1a linha se leve-moderada assintomatica",
+    "texto": "Vaptans em selecionados; salina 3% se grave sintomatica.",
+    "ameaca": "SIADH: RESTRICAO HIDRICA?",
+    "alternativas": [
+      "Nunca",
+      "Apenas SF 0,9% em volume alto sempre",
+      "Apenas diuretico de alça isolado",
+      "Sim, 1a linha se leve-moderada assintomatica"
+    ]
+  },
+  {
+    "inimigo": "Diabetes insipidus central: tratamento?",
+    "correta": "Desmopressina",
+    "texto": "Agua livre se sede intacta; distinguir do nefrogênico.",
+    "ameaca": "DI CENTRAL?",
+    "alternativas": [
+      "Insulina",
+      "Metformina",
+      "IECA",
+      "Desmopressina"
+    ]
+  },
+  {
+    "inimigo": "Como distinguir DI de polidipsia primaria no teste de privacao?",
+    "correta": "Na DI a urina permanece diluida e plasma concentra; na polidipsia a urina concentra",
+    "texto": "Resposta a desmopressina diferencia central vs nefrogênico.",
+    "ameaca": "TESTE DE PRIVACAO?",
+    "alternativas": [
+      "Sempre iguais",
+      "DI concentra urina sempre",
+      "Polidipsia nunca concentra",
+      "Na DI a urina permanece diluida e plasma concentra; na polidipsia a urina concentra"
+    ]
+  },
+  {
+    "inimigo": "Criterio de sindrome de lise tumoral laboratorial?",
+    "correta": "Elevacao de acido urico, K, fosforo e queda de calcio",
+    "texto": "Profilaxia com hidratacao e alopurinol/rasburicase.",
+    "ameaca": "LISE TUMORAL?",
+    "alternativas": [
+      "Apenas anemia",
+      "Apenas leucocitose",
+      "Apenas plaquetopenia",
+      "Elevacao de acido urico, K, fosforo e queda de calcio"
+    ]
+  },
+  {
+    "inimigo": "Quando usar rasburicase?",
+    "correta": "Hiperuricemia grave na lise tumoral (especialmente se alto risco)",
+    "texto": "Cuidado em G6PD deficiente.",
+    "ameaca": "RASBURICASE?",
+    "alternativas": [
+      "Gota cronica leve",
+      "Asymptomatic hiperuricemia isolada",
+      "IRC sem lise",
+      "Hiperuricemia grave na lise tumoral (especialmente se alto risco)"
+    ]
+  },
+  {
+    "inimigo": "Neutropenia: definir?",
+    "correta": "Neutrofilos < 1500/mm3 (grave <500)",
+    "texto": "Risco infeccioso sobe muito se <500.",
+    "ameaca": "NEUTROPENIA?",
+    "alternativas": [
+      "<3000",
+      "<2000 sempre grave",
+      "Apenas leucocitos totais baixos",
+      "Neutrofilos < 1500/mm3 (grave <500)"
+    ]
+  },
+  {
+    "inimigo": "Quando G-CSF na neutropenia febril?",
+    "correta": "Se alto risco ou demora na recuperacao (conforme protocolo)",
+    "texto": "Nao substitui antibiotico imediato.",
+    "ameaca": "G-CSF?",
+    "alternativas": [
+      "Em toda febre",
+      "Em vez de antibiotico",
+      "Nunca",
+      "Se alto risco ou demora na recuperacao (conforme protocolo)"
+    ]
+  },
+  {
+    "inimigo": "Anemia falciforme: tratamento da crise dolorosa?",
+    "correta": "Analgesia (opioide se necessario), hidratacao, O2 se hipoxemia; nao transfusao de rotina",
+    "texto": "Hidroxiureia na prevencao de crises.",
+    "ameaca": "FALCIFORME: CRISE DOLOROSA?",
+    "alternativas": [
+      "Antibiotico em todas",
+      "Transfusao em todas",
+      "Apenas AAS",
+      "Analgesia (opioide se necessario), hidratacao, O2 se hipoxemia; nao transfusao de rotina"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia na crianca com doenca falciforme?",
+    "correta": "Penicilina ate 5 anos + vacinas (pneumococo, meningococo, influenza, Hib)",
+    "texto": "Reduz sepse pneumococica.",
+    "ameaca": "FALCIFORME: PROFILAXIA?",
+    "alternativas": [
+      "Apenas ferro",
+      "Apenas acido folico isolado",
+      "Sem vacinas especiais",
+      "Penicilina ate 5 anos + vacinas (pneumococo, meningococo, influenza, Hib)"
+    ]
+  },
+  {
+    "inimigo": "PTI: quando tratar?",
+    "correta": "Se sangramento ou plaquetas muito baixas (ex. <30 mil) com risco",
+    "texto": "Corticoide 1a linha; IgIV se grave/urgente.",
+    "ameaca": "PTI: QUANDO TRATAR?",
+    "alternativas": [
+      "Sempre se <100 mil",
+      "Nunca",
+      "Apenas com esplenectomia de inicio",
+      "Se sangramento ou plaquetas muito baixas (ex. <30 mil) com risco"
+    ]
+  },
+  {
+    "inimigo": "Quando evitar transfusao de plaquetas?",
+    "correta": "TTP/PTT e HIT (exceto sangramento com risco de vida)",
+    "texto": "Pode piorar trombose microvascular.",
+    "ameaca": "PLAQUETAS: EVITAR EM?",
+    "alternativas": [
+      "PTI leve",
+      "Qualquer cirurgia",
+      "Qualquer trombocitose",
+      "TTP/PTT e HIT (exceto sangramento com risco de vida)"
+    ]
+  },
+  {
+    "inimigo": "HIT: conduta?",
+    "correta": "Suspender heparina e iniciar anticoagulante alternativo (argatroban, fondaparinux etc.)",
+    "texto": "Nao usar varfarina isolada na fase aguda.",
+    "ameaca": "HIT?",
+    "alternativas": [
+      "Aumentar dose de heparina",
+      "Apenas AAS",
+      "Transfundir plaquetas de rotina",
+      "Suspender heparina e iniciar anticoagulante alternativo (argatroban, fondaparinux etc.)"
+    ]
+  },
+  {
+    "inimigo": "INR alvo na FA nao valvar com varfarina?",
+    "correta": "2,0 a 3,0",
+    "texto": "Exceto situacoes especiais (protese metalica mitral etc.).",
+    "ameaca": "VARFARINA NA FA: INR?",
+    "alternativas": [
+      "1,0-1,5",
+      "3,5-4,5",
+      "4,5-6,0",
+      "2,0 a 3,0"
+    ]
+  },
+  {
+    "inimigo": "Reversao de varfarina com sangramento grave?",
+    "correta": "Complexo protrombinico (PCC) + vitamina K EV",
+    "texto": "Plasma se PCC indisponivel.",
+    "ameaca": "VARFARINA: REVERSAO?",
+    "alternativas": [
+      "Apenas vitamina K oral lenta",
+      "Apenas protamina",
+      "Apenas idarucizumab",
+      "Complexo protrombinico (PCC) + vitamina K EV"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 👩‍⚕️ PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA CLÍNICA MÉDICA] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[CENÁRIO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo} 🏥`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE AVALIAÇÃO DE CLÍNICA MÉDICA CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE CLÍNICA MÉDICA INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

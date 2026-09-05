@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PenseQuizMed Prescrição Game</title>
+    <link rel="icon" type="image/png" href="https://placehold.co/32x32/0ea5e9/FFFFFF?text=Rx">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        medical: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                            800: '#075985', 900: '#0c4a6e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { --primary: #0ea5e9; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        .case-card {
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid rgba(14, 165, 233, 0.25);
+            transition: all 0.3s ease;
+        }
+        .case-card:hover {
+            border-color: rgba(14, 165, 233, 0.5);
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        select, input {
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+            color: #e2e8f0 !important;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #0ea5e9 !important;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        }
+        .timer-critical {
+            animation: pulse-red 1s infinite;
+            color: #ef4444 !important;
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .progress-ring {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .modal-enter { animation: modalIn 0.3s ease-out; }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .streak-badge { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .patient-tag {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+        .stability-bar { transition: width 0.3s ease-in-out, background-color 0.3s ease-in-out; }
+        .mode-active {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+            color: white !important;
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
+        }
+        .safety-checklist label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            cursor: pointer;
+        }
+        .safety-checklist input:checked + span { color: #10b981; }
+    </style>
+</head>
+<body class="text-slate-200 antialiased">
+    <!-- Splash -->
+    <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 transition-opacity duration-700">
+        <div class="text-center space-y-6">
+            <div class="text-6xl animate-pulse">💊</div>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-medical-400">PenseQuizMed Prescrição Game</h1>
+            <p class="text-slate-400 text-lg">PenseQuizMed • Prescrição • Triagem • Trauma</p>
+            <p class="text-xs text-slate-500 max-w-md mx-auto">Prescrição • Triagem Manchester • Trauma ATLS 11 (xABCDE) • Atualizado AHA 2025 / ADA 2026</p>
+            <div class="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
+                <div id="splashProgress" class="h-full bg-medical-500 rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p class="text-xs text-slate-500">Carregando casos clínicos, base de medicamentos e diretrizes 2025/2026...</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 glass border-b border-slate-700/50">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-medical-600 flex items-center justify-center text-xl font-bold shadow-lg shadow-medical-500/20">Rx</div>
+                    <div>
+                        <h1 class="text-lg font-bold text-white leading-tight">PenseQuizMed Prescrição Game</h1>
+                        <p class="text-xs text-slate-400">Prescrição Game</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <div id="streakDisplay" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-full streak-badge text-white text-sm font-bold">
+                        🔥 <span id="streakCount">0</span>
+                    </div>
+                    <button id="modePrescricao" class="mode-btn px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-medium transition mode-active" data-mode="prescricao">💊 Prescrição</button>
+                    <button id="modeTriagem" class="mode-btn px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-medium transition" data-mode="triagem">🏥 Triagem</button>
+                    <button id="modeTrauma" class="mode-btn px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-medium transition" data-mode="trauma">🔴 Trauma</button>
+                    
+                    <button id="refsBtn" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-medium transition">📚 Refs</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="max-w-6xl mx-auto w-full px-4 py-3">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="glass rounded-xl p-3 text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider">Acertos</p>
+                    <p id="statCorrect" class="text-2xl font-bold text-emerald-400">0</p>
+                </div>
+                <div class="glass rounded-xl p-3 text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider">Erros</p>
+                    <p id="statIncorrect" class="text-2xl font-bold text-red-400">0</p>
+                </div>
+                <div class="glass rounded-xl p-3 text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider">Caso</p>
+                    <p id="statCase" class="text-2xl font-bold text-medical-400">0/0</p>
+                </div>
+                <div class="glass rounded-xl p-3 text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider">Acurácia</p>
+                    <p id="statAccuracy" class="text-2xl font-bold text-amber-400">—</p>
+                </div>
+            </div>
+            <div class="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div id="progressBar" class="h-full bg-gradient-to-r from-medical-500 to-emerald-500 transition-all duration-500 rounded-full" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-6xl mx-auto w-full px-4 pb-8">
+            <!-- ===== PRESCRIPTION / TRIAGE VIEW ===== -->
+            <div id="viewPrescricao" class="grid lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-3 space-y-4">
+                    <div class="case-card rounded-2xl p-5 fade-in">
+                        <div class="flex items-start justify-between gap-4 mb-4">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span id="caseNumber" class="text-medical-400 font-bold text-sm">Prescrição #1</span>
+                                    <span id="caseCategory" class="patient-tag bg-medical-900/60 text-medical-300 border border-medical-700/50">Clínica Geral</span>
+                                </div>
+                                <h2 id="caseTitle" class="text-xl font-bold text-white">Carregando caso...</h2>
+                            </div>
+                        </div>
+                        <div id="patientTags" class="flex flex-wrap gap-2 mb-4"></div>
+                        <div id="vitalsPanel" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                            <div class="bg-slate-800/70 rounded-xl p-2.5 text-center"><p class="text-[10px] text-slate-500 uppercase">FC</p><p id="vitalHR" class="text-lg font-bold font-mono text-rose-400">—</p></div>
+                            <div class="bg-slate-800/70 rounded-xl p-2.5 text-center"><p class="text-[10px] text-slate-500 uppercase">PA</p><p id="vitalBP" class="text-lg font-bold font-mono text-sky-400">—</p></div>
+                            <div class="bg-slate-800/70 rounded-xl p-2.5 text-center"><p class="text-[10px] text-slate-500 uppercase">FR</p><p id="vitalRR" class="text-lg font-bold font-mono text-amber-400">—</p></div>
+                            <div class="bg-slate-800/70 rounded-xl p-2.5 text-center"><p class="text-[10px] text-slate-500 uppercase">SpO₂</p><p id="vitalSpO2" class="text-lg font-bold font-mono text-emerald-400">—</p></div>
+                            <div class="bg-slate-800/70 rounded-xl p-2.5 text-center"><p class="text-[10px] text-slate-500 uppercase">Temp</p><p id="vitalTemp" class="text-lg font-bold font-mono text-orange-400">—</p></div>
+                            <div class="bg-slate-800/70 rounded-xl p-2.5 text-center"><p class="text-[10px] text-slate-500 uppercase">Dor</p><p id="vitalPain" class="text-lg font-bold font-mono text-violet-400">—</p></div>
+                            <div class="bg-slate-800/70 rounded-xl p-2.5 text-center col-span-2"><p class="text-[10px] text-slate-500 uppercase">Consciência / Glasgow</p><p id="vitalGCS" class="text-lg font-bold font-mono text-slate-200">—</p></div>
+                        </div>
+                        <p id="caseDescription" class="text-slate-300 leading-relaxed text-[15px]">Carregando descrição clínica...</p>
+                    </div>
+
+                    <!-- Safety Checklist (Prescription) -->
+                    <div id="safetyChecklist" class="glass rounded-2xl p-4 border border-amber-700/30">
+                        <h3 class="text-sm font-semibold text-amber-300 mb-2 flex items-center gap-2">✅ Checklist de Segurança da Prescrição (obrigatório considerar)</h3>
+                        <div class="safety-checklist grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Idade</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Peso</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Função renal</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Função hepática</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Alergias</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Interações</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Gravidez / lactação</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Indicação</span></label>
+                            <label><input type="checkbox" class="safety-check rounded"> <span>Contraindicações</span></label>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-2">Em prática real, todos esses fatores devem ser avaliados antes de prescrever. (Fonte: princípios de farmacoterapia segura / ANVISA / sociedades de especialidade)</p>
+                    </div>
+
+                    <!-- Prescription Form -->
+                    <div id="prescriptionPanel" class="glass rounded-2xl p-5 space-y-4">
+                        <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-md bg-medical-600/30 text-medical-400 flex items-center justify-center text-xs">1</span>
+                            Monte a prescrição
+                        </h3>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1.5">Medicamento</label>
+                                <select id="medicine" class="w-full rounded-xl px-3 py-2.5 text-sm"><option value="">Selecione...</option></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1.5">Dose</label>
+                                <select id="dose" class="w-full rounded-xl px-3 py-2.5 text-sm" disabled><option value="">Selecione a dose...</option></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1.5">Via de administração</label>
+                                <select id="route" class="w-full rounded-xl px-3 py-2.5 text-sm"><option value="">Selecione...</option></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1.5">Frequência / Posologia</label>
+                                <select id="frequency" class="w-full rounded-xl px-3 py-2.5 text-sm"><option value="">Selecione...</option></select>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                            <button id="prescribeBtn" class="btn-success flex-1 py-3 rounded-xl font-bold text-white uppercase tracking-wide text-sm disabled:opacity-50 disabled:cursor-not-allowed">✓ Prescrever</button>
+                            <button id="hintBtn" class="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 font-medium text-sm transition disabled:opacity-40">💡 Dica</button>
+                        </div>
+                    </div>
+
+                    <!-- Triage Priority Panel -->
+                    <div id="triagePanel" class="hidden glass rounded-2xl p-5 space-y-4">
+                        <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-md bg-amber-600/30 text-amber-400 flex items-center justify-center text-xs">🏥</span>
+                            Classifique a prioridade (Protocolo de Manchester / MS)
+                        </h3>
+                        <p class="text-xs text-slate-400">Selecione a cor de triagem adequada para este paciente:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2" id="triageButtons">
+                            <button data-priority="vermelho" class="triage-btn group relative overflow-hidden rounded-xl p-4 text-center border-2 border-red-600/50 bg-red-950/40 hover:bg-red-900/60 hover:border-red-500 transition-all">
+                                <div class="w-8 h-8 rounded-full bg-red-500 mx-auto mb-2 shadow-lg shadow-red-500/40"></div>
+                                <p class="font-bold text-red-300 text-sm">Vermelho</p>
+                                <p class="text-[10px] text-red-400/80 mt-0.5">Emergência<br>Imediato</p>
+                            </button>
+                            <button data-priority="laranja" class="triage-btn group relative overflow-hidden rounded-xl p-4 text-center border-2 border-orange-600/50 bg-orange-950/40 hover:bg-orange-900/60 hover:border-orange-500 transition-all">
+                                <div class="w-8 h-8 rounded-full bg-orange-500 mx-auto mb-2 shadow-lg shadow-orange-500/40"></div>
+                                <p class="font-bold text-orange-300 text-sm">Laranja</p>
+                                <p class="text-[10px] text-orange-400/80 mt-0.5">Muito urgente<br>≤ 10 min</p>
+                            </button>
+                            <button data-priority="amarelo" class="triage-btn group relative overflow-hidden rounded-xl p-4 text-center border-2 border-yellow-600/50 bg-yellow-950/40 hover:bg-yellow-900/60 hover:border-yellow-500 transition-all">
+                                <div class="w-8 h-8 rounded-full bg-yellow-400 mx-auto mb-2 shadow-lg shadow-yellow-400/40"></div>
+                                <p class="font-bold text-yellow-300 text-sm">Amarelo</p>
+                                <p class="text-[10px] text-yellow-400/80 mt-0.5">Urgente<br>≤ 60 min</p>
+                            </button>
+                            <button data-priority="verde" class="triage-btn group relative overflow-hidden rounded-xl p-4 text-center border-2 border-emerald-600/50 bg-emerald-950/40 hover:bg-emerald-900/60 hover:border-emerald-500 transition-all">
+                                <div class="w-8 h-8 rounded-full bg-emerald-500 mx-auto mb-2 shadow-lg shadow-emerald-500/40"></div>
+                                <p class="font-bold text-emerald-300 text-sm">Verde</p>
+                                <p class="text-[10px] text-emerald-400/80 mt-0.5">Pouco urgente<br>≤ 120 min</p>
+                            </button>
+                            <button data-priority="azul" class="triage-btn group relative overflow-hidden rounded-xl p-4 text-center border-2 border-blue-600/50 bg-blue-950/40 hover:bg-blue-900/60 hover:border-blue-500 transition-all">
+                                <div class="w-8 h-8 rounded-full bg-blue-500 mx-auto mb-2 shadow-lg shadow-blue-500/40"></div>
+                                <p class="font-bold text-blue-300 text-sm">Azul</p>
+                                <p class="text-[10px] text-blue-400/80 mt-0.5">Não urgente<br>≤ 240 min</p>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-slate-500 text-center">Baseado no Protocolo de Manchester e Acolhimento com Classificação de Risco (MS)</p>
+                    </div>
+
+                    <div id="feedbackBox" class="hidden rounded-2xl p-5 border fade-in"></div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="glass rounded-2xl p-4 space-y-3">
+                        <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Controles</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="nextBtn" class="btn-primary py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-40 disabled:cursor-not-allowed" disabled>Próximo →</button>
+                            <button id="restartBtn" class="py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 font-semibold text-sm transition">↺ Reiniciar</button>
+                        </div>
+                        <button id="skipBtn" class="w-full py-2 rounded-xl border border-slate-600 hover:border-slate-500 text-sm text-slate-400 hover:text-slate-200 transition">Pular caso</button>
+                    </div>
+                    <div class="glass rounded-2xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Histórico recente</h3>
+                        <div id="historyList" class="space-y-2 max-h-64 overflow-y-auto text-sm">
+                            <p class="text-slate-500 text-center py-4">Nenhum caso respondido ainda</p>
+                        </div>
+                    </div>
+                    <div class="glass rounded-2xl p-4 border border-medical-800/50">
+                        <h3 class="text-sm font-semibold text-medical-400 mb-2">💡 Dica profissional</h3>
+                        <p id="sideTip" class="text-sm text-slate-400 leading-relaxed">Sempre considere idade, peso, função renal/hepática, alergias, interações, gravidez, indicação e contraindicações antes de prescrever.</p>
+                    </div>
+                    <div class="glass rounded-2xl p-4 border border-emerald-800/40">
+                        <h3 class="text-sm font-semibold text-emerald-400 mb-2">📖 Diretrizes ativas</h3>
+                        <ul class="text-xs text-slate-400 space-y-1">
+                            <li>• AHA CPR & ECC 2025</li>
+                            <li>• ATLS 11ª ed. (xABCDE)</li>
+                            <li>• ADA Standards of Care 2026</li>
+                            <li>• ABA Burn Resuscitation (2 mL/kg/%TBSA)</li>
+                            <li>• Protocolo de Manchester / MS</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TRAUMA VIEW (Código Vermelho ATLS 11) ===== -->
+            <div id="viewTrauma" class="hidden space-y-6">
+                <div class="text-center mb-4">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-950/60 border border-red-700/50 text-red-300 text-xs font-semibold mb-2">ATLS 11ª edição • ACS 2025</div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-red-400 tracking-tight">🔴 Código Vermelho</h2>
+                    <p class="text-sm text-slate-400 mt-1 max-w-2xl mx-auto">Sala de Trauma — <span class="text-amber-300 font-semibold">xABCDE</span>: hemorragia externa exsanguinante (x) → A → B → C → D → E</p>
+                    <div class="flex flex-wrap justify-center gap-2 mt-3 text-[11px]">
+                        <span class="px-2 py-1 rounded-lg bg-red-900/40 border border-red-700/40 text-red-300 font-bold">x Hemorragia</span>
+                        <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">A Via aérea</span>
+                        <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">B Breathing</span>
+                        <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">C Circulação</span>
+                        <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">D Disability</span>
+                        <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">E Exposição</span>
+                    </div>
+                </div>
+
+                <div id="traumaGameOver" class="hidden bg-red-900/70 p-6 rounded-2xl border border-red-700 mb-4">
+                    <p id="traumaGameOverMsg" class="text-xl font-bold text-center mb-3"></p>
+                    <div id="traumaGameOverDetails" class="text-sm text-slate-200 leading-relaxed"></div>
+                    <button id="traumaNewCase" class="mt-4 btn-primary px-6 py-3 rounded-xl font-bold text-white block mx-auto">Iniciar Novo Caso</button>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="glass rounded-2xl p-5 border border-red-800/40">
+                        <h3 class="text-xl font-bold text-red-400 mb-3">Paciente <span id="traumaPacienteId" class="text-slate-300 font-normal"></span></h3>
+                        <p class="text-sm mb-1"><strong>Histórico:</strong> <span id="traumaHistorico" class="text-slate-300"></span></p>
+                        <p class="text-sm mb-1"><strong>Queixas:</strong> <span id="traumaQueixas" class="text-slate-300"></span></p>
+                        <p class="text-sm mb-1"><strong>Trauma:</strong> <span id="traumaNome" class="text-amber-300 font-semibold"></span></p>
+                        <p class="text-sm mt-2"><strong>Sinais Vitais:</strong></p>
+                        <ul class="list-disc list-inside ml-2 text-sm text-slate-300" id="traumaSinais"></ul>
+                        <div class="mt-4">
+                            <h4 class="text-sm font-bold text-red-300 mb-1">Estabilidade Clínica</h4>
+                            <div class="w-full bg-slate-700 h-4 rounded-full overflow-hidden">
+                                <div id="traumaStabilityBar" class="h-full rounded-full bg-green-500 stability-bar" style="width:70%"></div>
+                            </div>
+                            <p class="text-sm mt-1">Estabilidade: <span id="traumaStabilityVal" class="font-semibold">70</span>%</p>
+                        </div>
+                        <div class="mt-4 flex justify-between text-sm font-semibold">
+                            <p class="text-slate-500 text-xs">Sem limite de tempo — foque nas decisões clínicas (ATLS 11)</p>
+                            <p>Pontuação: <span id="traumaScore" class="text-emerald-400">0</span></p>
+                        </div>
+                        <div class="mt-3 p-2 rounded-lg bg-slate-800/60 text-[11px] text-slate-400">
+                            <strong class="text-amber-300">xABCDE (ATLS 11):</strong> x = controle de hemorragia externa exsanguinante → A (via aérea + C-spine) → B → C → D → E. Preferir sangue/produtos sobre cristaloides excessivos; hipotensão permissiva quando indicada.
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-2xl p-5 border border-red-800/40">
+                        <h3 class="text-xl font-bold text-red-400 mb-3">Ações de Emergência</h3>
+                        <h4 class="text-sm font-bold text-slate-300 mb-2">Exames (máx. 2)</h4>
+                        <div id="traumaExamesList" class="grid gap-2 mb-4"></div>
+                        <h4 class="text-sm font-bold text-slate-300 mb-2">Intervenções</h4>
+                        <div id="traumaIntervencoesList" class="grid gap-2"></div>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div class="glass rounded-2xl p-4 border border-red-800/30 space-y-2">
+                        <h3 class="text-sm font-semibold text-red-300 uppercase tracking-wider">Controles</h3>
+                        <button id="traumaHintBtn" class="w-full py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-medium transition">💡 Dica</button>
+                        <button id="traumaSkipBtn" class="w-full py-2.5 rounded-xl border border-slate-600 hover:border-slate-500 text-sm text-slate-300 transition">Pular caso</button>
+                        <button id="traumaFinishBtn" class="w-full py-2.5 rounded-xl bg-amber-700/80 hover:bg-amber-600 text-sm font-semibold transition">✓ Finalizar caso</button>
+                        <button id="traumaRestartBtn" class="w-full py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-medium transition">↺ Reiniciar caso</button>
+                        <button id="traumaReportBtn" class="w-full py-2.5 rounded-xl bg-medical-700/80 hover:bg-medical-600 text-sm font-semibold transition">📊 Relatório</button>
+                    </div>
+                    <div class="glass rounded-2xl p-4 border border-slate-700 md:col-span-2">
+                        <h3 class="text-lg font-bold text-red-400 mb-2">Feedback e Referências</h3>
+                        <div id="traumaFeedback" class="max-h-56 overflow-y-auto text-sm space-y-1 text-slate-300"></div>
+                    </div>
+                </div>
+                <!-- Trauma session stats -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                    <div class="glass rounded-xl p-3 text-center"><p class="text-[10px] text-slate-500 uppercase">Casos ok</p><p id="traumaStatWin" class="text-xl font-bold text-emerald-400">0</p></div>
+                    <div class="glass rounded-xl p-3 text-center"><p class="text-[10px] text-slate-500 uppercase">Falhas</p><p id="traumaStatLose" class="text-xl font-bold text-red-400">0</p></div>
+                    <div class="glass rounded-xl p-3 text-center"><p class="text-[10px] text-slate-500 uppercase">Ações corretas</p><p id="traumaStatOk" class="text-xl font-bold text-medical-400">0</p></div>
+                    <div class="glass rounded-xl p-3 text-center"><p class="text-[10px] text-slate-500 uppercase">Ações erradas</p><p id="traumaStatBad" class="text-xl font-bold text-amber-400">0</p></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+            PenseQuizMed Prescrição Game • Ferramenta educacional • Não substitui julgamento clínico nem diretrizes oficiais atualizadas
+            <br>Referências principais: AHA CPR/ECC 2025 • ATLS 11 (ACS) • ADA Standards of Care 2026 • ABA Burn Guidelines • Protocolo de Manchester / MS
+        </footer>
+    </div>
+
+    <!-- References Modal -->
+    <div id="refsModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+        <div class="glass rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden modal-enter flex flex-col">
+            <div class="flex items-center justify-between p-5 border-b border-slate-700">
+                <h2 class="text-xl font-bold text-medical-300">📚 Referências Atualizadas 2025/2026</h2>
+                <button id="closeRefs" class="w-9 h-9 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xl">&times;</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-5 text-sm leading-relaxed" id="refsContent"></div>
+        </div>
+    </div>
+
+    <!-- Explanation Modal -->
+    <div id="explainModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+        <div class="glass rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden modal-enter flex flex-col">
+            <div class="flex items-center justify-between p-5 border-b border-slate-700">
+                <h2 class="text-xl font-bold" id="explainTitle">Explicação detalhada</h2>
+                <button id="closeExplain" class="w-9 h-9 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xl">&times;</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 text-sm" id="explainContent"></div>
+            <div class="p-4 border-t border-slate-700 flex justify-end">
+                <button id="closeExplainBtn" class="btn-primary px-5 py-2 rounded-xl font-semibold text-sm text-white">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Trauma Report Modal -->
+    <div id="traumaReportModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+        <div class="glass rounded-2xl max-w-lg w-full max-h-[85vh] overflow-hidden modal-enter flex flex-col">
+            <div class="flex items-center justify-between p-5 border-b border-slate-700">
+                <h2 class="text-xl font-bold text-red-300">📊 Relatório — Trauma</h2>
+                <button id="closeTraumaReport" class="w-9 h-9 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xl">&times;</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 text-sm" id="traumaReportContent"></div>
+            <div class="p-4 border-t border-slate-700 flex justify-end gap-2">
+                <button id="traumaReportNewCase" class="btn-primary px-5 py-2 rounded-xl font-semibold text-sm text-white">Novo caso</button>
+                <button id="closeTraumaReportBtn" class="px-5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 font-semibold text-sm">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Game Modal -->
+    <div id="endModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <div class="glass rounded-2xl max-w-md w-full p-8 text-center modal-enter space-y-5">
+            <div class="text-5xl">🏆</div>
+            <h2 class="text-2xl font-bold text-white">Sessão Finalizada!</h2>
+            <div class="grid grid-cols-2 gap-4 text-left">
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Acertos</p><p id="endCorrect" class="text-2xl font-bold text-emerald-400">0</p></div>
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Erros</p><p id="endIncorrect" class="text-2xl font-bold text-red-400">0</p></div>
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Acurácia</p><p id="endAccuracy" class="text-2xl font-bold text-amber-400">0%</p></div>
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Melhor sequência</p><p id="endStreak" class="text-2xl font-bold text-orange-400">0</p></div>
+            </div>
+            <button id="playAgainBtn" class="btn-primary w-full py-3 rounded-xl font-bold text-white">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+    // ===================== DATA =====================
+    const cases = [
+        {
+            id: 1, category: "Cardiologia", difficulty: "Médio",
+            tags: ["Idoso", "Hipertensão", "Urgência"],
+            description: "Paciente, 60 anos, com histórico de hipertensão, chega ao pronto-socorro com dor de cabeça intensa, visão turva e PA 180/110 mmHg. Exames mostram ausência de lesão em órgão-alvo. Qual a prescrição adequada para uma crise hipertensiva urgente (não emergência)?",
+            correct: { medicine: "Captopril", dose: "25 mg", route: "Oral", frequency: "Dose única" },
+            alternatives: [{ medicine: "Nifedipino", dose: "10 mg", route: "Oral", frequency: "Dose única" }],
+            penalties: [
+                { trigger: { medicine: "Hidralazina" }, message: "Hidralazina IV é para emergência hipertensiva com lesão de órgão-alvo." },
+                { trigger: { medicine: "Captopril", dose: "50 mg" }, message: "Dose inicial de 50 mg pode causar hipotensão excessiva. Prefira 25 mg." }
+            ],
+            feedback: {
+                correct: "Excelente. Captopril oral promove redução gradual da PA, evitando hipoperfusão cerebral.",
+                incorrect: "Em urgência hipertensiva sem lesão de órgão-alvo, priorize medicações orais de ação rápida e redução controlada da PA."
+            },
+            explanation: "Segundo diretrizes brasileiras (SBC), urgência hipertensiva é tratada com anti-hipertensivos orais (Captopril, Clonidina, etc.). Emergência requer via parenteral.",
+            refs: ["Diretrizes Brasileiras de Hipertensão Arterial – SBC"]
+        },
+        {
+            id: 2, category: "Pediatria", difficulty: "Fácil",
+            tags: ["Criança", "Febre", "Peso 20 kg"],
+            description: "Criança de 5 anos (20 kg) chega ao pronto-socorro com febre de 39,5°C e dor de garganta. Qual o antipirético e analgésico adequado, considerando o peso?",
+            correct: { medicine: "Paracetamol", dose: "200 mg", route: "Oral", frequency: "A cada 6 horas" },
+            alternatives: [{ medicine: "Ibuprofeno", dose: "200 mg", route: "Oral", frequency: "A cada 8 horas" }],
+            penalties: [{ trigger: { medicine: "AAS" }, message: "AAS em crianças com febre → risco de Síndrome de Reye. Contraindicado!" }],
+            feedback: {
+                correct: "Perfeito. Dose de Paracetamol 10-15 mg/kg está correta (200 mg para 20 kg).",
+                incorrect: "Sempre calcule a dose por peso em pediatria e evite AAS em crianças febris."
+            },
+            explanation: "Paracetamol 10-15 mg/kg/dose a cada 6 h. Ibuprofeno 5-10 mg/kg a cada 6-8 h. Nunca AAS em crianças com febre viral.",
+            refs: ["Manual de Pediatria SBP", "Bulário ANVISA"]
+        },
+        {
+            id: 3, category: "Infectologia", difficulty: "Médio",
+            tags: ["Idoso", "Diabetes", "Pneumonia"],
+            description: "Paciente de 70 anos, diabético, com histórico de úlcera péptica, apresenta tosse produtiva, febre e dispneia. Radiografia com infiltrado pulmonar. Suspeita de pneumonia adquirida na comunidade. Qual o antibiótico de primeira linha considerando as comorbidades?",
+            correct: { medicine: "Amoxicilina + Clavulanato", dose: "875/125 mg", route: "Oral", frequency: "A cada 12 horas" },
+            alternatives: [{ medicine: "Levofloxacino", dose: "500 mg", route: "Oral", frequency: "Uma vez ao dia" }],
+            penalties: [{ trigger: { medicine: "Azitromicina" }, message: "Azitromicina isolada é insuficiente em idosos com comorbidades (cobertura atípica apenas)." }],
+            feedback: {
+                correct: "Ótima escolha. Beta-lactâmico + inibidor ou quinolona respiratória são preferidos em PAC com comorbidades.",
+                incorrect: "Em PAC com comorbidades, evite monoterapia com macrolídeo."
+            },
+            explanation: "Diretrizes SBPT/IDSA: pacientes com comorbidades → Amoxi-clav ou fluoroquinolona respiratória.",
+            refs: ["Diretrizes SBPT de Pneumonia Adquirida na Comunidade"]
+        },
+        {
+            id: 4, category: "Psiquiatria", difficulty: "Médio",
+            tags: ["Ansiedade", "Primeira prescrição"],
+            description: "Mulher, 35 anos, com diagnóstico recente de ansiedade generalizada, relata insônia grave e ansiedade que a impede de realizar atividades diárias. Nunca usou psicofármacos. Qual a prescrição para início de tratamento de longo prazo?",
+            correct: { medicine: "Escitalopram", dose: "10 mg", route: "Oral", frequency: "Uma vez ao dia" },
+            alternatives: [{ medicine: "Sertralina", dose: "50 mg", route: "Oral", frequency: "Uma vez ao dia" }],
+            penalties: [{ trigger: { medicine: "Diazepam" }, message: "Benzodiazepínicos não são primeira linha para TAG crônica (risco de dependência)." }],
+            feedback: {
+                correct: "Correto. ISRS são a primeira linha para TAG. Dose inicial baixa reduz efeitos colaterais iniciais.",
+                incorrect: "Evite iniciar com benzodiazepínico como monoterapia de longo prazo."
+            },
+            explanation: "ISRS (Escitalopram, Sertralina, Paroxetina) são primeira linha. Benzodiazepínicos apenas para alívio agudo de curta duração.",
+            refs: ["Diretrizes APA / Protocolos de Saúde Mental MS"]
+        },
+        {
+            id: 5, category: "Endocrinologia", difficulty: "Fácil",
+            tags: ["Diabetes tipo 2", "Primeira linha"],
+            description: "Paciente masculino, 45 anos, com DM2 sem controle adequado com dieta e exercícios. Glicemia de jejum 180 mg/dL. Qual o tratamento farmacológico de primeira linha segundo ADA Standards of Care 2026?",
+            correct: { medicine: "Metformina", dose: "500 mg", route: "Oral", frequency: "Duas vezes ao dia" },
+            alternatives: [{ medicine: "Metformina", dose: "850 mg", route: "Oral", frequency: "Uma vez ao dia" }],
+            penalties: [{ trigger: { medicine: "Insulina" }, message: "Insulina não é primeira linha em DM2 estável sem descompensação aguda." }],
+            feedback: {
+                correct: "Excelente. Metformina permanece a primeira linha na maioria das diretrizes (ADA 2026 / SBD).",
+                incorrect: "Metformina é o fármaco de escolha inicial na maioria dos pacientes com DM2."
+            },
+            explanation: "ADA Standards of Care 2026: iniciar com dose baixa (500 mg 1-2x/dia) e titular. Considerar GLP-1 RA ou SGLT2i precocemente em pacientes com alto risco CV/renal ou obesidade. Avaliar função renal (TFG).",
+            refs: ["ADA Standards of Care in Diabetes—2026", "Diretrizes SBD"]
+        },
+        {
+            id: 6, category: "Neurologia", difficulty: "Médio",
+            tags: ["Enxaqueca", "Crise aguda"],
+            description: "Paciente feminino, 28 anos, com crise de enxaqueca moderada a grave, sem aura, que não melhora com analgésicos comuns. Relata náuseas. Qual a prescrição para alívio agudo?",
+            correct: { medicine: "Sumatriptano", dose: "50 mg", route: "Oral", frequency: "Dose única" },
+            alternatives: [{ medicine: "Rizatriptano", dose: "10 mg", route: "Oral", frequency: "Dose única" }],
+            penalties: [{ trigger: { medicine: "Morfina" }, message: "Opioides não são indicados rotineiramente para enxaqueca (risco de cronificação)." }],
+            feedback: {
+                correct: "Ótima escolha. Triptanos são a primeira linha para crises moderadas/graves que não respondem a AINEs/paracetamol.",
+                incorrect: "Para enxaqueca moderada-grave refratária a analgésicos simples, use triptano."
+            },
+            explanation: "Triptanos (agonistas 5-HT1B/1D). Contraindicados em doença cardiovascular isquêmica e AVC.",
+            refs: ["Diretrizes de Cefaleia – Academia Brasileira de Neurologia"]
+        },
+        {
+            id: 7, category: "Cardiologia", difficulty: "Médio",
+            tags: ["FA", "Anticoagulação"],
+            description: "Paciente, 55 anos, com fibrilação atrial crônica, sem válvulas protéticas, necessita de anticoagulação. Qual DOAC adequado para iniciar?",
+            correct: { medicine: "Rivaroxabana", dose: "20 mg", route: "Oral", frequency: "Uma vez ao dia" },
+            alternatives: [
+                { medicine: "Apixabana", dose: "5 mg", route: "Oral", frequency: "Duas vezes ao dia" },
+                { medicine: "Dabigatrana", dose: "150 mg", route: "Oral", frequency: "Duas vezes ao dia" }
+            ],
+            penalties: [{ trigger: { medicine: "Varfarina" }, message: "DOACs são preferíveis na FA não-valvar por praticidade e segurança comparável." }],
+            feedback: {
+                correct: "Excelente. DOACs são preferidos na FA não-valvar na maioria dos pacientes.",
+                incorrect: "Prefira anticoagulantes orais diretos (DOACs) na FA não-valvar."
+            },
+            explanation: "Avaliar CHA₂DS₂-VASc e risco de sangramento (HAS-BLED). Ajustar dose conforme função renal.",
+            refs: ["Diretrizes SBC de Fibrilação Atrial"]
+        },
+        {
+            id: 8, category: "Pneumologia", difficulty: "Médio",
+            tags: ["DPOC", "Tabagista"],
+            description: "Paciente masculino, 65 anos, tosse seca persistente e dispneia aos esforços. Tabagista 40 anos. Espirometria sugere DPOC. Qual a terapia inalatória inicial para sintomas?",
+            correct: { medicine: "Tiotrópio", dose: "18 mcg", route: "Inalatória", frequency: "Uma vez ao dia" },
+            alternatives: [{ medicine: "Salmeterol", dose: "50 mcg", route: "Inalatória", frequency: "Duas vezes ao dia" }],
+            penalties: [{ trigger: { medicine: "Salbutamol" }, message: "Salbutamol é resgate (SABA), não manutenção." }],
+            feedback: {
+                correct: "Ótimo. LAMA (Tiotrópio) ou LABA são a base do tratamento de manutenção da DPOC sintomática.",
+                incorrect: "Use broncodilatador de longa ação (LAMA/LABA) para manutenção."
+            },
+            explanation: "GOLD: LAMA ou LABA como monoterapia inicial. Combinados (LAMA+LABA) se sintomas persistentes.",
+            refs: ["GOLD Report", "Diretrizes SBPT de DPOC"]
+        },
+        {
+            id: 9, category: "Infectologia", difficulty: "Fácil",
+            tags: ["ITU", "Mulher jovem"],
+            description: "Paciente feminino, 40 anos, com infecção urinária não complicada sintomática. Sem alergias. Qual o antibiótico oral de primeira linha?",
+            correct: { medicine: "Nitrofurantoína", dose: "100 mg", route: "Oral", frequency: "A cada 12 horas" },
+            alternatives: [{ medicine: "Fosfomicina trometamol", dose: "3 g", route: "Oral", frequency: "Dose única" }],
+            penalties: [{ trigger: { medicine: "Ciprofloxacino" }, message: "Fluoroquinolonas devem ser reservadas (risco de resistência e efeitos adversos)." }],
+            feedback: {
+                correct: "Perfeito. Nitrofurantoína e Fosfomicina são primeiras linhas para ITU não complicada.",
+                incorrect: "Evite fluoroquinolonas como primeira linha em ITU simples."
+            },
+            explanation: "IDSA/EAU: Nitrofurantoína 5-7 dias ou Fosfomicina dose única. Considerar resistência local.",
+            refs: ["Diretrizes de Infecção Urinária – SBI / IDSA"]
+        },
+        {
+            id: 10, category: "Neurologia", difficulty: "Médio",
+            tags: ["Dor neuropática", "Diabetes"],
+            description: "Paciente, 60 anos, com dor neuropática crônica por polineuropatia diabética (queimação e choque). Qual medicamento para iniciar o tratamento?",
+            correct: { medicine: "Pregabalina", dose: "75 mg", route: "Oral", frequency: "Duas vezes ao dia" },
+            alternatives: [{ medicine: "Gabapentina", dose: "300 mg", route: "Oral", frequency: "Três vezes ao dia" }],
+            penalties: [{ trigger: { medicine: "Paracetamol" }, message: "Paracetamol tem baixa eficácia em dor neuropática." }],
+            feedback: {
+                correct: "Ótima escolha. Pregabalina e Gabapentina são primeiras linhas para dor neuropática.",
+                incorrect: "Dor neuropática responde melhor a anticonvulsivantes (gabapentinoides) ou antidepressivos."
+            },
+            explanation: "Outras opções: Duloxetina, Amitriptilina. Titular gradualmente para tolerabilidade.",
+            refs: ["Diretrizes de Dor Neuropática – SBED"]
+        },
+        {
+            id: 11, category: "Pneumologia", difficulty: "Médio",
+            tags: ["Asma", "Exacerbação"],
+            description: "Paciente masculino, 30 anos, asmático, apresenta exacerbação aguda com sibilância intensa, dispneia e SpO₂ 90%. Qual a terapia de resgate inicial?",
+            correct: { medicine: "Salbutamol", dose: "2.5 mg", route: "Inalatória", frequency: "A cada 20 minutos por 1 hora" },
+            alternatives: [{ medicine: "Salbutamol", dose: "4-8 puffs", route: "Inalatória", frequency: "A cada 20 minutos por 1 hora" }],
+            penalties: [{ trigger: { medicine: "Montelucaste" }, message: "Montelucaste é controlador, não resgate." }],
+            feedback: {
+                correct: "Excelente. SABA nebulizado ou inalado é a primeira linha no resgate da crise asmática.",
+                incorrect: "Na crise de asma, priorize broncodilatador de curta ação (SABA)."
+            },
+            explanation: "Associar corticosteroide sistêmico precocemente. Avaliar gravidade (GINA).",
+            refs: ["GINA Report", "Diretrizes SBPT de Asma"]
+        },
+        {
+            id: 12, category: "Endocrinologia", difficulty: "Fácil",
+            tags: ["Hipotireoidismo"],
+            description: "Mulher, 50 anos, em uso de levotiroxina, relata fadiga, ganho de peso e constipação. TSH elevado e T4 livre baixo. Qual o ajuste?",
+            correct: { medicine: "Levotiroxina", dose: "Aumento da dose (ex: +25 mcg)", route: "Oral", frequency: "Uma vez ao dia" },
+            alternatives: [{ medicine: "Levotiroxina", dose: "Ajuste conforme TSH", route: "Oral", frequency: "Uma vez ao dia" }],
+            penalties: [{ trigger: { medicine: "Propiltiouracil" }, message: "PTU é para hipertireoidismo." }],
+            feedback: {
+                correct: "Correto. Sintomas + exames indicam necessidade de aumento da dose de reposição.",
+                incorrect: "Ajuste a dose de levotiroxina conforme TSH e clínica."
+            },
+            explanation: "Titular a cada 6-8 semanas. Tomar em jejum, longe de cálcio/ferro.",
+            refs: ["Diretrizes de Tireoide – SBEM"]
+        },
+        {
+            id: 13, category: "Reumatologia", difficulty: "Médio",
+            tags: ["Idoso", "Osteoartrite"],
+            description: "Paciente masculino, 75 anos, com dor articular moderada a intensa por osteoartrite de joelhos. Qual analgésico de primeira linha considerando a idade?",
+            correct: { medicine: "Paracetamol", dose: "500 mg", route: "Oral", frequency: "A cada 6 horas" },
+            alternatives: [{ medicine: "Dipirona", dose: "500 mg", route: "Oral", frequency: "A cada 6 horas" }],
+            penalties: [{ trigger: { medicine: "Ibuprofeno" }, message: "AINEs em idosos elevam risco cardiovascular e renal. Use com extrema cautela." }],
+            feedback: {
+                correct: "Ótimo. Paracetamol é a primeira linha em idosos por melhor perfil de segurança.",
+                incorrect: "Em idosos, prefira Paracetamol antes de AINEs."
+            },
+            explanation: "Se insuficiente, considerar AINE tópico ou, com cautela, AINE oral + proteção gástrica.",
+            refs: ["Diretrizes de Osteoartrite – SBR"]
+        },
+        {
+            id: 14, category: "Infectologia", difficulty: "Fácil",
+            tags: ["Celulite", "Pele"],
+            description: "Paciente feminina, 22 anos, com celulite na perna direita sem sinais sistêmicos. Qual antibiótico oral de primeira linha (cobertura S. aureus e Streptococcus)?",
+            correct: { medicine: "Cefalexina", dose: "500 mg", route: "Oral", frequency: "A cada 6 horas" },
+            alternatives: [{ medicine: "Clindamicina", dose: "300 mg", route: "Oral", frequency: "A cada 8 horas" }],
+            penalties: [{ trigger: { medicine: "Ceftriaxona" }, message: "Ceftriaxona é parenteral; reserve para casos graves ou falha oral." }],
+            feedback: {
+                correct: "Excelente. Cefalexina cobre bem os patógenos mais comuns de celulite não complicada.",
+                incorrect: "Para celulite não complicada, use cefalosporina de 1ª geração oral."
+            },
+            explanation: "Duração usual 5-7 dias. Avaliar necessidade de cobertura MRSA se fatores de risco.",
+            refs: ["IDSA Skin and Soft Tissue Infections Guidelines"]
+        },
+        {
+            id: 15, category: "Gastroenterologia", difficulty: "Fácil",
+            tags: ["DRGE"],
+            description: "Paciente masculino, 40 anos, com DRGE que não melhora com antiácidos e mudanças de estilo de vida. Qual medicamento para suprimir a produção de ácido?",
+            correct: { medicine: "Omeprazol", dose: "20 mg", route: "Oral", frequency: "Uma vez ao dia (antes do café da manhã)" },
+            alternatives: [{ medicine: "Pantoprazol", dose: "40 mg", route: "Oral", frequency: "Uma vez ao dia (antes do café da manhã)" }],
+            penalties: [{ trigger: { medicine: "Ranitidina" }, message: "Ranitidina foi retirada do mercado em vários países e é menos potente que IBPs." }],
+            feedback: {
+                correct: "Correto. IBPs são a base do tratamento farmacológico da DRGE.",
+                incorrect: "Prefira inibidores de bomba de prótons para DRGE persistente."
+            },
+            explanation: "Tomar 30-60 min antes da primeira refeição. Reavaliar após 4-8 semanas.",
+            refs: ["Diretrizes de DRGE – FBG"]
+        },
+        {
+            id: 16, category: "Endocrinologia", difficulty: "Médio",
+            tags: ["Osteoporose", "Idoso"],
+            description: "Paciente feminina, 68 anos, com osteoporose e alto risco de fraturas. Função renal normal. Qual tratamento farmacológico inicial?",
+            correct: { medicine: "Alendronato", dose: "70 mg", route: "Oral", frequency: "Uma vez por semana" },
+            alternatives: [{ medicine: "Risedronato", dose: "35 mg", route: "Oral", frequency: "Uma vez por semana" }],
+            penalties: [{ trigger: { medicine: "Cálcio" }, message: "Cálcio e vitamina D são suplementos, não o tratamento principal da osteoporose estabelecida." }],
+            feedback: {
+                correct: "Ótima escolha. Bisfosfonatos são primeira linha para osteoporose com alto risco de fratura.",
+                incorrect: "Bisfosfonatos (Alendronato, Risedronato) são a base do tratamento."
+            },
+            explanation: "Orientar tomada em jejum, com água, permanecer ereto 30 min. Avaliar densitometria de controle.",
+            refs: ["Diretrizes de Osteoporose – SBEM / ABRASSO"]
+        },
+        {
+            id: 17, category: "Cardiologia", difficulty: "Médio",
+            tags: ["Dislipidemia", "Alto risco"],
+            description: "Paciente masculino, 55 anos, diabético, LDL 160 mg/dL, alto risco cardiovascular. Qual estatina de alta intensidade?",
+            correct: { medicine: "Atorvastatina", dose: "40 mg", route: "Oral", frequency: "Uma vez ao dia (noturno)" },
+            alternatives: [{ medicine: "Rosuvastatina", dose: "20 mg", route: "Oral", frequency: "Uma vez ao dia (noturno)" }],
+            penalties: [{ trigger: { medicine: "Sinvastatina" }, message: "Sinvastatina nas doses usuais não é considerada de alta intensidade." }],
+            feedback: {
+                correct: "Correto. Atorvastatina 40-80 mg ou Rosuvastatina 20-40 mg são de alta intensidade.",
+                incorrect: "Em alto risco, use estatina de alta intensidade."
+            },
+            explanation: "Meta de LDL < 70 mg/dL (ou redução ≥ 50%). Avaliar CK e enzimas hepáticas se sintomas.",
+            refs: ["Diretrizes SBC de Dislipidemias"]
+        },
+        {
+            id: 18, category: "Infectologia", difficulty: "Fácil",
+            tags: ["Faringite", "Estreptococo"],
+            description: "Paciente feminino, 30 anos, com dor de garganta intensa, odinofagia e cultura positiva para S. pyogenes. Sem alergia a penicilina. Qual antibiótico de escolha?",
+            correct: { medicine: "Amoxicilina", dose: "500 mg", route: "Oral", frequency: "A cada 8 horas" },
+            alternatives: [{ medicine: "Penicilina V potássica", dose: "500 mg", route: "Oral", frequency: "A cada 12 horas" }],
+            penalties: [{ trigger: { medicine: "Azitromicina" }, message: "Azitromicina é alternativa para alérgicos; Amoxicilina/Penicilina é primeira escolha." }],
+            feedback: {
+                correct: "Excelente. Penicilina ou Amoxicilina permanecem primeira linha para faringite estreptocócica.",
+                incorrect: "Prefira beta-lactâmico em pacientes sem alergia."
+            },
+            explanation: "Duração usual 10 dias para erradicar e prevenir febre reumática.",
+            refs: ["IDSA Streptococcal Pharyngitis Guidelines"]
+        },
+        {
+            id: 19, category: "Cardiologia", difficulty: "Médio",
+            tags: ["IAM", "Antiagregante"],
+            description: "Paciente com SCA sem supra de ST, alto risco. Já recebeu AAS. Qual segundo antiagregante preferencial na maioria dos casos?",
+            correct: { medicine: "Ticagrelor", dose: "180 mg", route: "Oral", frequency: "Dose de ataque" },
+            alternatives: [{ medicine: "Clopidogrel", dose: "300-600 mg", route: "Oral", frequency: "Dose de ataque" }],
+            penalties: [{ trigger: { medicine: "Varfarina" }, message: "Anticoagulação oral não substitui antiagregação dual na fase aguda de SCA." }],
+            feedback: {
+                correct: "Ticagrelor (ou Prasugrel em casos selecionados) é preferido sobre Clopidogrel em muitos protocolos atuais.",
+                incorrect: "Considere potentes inibidores de P2Y12 conforme risco de sangramento e indicação de ICP."
+            },
+            explanation: "Dupla antiagregação + anticoagulação conforme estratégia (invasiva vs conservadora).",
+            refs: ["Diretrizes SBC de SCA", "ESC/AHA ACS Guidelines"]
+        },
+        {
+            id: 20, category: "Emergência", difficulty: "Difícil",
+            tags: ["Anafilaxia"],
+            description: "Paciente adulto com anafilaxia (urticária, broncoespasmo, hipotensão). Qual a medicação e via de primeira linha?",
+            correct: { medicine: "Adrenalina", dose: "0.3-0.5 mg", route: "IM", frequency: "Dose única (repetir se necessário)" },
+            alternatives: [{ medicine: "Epinefrina", dose: "0.3-0.5 mg", route: "IM", frequency: "Dose única (repetir se necessário)" }],
+            penalties: [{ trigger: { medicine: "Difenidramina" }, message: "Anti-histamínicos são adjuvantes; nunca substituem adrenalina IM na anafilaxia." }],
+            feedback: {
+                correct: "Adrenalina IM no terço médio anterolateral da coxa é a primeira e mais importante medida.",
+                incorrect: "Nunca atrase adrenalina IM por anti-histamínicos ou corticoides."
+            },
+            explanation: "Posição supina com elevação de membros, O2, acesso venoso, volume. Corticoides e anti-histamínicos são secundários.",
+            refs: ["WAO Anaphylaxis Guidelines", "AHA 2025 Special Circumstances"]
+        },
+        {id:21,category:"Cardiologia",difficulty:"Médio",tags:["ICC"],description:"Homem 62a IC-FER FE32% NYHA II TFG78 já em BB. IECA de início?",correct:{medicine:"Enalapril",dose:"2.5-5 mg",route:"Oral",frequency:"Duas vezes ao dia"},alternatives:[{medicine:"Lisinopril",dose:"5 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"IECA dose baixa (GDMT).",incorrect:"Inicie IECA/ARNI."},explanation:"SBC/ESC GDMT IC-FER.",refs:["Diretrizes SBC de IC"]},
+        {id:22,category:"Endocrinologia",difficulty:"Médio",tags:["DM2","ASCVD"],description:"DM2 IMC34 ASCVD HbA1c 8.2% em metformina. Melhor adição ADA 2026?",correct:{medicine:"Semaglutida",dose:"0.25 mg (titular)",route:"SC",frequency:"Uma vez por semana"},alternatives:[{medicine:"Empagliflozina",dose:"10 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[{trigger:{medicine:"Glibenclamida"},message:"Sulfonilureia não preferida em alto risco CV."}],feedback:{correct:"GLP-1 RA com benefício CV (ADA 2026).",incorrect:"Priorize GLP-1 RA ou SGLT2i."},explanation:"ADA 2026 agentes cardiorrenais precoces.",refs:["ADA Standards of Care 2026"]},
+        {id:23,category:"Infectologia",difficulty:"Fácil",tags:["Otite"],description:"Criança 2a OMA membrana abaulada. ATB 1ª linha?",correct:{medicine:"Amoxicilina",dose:"80-90 mg/kg/dia",route:"Oral",frequency:"Dividido a cada 12 horas"},alternatives:[{medicine:"Amoxicilina + Clavulanato",dose:"Dose pediátrica alta",route:"Oral",frequency:"A cada 12 horas"}],penalties:[{trigger:{medicine:"Azitromicina"},message:"Macrolídeo não é 1ª linha OMA."}],feedback:{correct:"Amoxicilina dose alta.",incorrect:"Prefira amoxicilina dose alta."},explanation:"SBP/AAP.",refs:["SBP","AAP"]},
+        {id:24,category:"Neurologia",difficulty:"Médio",tags:["AVC"],description:"Déficit 1h20 NIHSS12 TC sem sangue. Trombolítico?",correct:{medicine:"Alteplase (trombólise)",dose:"0.9 mg/kg (máx 90 mg)",route:"IV",frequency:"Dose de reperfusão"},alternatives:[{medicine:"Tenecteplase",dose:"Protocolo de emergência",route:"IV",frequency:"Dose única"}],penalties:[],feedback:{correct:"rtPA/TNK na janela.",incorrect:"Trombólise se elegível."},explanation:"AHA/ASA Stroke.",refs:["AHA/ASA Stroke","AHA 2025"]},
+        {id:25,category:"Pneumologia",difficulty:"Médio",tags:["TEP"],description:"TEP segmentar estável. Anticoagulação?",correct:{medicine:"Rivaroxabana",dose:"15 mg",route:"Oral",frequency:"Duas vezes ao dia (21 dias)"},alternatives:[{medicine:"Apixabana",dose:"10 mg",route:"Oral",frequency:"Duas vezes ao dia (7 dias)"}],penalties:[],feedback:{correct:"DOAC preferido.",incorrect:"DOAC ou HBPM."},explanation:"CHEST/ESC.",refs:["CHEST VTE"]},
+        {id:26,category:"Gastroenterologia",difficulty:"Fácil",tags:["H. pylori"],description:"Úlcera + H. pylori. Componente essencial do esquema?",correct:{medicine:"Omeprazol",dose:"20 mg",route:"Oral",frequency:"Duas vezes ao dia"},alternatives:[{medicine:"Pantoprazol",dose:"40 mg",route:"Oral",frequency:"Duas vezes ao dia"}],penalties:[],feedback:{correct:"IBP dose plena + ATB.",incorrect:"Inclua IBP pleno."},explanation:"Consenso BR / Maastricht.",refs:["Consenso H. pylori"]},
+        {id:27,category:"Nefrologia",difficulty:"Médio",tags:["DRC"],description:"DRC estágio4 Hb9.2 ferro ok. Agente anemia?",correct:{medicine:"Eritropoetina",dose:"Dose individualizada",route:"SC",frequency:"Conforme protocolo"},alternatives:[{medicine:"Darbepoetina",dose:"Dose individualizada",route:"SC",frequency:"Conforme protocolo"}],penalties:[],feedback:{correct:"ESA se ferro repleto.",incorrect:"Avaliar ferro e ESA."},explanation:"KDIGO.",refs:["KDIGO Anemia"]},
+        {id:28,category:"Psiquiatria",difficulty:"Médio",tags:["Depressão"],description:"1º episódio depressão moderada. ISRS?",correct:{medicine:"Sertralina",dose:"50 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[{medicine:"Escitalopram",dose:"10 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"ISRS 1ª linha.",incorrect:"Inicie ISRS."},explanation:"MS/NICE.",refs:["NICE Depression"]},
+        {id:29,category:"Dermatologia",difficulty:"Fácil",tags:["Acne"],description:"Acne inflamatória moderada. Tópico 1ª linha?",correct:{medicine:"Adapaleno + Peróxido de Benzoíla",dose:"0.1% + 2.5% gel",route:"Tópica",frequency:"Uma vez ao dia (noite)"},alternatives:[],penalties:[{trigger:{medicine:"Isotretinoína"},message:"Isotretinoína para casos graves."}],feedback:{correct:"Retinoide+BPO.",incorrect:"Combine retinoide e BPO."},explanation:"SBD/AAD.",refs:["SBD Acne"]},
+        {id:30,category:"Ginecologia",difficulty:"Fácil",tags:["Candidíase"],description:"Candidíase VVC não gestante. Tratamento?",correct:{medicine:"Fluconazol",dose:"150 mg",route:"Oral",frequency:"Dose única"},alternatives:[{medicine:"Clotrimazol",dose:"500 mg (óvulo vaginal)",route:"Vaginal",frequency:"Dose única"}],penalties:[{trigger:{medicine:"Metronidazol"},message:"Não trata Candida."}],feedback:{correct:"Fluconazol 150 mg ou azólico tópico.",incorrect:"Azólico."},explanation:"CDC STI.",refs:["CDC STI"]},
+        {id:31,category:"Emergência",difficulty:"Difícil",tags:["PCR"],description:"PCR FV após 1 choque. Antiarrítmico AHA 2025?",correct:{medicine:"Amiodarona",dose:"300 mg",route:"IV",frequency:"Dose única (bolus)"},alternatives:[{medicine:"Lidocaína",dose:"1-1.5 mg/kg",route:"IV",frequency:"Dose única"}],penalties:[],feedback:{correct:"Amiodarona 300 mg.",incorrect:"Amiodarona ou lidocaína."},explanation:"AHA 2025 ALS.",refs:["AHA 2025 CPR & ECC"]},
+        {id:32,category:"Emergência",difficulty:"Médio",tags:["Bradicardia"],description:"FC35 PA70/40 rebaixado. 1ª droga?",correct:{medicine:"Atropina",dose:"1 mg",route:"IV",frequency:"A cada 3-5 minutos (máx 3 mg)"},alternatives:[],penalties:[],feedback:{correct:"Atropina 1 mg.",incorrect:"Atropina; se falha marca-passo."},explanation:"AHA 2025.",refs:["AHA 2025"]},
+        {id:33,category:"Pediatria",difficulty:"Médio",tags:["Croup"],description:"Criança estridor tosse metálica SpO2 97%. Corticoide?",correct:{medicine:"Dexametasona",dose:"0.15-0.6 mg/kg",route:"Oral",frequency:"Dose única"},alternatives:[],penalties:[{trigger:{medicine:"Salbutamol"},message:"Não é primário no croup."}],feedback:{correct:"Dexametasona dose única.",incorrect:"Corticoide sistêmico."},explanation:"SBP.",refs:["SBP"]},
+        {id:34,category:"Cardiologia",difficulty:"Fácil",tags:["DAC"],description:"DAC estável. Antiagregante base?",correct:{medicine:"AAS",dose:"81 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[{medicine:"AAS",dose:"100 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"AAS baixa dose.",incorrect:"AAS 75-100 mg."},explanation:"SBC DAC.",refs:["SBC DAC"]},
+        {id:35,category:"Infectologia",difficulty:"Médio",tags:["Sepse"],description:"Sepse PA88/55 pós-volume. Vasopressor 1ª linha?",correct:{medicine:"Noradrenalina",dose:"0.05-0.5 mcg/kg/min",route:"IV",frequency:"Infusão contínua"},alternatives:[{medicine:"Norepinefrina",dose:"Titular para PAM ≥ 65 mmHg",route:"IV",frequency:"Infusão contínua"}],penalties:[{trigger:{medicine:"Dopamina"},message:"Não é 1ª linha no choque séptico."}],feedback:{correct:"Noradrenalina 1ª linha.",incorrect:"Noradrenalina PAM≥65."},explanation:"Surviving Sepsis.",refs:["Surviving Sepsis"]},
+        {id:36,category:"Endocrinologia",difficulty:"Médio",tags:["CAD"],description:"CAD glicemia420 pH7.12. Insulina após volume?",correct:{medicine:"Insulina",dose:"0.1 UI/kg/h",route:"IV",frequency:"Infusão contínua"},alternatives:[],penalties:[{trigger:{medicine:"Metformina"},message:"Contraindicada na CAD."}],feedback:{correct:"Insulina IV.",incorrect:"Volume+insulina IV."},explanation:"ADA 2026.",refs:["ADA 2026"]},
+        {id:37,category:"Reumatologia",difficulty:"Fácil",tags:["Gota"],description:"Crise aguda gota. Anti-inflamatório?",correct:{medicine:"Naproxeno",dose:"500 mg",route:"Oral",frequency:"Duas vezes ao dia"},alternatives:[{medicine:"Colchicina",dose:"0.5 mg",route:"Oral",frequency:"A cada 12 horas"}],penalties:[{trigger:{medicine:"Alopurinol"},message:"Não iniciar na crise."}],feedback:{correct:"AINE/colchicina.",incorrect:"Trate inflamação primeiro."},explanation:"ACR Gout.",refs:["ACR Gout"]},
+        {id:38,category:"Pneumologia",difficulty:"Fácil",tags:["Asma"],description:"Asma sintomas >2x/sem. Controlador?",correct:{medicine:"Budesonida",dose:"Dose baixa-média",route:"Inalatória",frequency:"Duas vezes ao dia"},alternatives:[],penalties:[{trigger:{medicine:"Salbutamol"},message:"SABA-only desencorajado GINA."}],feedback:{correct:"ICS base.",incorrect:"Inicie ICS."},explanation:"GINA.",refs:["GINA"]},
+        {id:39,category:"Oftalmologia",difficulty:"Fácil",tags:["Conjuntivite"],description:"Secreção purulenta ocular. Colírio?",correct:{medicine:"Tobramicina",dose:"0.3% colírio",route:"Oftálmica",frequency:"A cada 4-6 horas"},alternatives:[{medicine:"Moxifloxacino",dose:"0.5% colírio",route:"Oftálmica",frequency:"Três vezes ao dia"}],penalties:[],feedback:{correct:"ATB tópico.",incorrect:"ATB tópico."},explanation:"AAO.",refs:["AAO"]},
+        {id:40,category:"Urologia",difficulty:"Fácil",tags:["Cólica"],description:"Cólica nefrética cálculo 4mm. Analgesia?",correct:{medicine:"Dipirona",dose:"1 g",route:"IV",frequency:"A cada 6 horas"},alternatives:[{medicine:"Ibuprofeno",dose:"400 mg",route:"Oral",frequency:"A cada 8 horas"}],penalties:[],feedback:{correct:"AINE/dipirona.",incorrect:"AINE/dipirona."},explanation:"EAU.",refs:["EAU"]},
+        {id:41,category:"Geriatria",difficulty:"Médio",tags:["Delirium"],description:"Delirium hiperativo idoso. Antipsicótico dose baixa?",correct:{medicine:"Haloperidol",dose:"0.5-1 mg",route:"Oral",frequency:"SOS / a cada 8-12 h"},alternatives:[{medicine:"Quetiapina",dose:"12.5-25 mg",route:"Oral",frequency:"SOS"}],penalties:[{trigger:{medicine:"Diazepam"},message:"BZD piora delirium."}],feedback:{correct:"Haloperidol baixo.",incorrect:"Evite BZD; trate causa."},explanation:"AGS Beers.",refs:["AGS Beers"]},
+        {id:42,category:"Infectologia",difficulty:"Médio",tags:["Zoster"],description:"Zoster 48h. Antiviral?",correct:{medicine:"Valaciclovir",dose:"1 g",route:"Oral",frequency:"Três vezes ao dia"},alternatives:[{medicine:"Aciclovir",dose:"800 mg",route:"Oral",frequency:"Cinco vezes ao dia"}],penalties:[],feedback:{correct:"Antiviral <72h.",incorrect:"Valaciclovir/aciclovir."},explanation:"CDC Zoster.",refs:["CDC"]},
+        {id:43,category:"Cardiologia",difficulty:"Fácil",tags:["HAS"],description:"HAS 158/98 sem comorbidade. 1ª linha?",correct:{medicine:"Anlodipino",dose:"5 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[{medicine:"Losartana",dose:"50 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"BCC/IECA/BRA/tiazídico.",incorrect:"Classe 1ª linha."},explanation:"SBC HAS.",refs:["SBC HAS"]},
+        {id:44,category:"Hematologia",difficulty:"Fácil",tags:["Ferropriva"],description:"Anemia ferropriva. Reposição?",correct:{medicine:"Sulfato Ferroso",dose:"300 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[],penalties:[],feedback:{correct:"Ferro oral.",incorrect:"Reponha e investigue."},explanation:"ABHH.",refs:["ABHH"]},
+        {id:45,category:"Neurologia",difficulty:"Médio",tags:["Crise"],description:"1ª crise baixo risco exames normais. Conduta?",correct:{medicine:"Nenhuma medicação",dose:"N/A",route:"N/A",frequency:"N/A"},alternatives:[{medicine:"Observação",dose:"N/A",route:"N/A",frequency:"N/A"}],penalties:[],feedback:{correct:"Observação baixo risco.",incorrect:"Individualize FAE."},explanation:"ILAE.",refs:["ILAE"]},
+        {id:46,category:"Infectologia",difficulty:"Fácil",tags:["Sífilis"],description:"Sífilis recente. Tratamento?",correct:{medicine:"Penicilina G benzatina",dose:"2.4 milhões UI",route:"IM",frequency:"Dose única"},alternatives:[],penalties:[],feedback:{correct:"Benzatina 2.4 mi UI.",incorrect:"Penicilina benzatina."},explanation:"CDC STI.",refs:["CDC STI"]},
+        {id:47,category:"Endocrinologia",difficulty:"Fácil",tags:["Hipotireoidismo"],description:"TSH18 T4L baixo 45a. Dose inicial?",correct:{medicine:"Levotiroxina",dose:"50 mcg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[{medicine:"Levotiroxina",dose:"1.6 mcg/kg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"~1.6 mcg/kg jovens.",incorrect:"Inicie levotiroxina."},explanation:"SBEM.",refs:["SBEM"]},
+        {id:48,category:"Cardiologia",difficulty:"Médio",tags:["FA"],description:"FA FC120 estável. Controle frequência?",correct:{medicine:"Metoprolol",dose:"50 mg",route:"Oral",frequency:"Duas vezes ao dia"},alternatives:[{medicine:"Bisoprolol",dose:"2.5 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"BB 1ª linha.",incorrect:"BB ou BCC não-DHP."},explanation:"SBC FA.",refs:["SBC FA"]},
+        {id:49,category:"Pneumologia",difficulty:"Médio",tags:["DPOC"],description:"Exacerbação DPOC. Corticoide?",correct:{medicine:"Prednisona",dose:"40 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[],penalties:[],feedback:{correct:"Prednisona 40mg ~5 dias.",incorrect:"Corticoide curto."},explanation:"GOLD.",refs:["GOLD"]},
+        {id:50,category:"Infectologia",difficulty:"Médio",tags:["Meningite"],description:"Meningite bacteriana suspeita. ATB empírico?",correct:{medicine:"Ceftriaxona",dose:"2 g",route:"IV",frequency:"A cada 12 horas"},alternatives:[{medicine:"Ceftriaxona + Vancomicina",dose:"Conforme protocolo",route:"IV",frequency:"Conforme protocolo"}],penalties:[],feedback:{correct:"Ceftriaxona ± vanco.",incorrect:"ATB IV imediato."},explanation:"IDSA.",refs:["IDSA"]},
+        {id:51,category:"Obstetrícia",difficulty:"Médio",tags:["Gestação"],description:"Gestante cistite. ATB seguro?",correct:{medicine:"Cefalexina",dose:"500 mg",route:"Oral",frequency:"A cada 6 horas"},alternatives:[{medicine:"Nitrofurantoína",dose:"100 mg",route:"Oral",frequency:"A cada 6 horas"}],penalties:[{trigger:{medicine:"Ciprofloxacino"},message:"Quinolonas evitadas na gestação."}],feedback:{correct:"Cefalexina/nitrofurantoína.",incorrect:"Evite quinolonas."},explanation:"FEBRASGO.",refs:["FEBRASGO"]},
+        {id:52,category:"Toxicologia",difficulty:"Médio",tags:["Opioide"],description:"Overdose opioide FR6. Antídoto?",correct:{medicine:"Naloxona",dose:"0.4-2 mg",route:"IV",frequency:"Repetir conforme necessário"},alternatives:[{medicine:"Naloxona",dose:"2 mg",route:"IN",frequency:"Repetir conforme necessário"}],penalties:[],feedback:{correct:"Naloxona + ventilar.",incorrect:"Naloxona."},explanation:"AHA 2025.",refs:["AHA 2025"]},
+        {id:53,category:"Cardiologia",difficulty:"Médio",tags:["IAMCSST"],description:"IAMCSST para ICP. P2Y12 além AAS?",correct:{medicine:"Ticagrelor",dose:"180 mg",route:"Oral",frequency:"Dose de ataque"},alternatives:[{medicine:"Prasugrel",dose:"60 mg",route:"Oral",frequency:"Dose de ataque"}],penalties:[],feedback:{correct:"Ticagrelor/prasugrel.",incorrect:"DAPT potente."},explanation:"SBC SCA.",refs:["SBC SCA"]},
+        {id:54,category:"Nefrologia",difficulty:"Fácil",tags:["HiperK"],description:"K 7.2 T apiculadas. Proteção membrana?",correct:{medicine:"Gluconato de Cálcio",dose:"1-2 g",route:"IV",frequency:"Dose única (repetir se necessário)"},alternatives:[],penalties:[],feedback:{correct:"Cálcio IV.",incorrect:"Cálcio se ECG alterado."},explanation:"AHA.",refs:["AHA"]},
+        {id:55,category:"Gastroenterologia",difficulty:"Fácil",tags:["Náusea"],description:"Náusea pós-op. Antiemético 5-HT3?",correct:{medicine:"Ondansetrona",dose:"4 mg",route:"IV",frequency:"SOS"},alternatives:[],penalties:[],feedback:{correct:"Ondansetrona.",incorrect:"Antiemético."},explanation:"ASA.",refs:["ASA"]},
+        {id:56,category:"Pediatria",difficulty:"Médio",tags:["Diarreia"],description:"Desidratação leve diarreia. Reidratação?",correct:{medicine:"Soro de reidratação oral",dose:"Plano B / conforme peso",route:"Oral",frequency:"Conforme protocolo"},alternatives:[{medicine:"Sais de reidratação oral",dose:"OMS",route:"Oral",frequency:"Conforme sede/perdas"}],penalties:[],feedback:{correct:"TRO.",incorrect:"Via oral preferencial."},explanation:"OMS/SBP.",refs:["OMS"]},
+        {id:57,category:"Psiquiatria",difficulty:"Médio",tags:["Insônia"],description:"Insônia situacional. Hipnótico curto prazo?",correct:{medicine:"Zolpidem",dose:"5-10 mg",route:"Oral",frequency:"À noite (curto prazo)"},alternatives:[{medicine:"Melatonina",dose:"2-5 mg",route:"Oral",frequency:"À noite"}],penalties:[{trigger:{medicine:"Diazepam"},message:"BZD longa ação: quedas."}],feedback:{correct:"Higiene do sono ± hipnótico curto.",incorrect:"Evite BZD crônico."},explanation:"AASM.",refs:["AASM"]},
+        {id:58,category:"Reumatologia",difficulty:"Médio",tags:["AR"],description:"AR surto em MTX. Corticoide ponte?",correct:{medicine:"Prednisona",dose:"10-20 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[],penalties:[],feedback:{correct:"Corticoide baixa dose ponte.",incorrect:"Ponte + DMARD."},explanation:"ACR/SBR.",refs:["ACR RA"]},
+        {id:59,category:"Infectologia",difficulty:"Fácil",tags:["Tétano"],description:"Ferimento contaminado dT há 12 anos. Conduta?",correct:{medicine:"dT (difteria-tétano)",dose:"Reforço",route:"IM",frequency:"Dose única"},alternatives:[{medicine:"dTpa",dose:"Reforço",route:"IM",frequency:"Dose única"}],penalties:[],feedback:{correct:"Reforço se >10 anos.",incorrect:"Atualize vacina."},explanation:"PNI MS.",refs:["PNI"]},
+        {id:60,category:"Cardiologia",difficulty:"Médio",tags:["IC"],description:"IC-FER em IECA+BB+ARM TFG55. Adicionar?",correct:{medicine:"Dapagliflozina",dose:"10 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[{medicine:"Empagliflozina",dose:"10 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"SGLT2i no GDMT.",incorrect:"Adicione SGLT2i."},explanation:"SBC IC / ADA 2026.",refs:["SBC IC","ADA 2026"]},
+        {id:61,category:"Pneumologia",difficulty:"Fácil",tags:["Rinite"],description:"Rinite alérgica moderada. Tratamento tópico?",correct:{medicine:"Budesonida nasal",dose:"32-64 mcg/narina",route:"Nasal",frequency:"Uma vez ao dia"},alternatives:[{medicine:"Fluticasona nasal",dose:"Dose usual",route:"Nasal",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"Corticoide nasal.",incorrect:"Corticoide nasal."},explanation:"ARIA.",refs:["ARIA"]},
+        {id:62,category:"Endocrinologia",difficulty:"Médio",tags:["Osteoporose"],description:"Osteoporose esofagite grave. Alternativa SC?",correct:{medicine:"Denosumabe",dose:"60 mg",route:"SC",frequency:"A cada 6 meses"},alternatives:[{medicine:"Ácido zoledrônico",dose:"5 mg",route:"IV",frequency:"Uma vez ao ano"}],penalties:[],feedback:{correct:"Denosumabe 6/6 meses.",incorrect:"Denosumabe ou zoledronato."},explanation:"SBEM.",refs:["SBEM"]},
+        {id:63,category:"Infectologia",difficulty:"Fácil",tags:["Impetigo"],description:"Impetigo localizado. Tópico?",correct:{medicine:"Mupirocina",dose:"2% pomada",route:"Tópica",frequency:"Três vezes ao dia"},alternatives:[],penalties:[],feedback:{correct:"Mupirocina.",incorrect:"Tópico se localizado."},explanation:"IDSA SSTI.",refs:["IDSA"]},
+        {id:64,category:"Neurologia",difficulty:"Médio",tags:["Parkinson"],description:"Parkinson inicial idoso. Fármaco?",correct:{medicine:"Levodopa + Benserazida",dose:"Dose baixa titular",route:"Oral",frequency:"3 vezes ao dia"},alternatives:[{medicine:"Levodopa + Carbidopa",dose:"Dose baixa titular",route:"Oral",frequency:"3 vezes ao dia"}],penalties:[],feedback:{correct:"Levodopa em >65a.",incorrect:"Levodopa."},explanation:"ABN.",refs:["ABN"]},
+        {id:65,category:"Cardiologia",difficulty:"Fácil",tags:["Estatina"],description:"Risco intermediário LDL145. Estat ina moderada?",correct:{medicine:"Atorvastatina",dose:"10-20 mg",route:"Oral",frequency:"Uma vez ao dia (noturno)"},alternatives:[{medicine:"Sinvastatina",dose:"20-40 mg",route:"Oral",frequency:"Uma vez ao dia (noturno)"}],penalties:[],feedback:{correct:"Estatina moderada.",incorrect:"Inicie estatina."},explanation:"SBC Dislipidemias.",refs:["SBC"]},
+        {id:66,category:"Emergência",difficulty:"Difícil",tags:["Anafilaxia"],description:"Anafilaxia refratária a IM. Próximo?",correct:{medicine:"Adrenalina",dose:"Infusão titulada",route:"IV",frequency:"Infusão contínua"},alternatives:[{medicine:"Noradrenalina",dose:"Infusão titulada",route:"IV",frequency:"Infusão contínua"}],penalties:[],feedback:{correct:"Infusão adrenalina.",incorrect:"IV só refratário monitorizado."},explanation:"WAO/AHA 2025.",refs:["WAO","AHA 2025"]},
+        {id:67,category:"Gastroenterologia",difficulty:"Fácil",tags:["Constipação"],description:"Constipação crônica idoso. Laxativo?",correct:{medicine:"Polietilenoglicol (PEG)",dose:"17 g",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[{medicine:"Lactulose",dose:"15-30 mL",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"PEG.",incorrect:"Osmóticos."},explanation:"AGA.",refs:["AGA"]},
+        {id:68,category:"Infectologia",difficulty:"Médio",tags:["COVID"],description:"COVID leve 70a dia2 alto risco. Antiviral?",correct:{medicine:"Nirmatrelvir/ritonavir",dose:"Conforme bula",route:"Oral",frequency:"A cada 12 horas (5 dias)"},alternatives:[{medicine:"Molnupiravir",dose:"Conforme bula",route:"Oral",frequency:"A cada 12 horas (5 dias)"}],penalties:[{trigger:{medicine:"Azitromicina"},message:"Sem indicação antiviral."}],feedback:{correct:"Antiviral precoce se elegível.",incorrect:"Não ATB de rotina."},explanation:"MS/OMS/IDSA.",refs:["MS COVID"]},
+        {id:69,category:"Endocrinologia",difficulty:"Médio",tags:["Hipoglicemia"],description:"Hipoglicemia grave sem IV. Glucagon?",correct:{medicine:"Glucagon",dose:"1 mg",route:"IM",frequency:"Dose única"},alternatives:[{medicine:"Glucagon nasal",dose:"3 mg",route:"Nasal",frequency:"Dose única"}],penalties:[],feedback:{correct:"Glucagon IM/nasal.",incorrect:"Glucagon ou glicose IV."},explanation:"ADA 2026.",refs:["ADA 2026"]},
+        {id:70,category:"Cardiologia",difficulty:"Médio",tags:["HAS gestacional"],description:"Gestante 32sem PA150/95. Anti-HTA seguro?",correct:{medicine:"Metildopa",dose:"250 mg",route:"Oral",frequency:"Duas a três vezes ao dia"},alternatives:[{medicine:"Nifedipino",dose:"10-20 mg",route:"Oral",frequency:"A cada 8 horas"},{medicine:"Labetalol",dose:"100 mg",route:"Oral",frequency:"Duas vezes ao dia"}],penalties:[{trigger:{medicine:"Captopril"},message:"IECA/BRA contraindicados na gestação."}],feedback:{correct:"Metildopa/nifedipino/labetalol.",incorrect:"Nunca IECA/BRA."},explanation:"FEBRASGO.",refs:["FEBRASGO"]},
+        {id:71,category:"Pneumologia",difficulty:"Médio",tags:["Asma gestação"],description:"Gestante asmática. ICS com mais dados?",correct:{medicine:"Budesonida",dose:"Dose mínima eficaz",route:"Inalatória",frequency:"Duas vezes ao dia"},alternatives:[],penalties:[],feedback:{correct:"Budesonida.",incorrect:"Mantenha controle."},explanation:"GINA/FEBRASGO.",refs:["GINA"]},
+        {id:72,category:"Infectologia",difficulty:"Fácil",tags:["Meningococo"],description:"Contato íntimo meningococo. Profilaxia?",correct:{medicine:"Ciprofloxacino",dose:"500 mg",route:"Oral",frequency:"Dose única"},alternatives:[{medicine:"Rifampicina",dose:"600 mg",route:"Oral",frequency:"A cada 12 horas por 2 dias"}],penalties:[],feedback:{correct:"Cipro dose única.",incorrect:"Quimioprofilaxia."},explanation:"MS/CDC.",refs:["CDC"]},
+        {id:73,category:"Hematologia",difficulty:"Médio",tags:["TVP câncer"],description:"TVP oncológico. Anticoagulação?",correct:{medicine:"Enoxaparina",dose:"1 mg/kg",route:"SC",frequency:"A cada 12 horas"},alternatives:[{medicine:"Apixabana",dose:"10 mg → 5 mg",route:"Oral",frequency:"Conforme esquema"}],penalties:[],feedback:{correct:"HBPM clássica; DOAC selecionado.",incorrect:"Anticoagule."},explanation:"ASCO VTE.",refs:["ASCO"]},
+        {id:74,category:"Psiquiatria",difficulty:"Médio",tags:["TAG"],description:"TAG resposta parcial ISRS. Estratégia?",correct:{medicine:"Venlafaxina",dose:"75 mg",route:"Oral",frequency:"Uma vez ao dia"},alternatives:[{medicine:"Duloxetina",dose:"30-60 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"Trocar/potencializar + TCC.",incorrect:"Evite BZD crônico."},explanation:"APA.",refs:["APA"]},
+        {id:75,category:"Dermatologia",difficulty:"Fácil",tags:["Atópica"],description:"Dermatite atópica leve. Base diária?",correct:{medicine:"Emoliente",dose:"Generoso",route:"Tópica",frequency:"Várias vezes ao dia"},alternatives:[{medicine:"Hidrocortisona",dose:"1% creme",route:"Tópica",frequency:"Duas vezes ao dia"}],penalties:[],feedback:{correct:"Emolientes.",incorrect:"Hidratar ± corticoide fraco."},explanation:"SBD.",refs:["SBD"]},
+        {id:76,category:"Cardiologia",difficulty:"Médio",tags:["Pós-IAM"],description:"Pós-IAM FE45%. Betabloqueador?",correct:{medicine:"Metoprolol",dose:"25-50 mg",route:"Oral",frequency:"Duas vezes ao dia"},alternatives:[{medicine:"Bisoprolol",dose:"1.25-2.5 mg",route:"Oral",frequency:"Uma vez ao dia"}],penalties:[],feedback:{correct:"BB pós-IAM.",incorrect:"Inicie BB."},explanation:"SBC SCA.",refs:["SBC SCA"]},
+        {id:77,category:"Nefrologia",difficulty:"Médio",tags:["IRA"],description:"IRA congestão pulmonar. Diurético alça?",correct:{medicine:"Furosemida",dose:"40-80 mg",route:"IV",frequency:"Dose única / titular"},alternatives:[{medicine:"Furosemide",dose:"40 mg (IV)",route:"IV",frequency:"Dose única"}],penalties:[],feedback:{correct:"Furosemida IV.",incorrect:"Diurético de alça."},explanation:"KDIGO AKI.",refs:["KDIGO"]},
+        {id:78,category:"Infectologia",difficulty:"Médio",tags:["Malária"],description:"P. falciparum não grave Amazônia. Esquema?",correct:{medicine:"Arteméter-lumefantrina",dose:"Conforme peso",route:"Oral",frequency:"Esquema de 3 dias"},alternatives:[],penalties:[{trigger:{medicine:"Cloroquina isolada"},message:"Falciparum resistente."}],feedback:{correct:"ACT.",incorrect:"ACT conforme MS."},explanation:"MS Malária/WHO.",refs:["MS Malária"]},
+        {id:79,category:"Emergência",difficulty:"Médio",tags:["Queimadura"],description:"70kg 30%TBSA. Taxa inicial ABA (não Parkland 4)?",correct:{medicine:"Ringer lactato",dose:"2 mL × kg × %TBSA",route:"IV",frequency:"Metade nas primeiras 8 h"},alternatives:[{medicine:"Ringer lactato",dose:"2-4 mL × kg × %TBSA",route:"IV",frequency:"Titular por débito urinário"}],penalties:[{trigger:{medicine:"Parkland 4 mL fixo sem titular"},message:"ABA inicia 2 mL/kg/%TBSA e titula."}],feedback:{correct:"ABA ~2 mL/kg/%TBSA.",incorrect:"Evite hiper-ressuscitação."},explanation:"ABA 2024.",refs:["ABA Burn Shock 2024"]},
+        {id:80,category:"Cardiologia",difficulty:"Médio",tags:["Pós-PCR"],description:"Pós-ROSC comatoso. Temperatura AHA 2025?",correct:{medicine:"Controle de temperatura",dose:"Evitar febre; alvo 32-37,5°C conforme protocolo",route:"N/A",frequency:"Contínuo (≥36 h se não responsivo)"},alternatives:[{medicine:"Prevenção de febre",dose:"Manter ≤ 37,5°C",route:"N/A",frequency:"Contínuo"}],penalties:[],feedback:{correct:"Controle térmico ≥36h.",incorrect:"Evite febre."},explanation:"AHA 2025 Post-Arrest.",refs:["AHA 2025"]}
+    ];
+
+    // Triage cases (sample of key scenarios)
+    const triageCases = [
+        {
+            id: "T1", title: "Dor torácica + sudorese + PA baixa",
+            category: "Cardiologia / Emergência",
+            description: "Homem 58 anos, dor precordial em aperto há 40 min, sudorese fria, náuseas. PA 85/50, FC 110, SpO₂ 94%.",
+            vitals: { hr: "110 bpm", bp: "85/50 mmHg", rr: "22 irpm", spo2: "94%", temp: "36.4°C", pain: "8/10", gcs: "15" },
+            correctPriority: "vermelho",
+            explanation: "Sinais de choque + SCA suspeito = emergência (vermelho). Ativar protocolo de IAM / sala de emergência.",
+            discriminators: ["Choque", "Dor torácica isquêmica", "Hipotensão"]
+        },
+        {
+            id: "T2", title: "Criança febril, ativo, brincando",
+            category: "Pediatria",
+            description: "Criança 3 anos, febre 38,8°C há 1 dia, coriza, tosse leve. Está brincando na sala de espera, hidratada, sem dificuldade respiratória.",
+            vitals: { hr: "110 bpm", bp: "—", rr: "24 irpm", spo2: "98%", temp: "38.8°C", pain: "—", gcs: "15 (ativo)" },
+            correctPriority: "verde",
+            explanation: "Febre sem sinais de gravidade em criança ativa = pouco urgente (verde). Orientar e observar.",
+            discriminators: ["Febre sem gravidade", "Criança ativa"]
+        },
+        {
+            id: "T3", title: "Dispneia + sibilância + SpO₂ 88%",
+            category: "Pneumologia",
+            description: "Mulher 45 anos, asmática, dispneia progressiva, fala frases curtas, sibilância intensa bilateral, SpO₂ 88% em ar ambiente.",
+            vitals: { hr: "125 bpm", bp: "140/90 mmHg", rr: "32 irpm", spo2: "88%", temp: "36.9°C", pain: "—", gcs: "15" },
+            correctPriority: "laranja",
+            explanation: "Crise asmática grave com hipoxemia = muito urgente (laranja). SABA + O2 + corticoide imediato.",
+            discriminators: ["Hipoxemia", "Dispneia grave", "Asma"]
+        },
+        {
+            id: "T4", title: "Trauma abdominal + palidez + taquicardia",
+            category: "Trauma",
+            description: "Homem 30 anos, acidente de moto, dor abdominal intensa, palidez, sudorese. PA 90/60, FC 130. Abdome distendido.",
+            vitals: { hr: "130 bpm", bp: "90/60 mmHg", rr: "26 irpm", spo2: "96%", temp: "36.2°C", pain: "9/10", gcs: "14" },
+            correctPriority: "vermelho",
+            explanation: "Choque hemorrágico suspeito por trauma abdominal = emergência. xABCDE + ativar protocolo de transfusão / cirurgia.",
+            discriminators: ["Choque", "Trauma abdominal", "Hemorragia interna"]
+        },
+        {
+            id: "T5", title: "Cefaleia crônica, sem sinais de alarme",
+            category: "Neurologia",
+            description: "Mulher 35 anos, cefaleia tensional recorrente há anos, sem vômitos, sem déficit neurológico, PA normal, chega caminhando.",
+            vitals: { hr: "78 bpm", bp: "120/75 mmHg", rr: "14 irpm", spo2: "99%", temp: "36.5°C", pain: "5/10", gcs: "15" },
+            correctPriority: "azul",
+            explanation: "Cefaleia crônica sem red flags = não urgente (azul). Pode ser atendida em horário eletivo.",
+            discriminators: ["Sem sinais de alarme", "Cefaleia crônica"]
+        },
+        {
+            id: "T6", title: "Convulsão em curso",
+            category: "Neurologia / Emergência",
+            description: "Paciente em crise convulsiva generalizada tônico-clônica há 3 minutos no box. Ainda em atividade.",
+            vitals: { hr: "140 bpm", bp: "—", rr: "—", spo2: "90%", temp: "—", pain: "—", gcs: "—" },
+            correctPriority: "vermelho",
+            explanation: "Convulsão em curso / status = emergência. Proteger via aérea, benzodiazepínico, O2.",
+            discriminators: ["Convulsão ativa", "Ameaça à via aérea"]
+        },
+        {
+            id: "T7", title: "Dor lombar crônica, deambulando",
+            category: "Ortopedia",
+            description: "Homem 50 anos, lombalgia crônica há 6 meses, sem irradiação, sem déficit neurológico, deambula sem apoio.",
+            vitals: { hr: "72 bpm", bp: "130/80 mmHg", rr: "14 irpm", spo2: "98%", temp: "36.6°C", pain: "4/10", gcs: "15" },
+            correctPriority: "azul",
+            explanation: "Lombalgia crônica sem red flags = não urgente.",
+            discriminators: ["Sem déficit", "Crônico"]
+        },
+        {
+            id: "T8", title: "Sepse suspeita + hipotensão",
+            category: "Infectologia / Emergência",
+            description: "Idoso 78 anos, febre, confusão, PA 85/50, FC 115, FR 28, foco urinário suspeito. Lactato elevado.",
+            vitals: { hr: "115 bpm", bp: "85/50 mmHg", rr: "28 irpm", spo2: "93%", temp: "38.9°C", pain: "—", gcs: "13" },
+            correctPriority: "vermelho",
+            explanation: "Sepse com hipotensão (choque séptico suspeito) = emergência. Bundle da 1ª hora (Surviving Sepsis).",
+            discriminators: ["Choque", "Sepse", "Hipotensão"]
+        },
+        {
+            id: "T9", title: "Dor torácica atípica, estável",
+            category: "Cardiologia",
+            description: "Mulher 40 anos, dor torácica em pontada há 6h, relacionada à respiração, SpO₂ 98%, PA 120/80, ECG normal, sem dispneia.",
+            vitals: { hr: "78 bpm", bp: "120/80 mmHg", rr: "16 irpm", spo2: "98%", temp: "36.6°C", pain: "4/10", gcs: "15" },
+            correctPriority: "verde",
+            explanation: "Dor torácica de características musculoesqueléticas, estável, ECG normal → pouco urgente (verde). Ainda assim, avaliar risco e orientações de retorno.",
+            discriminators: ["Dor não isquêmica", "Estabilidade", "ECG normal"]
+        },
+        {
+            id: "T10", title: "AVC com déficit há 1 hora",
+            category: "Neurologia",
+            description: "Homem 70 anos, hemiparesia direita e afasia iniciadas há 60 minutos. PA 170/95, glicemia 110, SpO₂ 97%.",
+            vitals: { hr: "88 bpm", bp: "170/95 mmHg", rr: "18 irpm", spo2: "97%", temp: "36.5°C", pain: "—", gcs: "12 (afasia)" },
+            correctPriority: "vermelho",
+            explanation: "Suspeita de AVC na janela de trombólise = emergência (vermelho). Ativar código AVC imediatamente.",
+            discriminators: ["Déficit focal agudo", "Janela terapêutica", "Código AVC"]
+        },
+        {
+            id: "T11", title: "Criança com bronquiolite leve",
+            category: "Pediatria",
+            description: "Lactente 8 meses, coriza, tosse, sibilância leve, alimentando-se bem, SpO₂ 97%, sem retrações importantes.",
+            vitals: { hr: "130 bpm", bp: "—", rr: "42 irpm", spo2: "97%", temp: "37.8°C", pain: "—", gcs: "ativo" },
+            correctPriority: "verde",
+            explanation: "Bronquiolite leve sem hipoxemia ou esforço grave → pouco urgente. Orientar sinais de alarme.",
+            discriminators: ["Sem hipoxemia", "Boa aceitação alimentar"]
+        },
+        {
+            id: "T12", title: "Anafilaxia após picada",
+            category: "Emergência",
+            description: "Adolescente picado por inseto há 10 min: urticária generalizada, rouquidão, PA 85/50, FR 28.",
+            vitals: { hr: "130 bpm", bp: "85/50 mmHg", rr: "28 irpm", spo2: "94%", temp: "36.7°C", pain: "—", gcs: "15" },
+            correctPriority: "vermelho",
+            explanation: "Anafilaxia com hipotensão = emergência. Adrenalina IM imediata.",
+            discriminators: ["Anafilaxia", "Hipotensão", "Comprometimento de via aérea"]
+        },
+        {
+            id: "T13", title: "Lombalgia com déficit neurológico",
+            category: "Ortopedia / Neurologia",
+            description: "Homem 55 anos, lombalgia há 2 dias com irradiação, fraqueza em pé e retenção urinária nova.",
+            vitals: { hr: "90 bpm", bp: "135/85 mmHg", rr: "16 irpm", spo2: "98%", temp: "37.0°C", pain: "8/10", gcs: "15" },
+            correctPriority: "laranja",
+            explanation: "Suspeita de síndrome da cauda equina = muito urgente (laranja). Avaliação neurológica e imagem urgentes.",
+            discriminators: ["Déficit motor", "Retenção urinária", "Cauda equina"]
+        },
+        {
+            id: "T14", title: "Hipoglicemia em diabético",
+            category: "Endocrinologia",
+            description: "Diabético tipo 1, sudorese, confusão, glicemia capilar 42 mg/dL, ainda responde ao comando.",
+            vitals: { hr: "105 bpm", bp: "110/70 mmHg", rr: "18 irpm", spo2: "98%", temp: "36.4°C", pain: "—", gcs: "13" },
+            correctPriority: "laranja",
+            explanation: "Hipoglicemia sintomática com alteração do sensorium = muito urgente. Glicose oral/IV imediata.",
+            discriminators: ["Hipoglicemia", "Alteração do sensorium"]
+        },
+        {
+            id: "T15", title: "Hemorragia digestiva alta",
+            category: "Gastroenterologia",
+            description: "Homem 60 anos, hematêmese há 30 min, PA 95/60, FC 115, pálido, histórico de úlcera.",
+            vitals: { hr: "115 bpm", bp: "95/60 mmHg", rr: "22 irpm", spo2: "96%", temp: "36.5°C", pain: "3/10", gcs: "15" },
+            correctPriority: "vermelho",
+            explanation: "HDA com sinais de instabilidade = emergência. Acesso, volume/sangue, endoscopia.",
+            discriminators: ["Hemorragia ativa", "Taquicardia", "Hipotensão relativa"]
+        },
+        {
+            id: "T16", title: "Crise asmática moderada",
+            category: "Pneumologia",
+            description: "Asmática 25 anos, sibilância, fala frases, SpO₂ 93%, FR 28, sem cianose.",
+            vitals: { hr: "110 bpm", bp: "130/80 mmHg", rr: "28 irpm", spo2: "93%", temp: "36.8°C", pain: "—", gcs: "15" },
+            correctPriority: "laranja",
+            explanation: "Exacerbação moderada-grave com hipoxemia leve = muito urgente. SABA + O2 + corticoide.",
+            discriminators: ["Hipoxemia", "Dispneia", "Asma"]
+        },
+        {
+            id: "T17", title: "Cefaleia súbita máxima",
+            category: "Neurologia",
+            description: "Mulher 42 anos, pior cefaleia da vida de início súbito há 1h, vômitos, fotofobia, PA 150/90, sem déficit focal.",
+            vitals: { hr: "95 bpm", bp: "150/90 mmHg", rr: "18 irpm", spo2: "99%", temp: "36.7°C", pain: "10/10", gcs: "15" },
+            correctPriority: "laranja",
+            explanation: "Cefaleia em trovoada — excluir HSA. Muito urgente (imagem e avaliação neurológica).",
+            discriminators: ["Cefaleia súbita máxima", "Suspeita de HSA"]
+        },
+        {
+            id: "T18", title: "Ferimento cortante superficial",
+            category: "Cirurgia",
+            description: "Jovem 20 anos, corte superficial em mão com faca de cozinha, sangramento controlado, vacina em dia, sem déficit.",
+            vitals: { hr: "75 bpm", bp: "118/75 mmHg", rr: "14 irpm", spo2: "99%", temp: "36.5°C", pain: "3/10", gcs: "15" },
+            correctPriority: "azul",
+            explanation: "Ferimento simples controlado = não urgente (azul). Cuidados locais e profilaxia se necessário.",
+            discriminators: ["Hemorragia controlada", "Sem déficit"]
+        },
+        {
+            id: "T19", title: "Trabalho de parto em curso",
+            category: "Obstetrícia",
+            description: "Gestante 38 semanas, contrações regulares a cada 3 min, dilatação 6 cm, bolsa íntegra, BCF normal.",
+            vitals: { hr: "95 bpm", bp: "125/80 mmHg", rr: "20 irpm", spo2: "98%", temp: "36.8°C", pain: "7/10", gcs: "15" },
+            correctPriority: "laranja",
+            explanation: "Trabalho de parto ativo = muito urgente para encaminhamento obstétrico adequado.",
+            discriminators: ["Trabalho de parto", "Gestação a termo"]
+        },
+        {
+            id: "T20", title: "Intoxicação exógena sonolenta",
+            category: "Toxicologia",
+            description: "Jovem encontrado com frascos de benzodiazepínico, sonolento, FR 10, SpO₂ 91%, responde a estímulo doloroso.",
+            vitals: { hr: "70 bpm", bp: "100/60 mmHg", rr: "10 irpm", spo2: "91%", temp: "36.2°C", pain: "—", gcs: "9" },
+            correctPriority: "vermelho",
+            explanation: "Depressão respiratória e rebaixamento = emergência. Via aérea, O2, antídoto se indicado.",
+            discriminators: ["Depressão respiratória", "Rebaixamento", "Intoxicação"]
+        },
+        {
+            id: "T21", title: "Cetoacidose diabética",
+            category: "Endocrinologia",
+            description: "Jovem 19 anos, DM1, vômitos, dor abdominal, FR 32, hálito cetônico, glicemia 480, sonolento mas desperta.",
+            vitals: { hr: "120 bpm", bp: "100/60 mmHg", rr: "32 irpm", spo2: "97%", temp: "37.1°C", pain: "5/10", gcs: "14" },
+            correctPriority: "laranja",
+            explanation: "CAD com taquipneia e alteração leve do sensorium = muito urgente. Volume, insulina, eletrólitos.",
+            discriminators: ["CAD", "Taquipneia", "Hiperglicemia grave"]
+        },
+        {
+            id: "T22", title: "Crise hipertensiva com déficit focal",
+            category: "Neurologia / Cardiologia",
+            description: "Idoso 72 anos, PA 220/130, confusão e fraqueza em braço esquerdo iniciadas há 40 min.",
+            vitals: { hr: "95 bpm", bp: "220/130 mmHg", rr: "18 irpm", spo2: "96%", temp: "36.6°C", pain: "—", gcs: "13" },
+            correctPriority: "vermelho",
+            explanation: "Emergência hipertensiva com sinal neurológico focal — possível AVC. Vermelho. Neuroimagem e controle criterioso da PA.",
+            discriminators: ["Emergência hipertensiva", "Déficit focal"]
+        },
+        {
+            id: "T23", title: "Reação alérgica leve",
+            category: "Alergia",
+            description: "Adulto com urticária localizada após antibiótico, sem dispneia, PA normal, sem edema de língua.",
+            vitals: { hr: "82 bpm", bp: "120/75 mmHg", rr: "14 irpm", spo2: "99%", temp: "36.5°C", pain: "—", gcs: "15" },
+            correctPriority: "verde",
+            explanation: "Reação cutânea isolada sem critérios de anafilaxia = pouco urgente. Suspender fármaco e anti-histamínico.",
+            discriminators: ["Sem anafilaxia", "Estável"]
+        },
+        {
+            id: "T24", title: "Trauma craniano leve",
+            category: "Trauma",
+            description: "Jovem após queda de própria altura, TCE, GCS 15, sem vômitos, sem amnésia, exame neurológico normal.",
+            vitals: { hr: "78 bpm", bp: "125/80 mmHg", rr: "14 irpm", spo2: "99%", temp: "36.6°C", pain: "3/10", gcs: "15" },
+            correctPriority: "verde",
+            explanation: "TCE leve sem critérios de imagem urgente na maioria dos protocolos = pouco urgente, com orientações de alarme.",
+            discriminators: ["GCS 15", "Sem red flags"]
+        },
+        {
+            id: "T25", title: "Dor torácica + sudorese + ECG com supra",
+            category: "Cardiologia",
+            description: "Homem 55 anos, dor precordial há 20 min, sudorese, ECG com supradesnível de ST em parede anterior.",
+            vitals: { hr: "100 bpm", bp: "110/70 mmHg", rr: "20 irpm", spo2: "95%", temp: "36.5°C", pain: "9/10", gcs: "15" },
+            correctPriority: "vermelho",
+            explanation: "IAMCSST = emergência. Ativar sala de hemodinâmica / trombólise conforme rede.",
+            discriminators: ["IAMCSST", "Dor isquêmica"]
+        },
+        {
+            id: "T26", title: "Otite em criança febril ativa",
+            category: "Pediatria",
+            description: "Criança 4 anos, otalgia, febre 38,5°C, brincando, hidratada, sem toxemia.",
+            vitals: { hr: "110 bpm", bp: "—", rr: "22 irpm", spo2: "98%", temp: "38.5°C", pain: "4/10", gcs: "ativo" },
+            correctPriority: "verde",
+            explanation: "OMA sem sinais de gravidade = pouco urgente.",
+            discriminators: ["Criança ativa", "Sem toxemia"]
+        },
+        {
+            id: "T27", title: "Suspeita de sepse em idoso frágil",
+            category: "Infectologia",
+            description: "Idosa 85 anos, confusão nova, FR 26, FC 105, Temp 38,4°C, PA 100/60, foco urinário.",
+            vitals: { hr: "105 bpm", bp: "100/60 mmHg", rr: "26 irpm", spo2: "94%", temp: "38.4°C", pain: "—", gcs: "13" },
+            correctPriority: "laranja",
+            explanation: "Sepse suspeita em idoso = muito urgente. Bundle da 1ª hora (culturas, ATB, lactato, volume).",
+            discriminators: ["Sepse", "Alteração mental", "Taquipneia"]
+        },
+        {
+            id: "T28", title: "Queimadura mão pequena",
+            category: "Cirurgia / Queimadura",
+            description: "Adulto, queimadura de 2º grau em dorso da mão (~1% TBSA), dor controlável, sem lesão de via aérea.",
+            vitals: { hr: "80 bpm", bp: "125/78 mmHg", rr: "14 irpm", spo2: "99%", temp: "36.6°C", pain: "5/10", gcs: "15" },
+            correctPriority: "verde",
+            explanation: "Queimadura pequena sem critérios de transferência urgente = pouco urgente. Curativo e analgesia.",
+            discriminators: ["TBSA pequena", "Sem inalação"]
+        }
+
+
+    ];
+
+    // Trauma cases (ATLS 11 / xABCDE)
+    const traumaBase = {
+        traumas: [
+            {
+                nome: "Hemotórax",
+                sinaisVitais: { fc: "120-140 bpm", pa: "90/60-100/70 mmHg", fr: "24-30 irpm", sat: "80-88%", gcs: "12-14" },
+                queixas: ["Dor torácica unilateral", "Dispneia", "Palidez", "Sudorese"],
+                exames: {
+                    "USG FAST": "Líquido livre no hemitórax direito",
+                    "Raio-X de tórax": "Opacidade em hemitórax direito, desvio traqueal",
+                    "TC de tórax": "Hemotórax com fraturas costais"
+                },
+                intervencoesCorretas: ["Inserir dreno torácico", "Administrar O2 15L/min"],
+                intervencoesIncorretas: {
+                    "Intubar imediatamente": "Não indicado sem falência respiratória iminente; priorize drenagem (xABCDE — B).",
+                    "Administrar analgesia forte": "Pode mascarar sintomas e deprimir a respiração.",
+                    "Aguardar mais exames": "Atraso no tratamento de hemotórax tenso aumenta risco de colapso."
+                },
+                racionalCorretas: {
+                    "Inserir dreno torácico": "Remove sangue/ar, restaura ventilação (ATLS 11, Breathing).",
+                    "Administrar O2 15L/min": "Corrige hipoxemia por compressão pulmonar."
+                },
+                referencia: "ATLS 11th Edition (ACS) — Thoracic Trauma / xABCDE"
+            },
+            {
+                nome: "Ruptura esplênica",
+                sinaisVitais: { fc: "130-150 bpm", pa: "80/50-90/60 mmHg", fr: "26-32 irpm", sat: "85-90%", gcs: "10-12" },
+                queixas: ["Dor abdominal intensa", "Palidez", "Sudorese", "Tontura"],
+                exames: {
+                    "USG FAST": "Líquido livre no abdômen (hemorragia)",
+                    "TC de abdômen": "Laceração esplênica grau IV com líquido livre",
+                    "Hemograma": "Hemoglobina baixa (7-9 g/dL)"
+                },
+                intervencoesCorretas: ["Administrar Ringer Lactato 1L", "Encaminhar para laparotomia"],
+                intervencoesIncorretas: {
+                    "Intubar imediatamente": "Prioridade é estabilizar hemodinâmica (x e C) antes de via aérea se não há comprometimento imediato.",
+                    "Administrar analgesia forte": "Pode mascarar evolução da instabilidade.",
+                    "Aguardar mais exames": "Hemorragia ativa → choque hipovolêmico irreversível se atraso."
+                },
+                racionalCorretas: {
+                    "Administrar Ringer Lactato 1L": "Ponte volumétrica enquanto se prepara sangue/produtos (ATLS 11: limitar cristaloides; preferir sangue).",
+                    "Encaminhar para laparotomia": "Controle definitivo da hemorragia esplênica."
+                },
+                referencia: "ATLS 11th Edition (ACS) — Abdominal Trauma / Damage Control Resuscitation"
+            },
+            {
+                nome: "Trauma cranioencefálico grave",
+                sinaisVitais: { fc: "90-110 bpm", pa: "140/90-160/100 mmHg", fr: "18-24 irpm", sat: "90-95%", gcs: "8-10" },
+                queixas: ["Rebaixamento do sensório", "Cefaleia intensa", "Vômito em jato", "Confusão progressiva"],
+                exames: {
+                    "TC de crânio": "Hematoma subdural agudo com desvio de linha média",
+                    "Gasometria arterial": "Pode mostrar acidose ou hipercapnia leve",
+                    "Raio-X cervical": "Sem fraturas (exclusão importante)"
+                },
+                intervencoesCorretas: ["Intubar imediatamente", "Administrar manitol"],
+                intervencoesIncorretas: {
+                    "Administrar Ringer Lactato 1L": "Fluidoterapia excessiva pode aumentar PIC em TCE.",
+                    "Aguardar mais exames": "Atraso no TCE grave com HIC agrava edema e prognóstico.",
+                    "Administrar analgesia forte": "Pode deprimir consciência e mascarar GCS."
+                },
+                racionalCorretas: {
+                    "Intubar imediatamente": "GCS < 9 → proteger via aérea e evitar lesão cerebral secundária (ATLS 11, Airway).",
+                    "Administrar manitol": "Reduz edema cerebral e PIC em TCE grave selecionado."
+                },
+                referencia: "ATLS 11th Edition (ACS) — Head Trauma"
+            },
+            {
+                nome: "Pneumotórax hipertensivo",
+                sinaisVitais: { fc: "130-150 bpm", pa: "80/50-90/60 mmHg", fr: "30-40 irpm", sat: "75-85%", gcs: "12-14" },
+                queixas: ["Dispneia grave súbita", "Dor torácica pleurítica", "Cianose", "Agitação", "Desvio de traqueia"],
+                exames: {
+                    "Raio-X de tórax": "Colapso pulmonar total + desvio mediastinal",
+                    "USG FAST": "Ausência de lung sliding no lado afetado",
+                    "TC de tórax": "Confirma pneumotórax com desvio mediastinal"
+                },
+                intervencoesCorretas: ["Descompressão com agulha", "Inserir dreno torácico"],
+                intervencoesIncorretas: {
+                    "Administrar Ringer Lactato 1L": "Não resolve a obstrução mecânica.",
+                    "Intubar imediatamente": "Pode piorar hipertensão torácica sem descompressão prévia.",
+                    "Aguardar mais exames": "Emergência imediata — atraso leva a colapso cardiovascular."
+                },
+                racionalCorretas: {
+                    "Descompressão com agulha": "Converte hipertensivo em simples; salva vida (ATLS 11, Breathing).",
+                    "Inserir dreno torácico": "Tratamento definitivo após descompressão."
+                },
+                referencia: "ATLS 11th Edition (ACS) — Thoracic Trauma / xABCDE"
+            },
+            {
+                nome: "Choque cardiogênico",
+                sinaisVitais: { fc: "110-130 bpm", pa: "70/40-80/50 mmHg", fr: "24-30 irpm", sat: "80-88%", gcs: "10-12" },
+                queixas: ["Dor torácica anginosa", "Dispneia progressiva", "Sudorese fria", "Pele marmórea"],
+                exames: {
+                    "Eletrocardiograma": "Supra de ST em derivações anteriores (IAM extenso)",
+                    "Ecocardiograma": "Hipocinesia septal/anterior, disfunção grave de VE",
+                    "Gasometria arterial": "Acidose metabólica com lactato elevado"
+                },
+                intervencoesCorretas: ["Administrar noradrenalina", "Encaminhar para cateterismo"],
+                intervencoesIncorretas: {
+                    "Administrar Ringer Lactato 1L": "Pode agravar edema pulmonar em coração sobrecarregado.",
+                    "Intubar imediatamente": "Prioridade é suporte hemodinâmico e revascularização.",
+                    "Aguardar mais exames": "Atraso na revascularização aumenta mortalidade."
+                },
+                racionalCorretas: {
+                    "Administrar noradrenalina": "Vasopressor de 1ª linha no choque cardiogênico (AHA 2025 / ACLS atualizado).",
+                    "Encaminhar para cateterismo": "Revascularização definitiva em IAMCSST com choque."
+                },
+                referencia: "AHA 2025 Guidelines for CPR and ECC — Cardiogenic Shock / Post-Cardiac Arrest Care"
+            },
+            {
+                nome: "Hemorragia externa exsanguinante (membro)",
+                sinaisVitais: { fc: "140-160 bpm", pa: "70/40-85/50 mmHg", fr: "28-36 irpm", sat: "92-96%", gcs: "12-14" },
+                queixas: ["Sangramento arterial ativo em membro", "Palidez extrema", "Sudorese", "Agitação"],
+                exames: {
+                    "USG FAST": "Sem líquido livre abdominal significativo",
+                    "Hemograma": "Hemoglobina em queda",
+                    "Gasometria arterial": "Acidose metabólica, lactato elevado"
+                },
+                intervencoesCorretas: ["Controle de hemorragia externa (torniquete/compressão)", "Ativar protocolo de transfusão maciça"],
+                intervencoesIncorretas: {
+                    "Intubar imediatamente": "Se via aérea está patente, x (hemorragia) tem prioridade sobre A no ATLS 11.",
+                    "Administrar Ringer Lactato 1L": "Preferir sangue/produtos; cristaloides em excesso diluem e pioram coagulopatia.",
+                    "Aguardar mais exames": "Hemorragia exsanguinante mata em minutos — controle imediato."
+                },
+                racionalCorretas: {
+                    "Controle de hemorragia externa (torniquete/compressão)": "xABCDE: x = controle de hemorragia externa exsanguinante ANTES da via aérea quando aplicável (ATLS 11).",
+                    "Ativar protocolo de transfusão maciça": "Damage Control Resuscitation — sangue precoce, hipotensão permissiva, minimizar cristaloides."
+                },
+                referencia: "ATLS 11th Edition (ACS) — xABCDE / Damage Control Resuscitation"
+            },
+            {nome:"Amputação traumática de membro",sinaisVitais:{fc:"140-160 bpm",pa:"70/40-85/55 mmHg",fr:"28-34 irpm",sat:"93-97%",gcs:"13-15"},queixas:["Sangramento arterial em jato","Membro amputado parcial","Palidez"],exames:{"USG FAST":"Sem líquido livre","Hemograma":"Queda de Hb","Gasometria arterial":"Acidose, lactato alto"},intervencoesCorretas:["Controle de hemorragia externa (torniquete/compressão)","Ativar protocolo de transfusão maciça"],intervencoesIncorretas:{"Intubar imediatamente":"Se via aérea ok, x tem prioridade (ATLS 11).","Administrar Ringer Lactato 1L":"Preferir sangue.","Aguardar mais exames":"Sangramento mata em minutos."},racionalCorretas:{"Controle de hemorragia externa (torniquete/compressão)":"xABCDE prioritário.","Ativar protocolo de transfusão maciça":"DCR sangue precoce."},referencia:"ATLS 11 — xABCDE"},
+            {nome:"Trauma pélvico instável",sinaisVitais:{fc:"120-140 bpm",pa:"85/50-95/60 mmHg",fr:"24-30 irpm",sat:"92-96%",gcs:"12-14"},queixas:["Dor pélvica","Instabilidade","Palidez"],exames:{"USG FAST":"Líquido pélvico","Hemograma":"Anemia"},intervencoesCorretas:["Controle de hemorragia externa (torniquete/compressão)","Ativar protocolo de transfusão maciça"],intervencoesIncorretas:{"Aguardar mais exames":"Binder e sangue primeiro.","Intubar imediatamente":"Priorize x/C se A ok."},racionalCorretas:{"Controle de hemorragia externa (torniquete/compressão)":"Binder pélvico (ATLS 11).","Ativar protocolo de transfusão maciça":"Controle definitivo + sangue."},referencia:"ATLS 11 — Pelvic Trauma"},
+            {nome:"Queimadura maior 30% TBSA",sinaisVitais:{fc:"110-130 bpm",pa:"100/60-110/70 mmHg",fr:"22-28 irpm",sat:"94-98%",gcs:"15"},queixas:["Dor intensa","Queimaduras 2º/3º","Sede"],exames:{"Gasometria arterial":"Avaliar inalação","Hemograma":"Hemoconcentração"},intervencoesCorretas:["Administrar Ringer Lactato 1L","Administrar O2 15L/min"],intervencoesIncorretas:{"Aguardar mais exames":"Inicie volume ABA 2 mL/kg/%TBSA."},racionalCorretas:{"Administrar Ringer Lactato 1L":"ABA 2 mL/kg/%TBSA titular diurese.","Administrar O2 15L/min":"Suporte e via aérea."},referencia:"ABA 2024 / ATLS 11"},
+            {nome:"Tamponamento cardíaco traumático",sinaisVitais:{fc:"120-140 bpm",pa:"80/60 (estreita)",fr:"24-30 irpm",sat:"90-95%",gcs:"12-14"},queixas:["Turgência jugular","Bulhas abafadas","Trauma penetrante"],exames:{"USG FAST":"Líquido pericárdico","Eletrocardiograma":"Baixa voltagem"},intervencoesCorretas:["Encaminhar para laparotomia","Administrar O2 15L/min"],intervencoesIncorretas:{"Administrar Ringer Lactato 1L":"Volume isolado não resolve.","Aguardar mais exames":"Descompressão urgente."},racionalCorretas:{"Encaminhar para laparotomia":"Janela/toracotomia definitiva.","Administrar O2 15L/min":"Suporte."},referencia:"ATLS 11 — Tamponade"}
+
+        ],
+        historicos: [
+            "Acidente de moto, sem capacete", "Colisão frontal de carro, alta velocidade", "Queda de altura (3 metros)",
+            "Trauma torácico contuso, impacto direto", "Ferimento por arma branca, região abdominal", "Atropelamento por veículo leve",
+            "Amputação traumática de membro inferior"
+        ],
+        intervencoes: [
+            { nome: "USG FAST", tempo: 15, tipo: "exame" },
+            { nome: "Raio-X de tórax", tempo: 15, tipo: "exame" },
+            { nome: "TC de crânio", tempo: 15, tipo: "exame" },
+            { nome: "Eletrocardiograma", tempo: 15, tipo: "exame" },
+            { nome: "Gasometria arterial", tempo: 15, tipo: "exame" },
+            { nome: "Hemograma", tempo: 15, tipo: "exame" },
+            { nome: "Ecocardiograma", tempo: 15, tipo: "exame" },
+            { nome: "Intubar imediatamente", tempo: 20, tipo: "intervencao" },
+            { nome: "Administrar Ringer Lactato 1L", tempo: 10, tipo: "intervencao" },
+            { nome: "Inserir dreno torácico", tempo: 20, tipo: "intervencao" },
+            { nome: "Administrar O2 15L/min", tempo: 5, tipo: "intervencao" },
+            { nome: "Descompressão com agulha", tempo: 10, tipo: "intervencao" },
+            { nome: "Administrar manitol", tempo: 10, tipo: "intervencao" },
+            { nome: "Administrar noradrenalina", tempo: 10, tipo: "intervencao" },
+            { nome: "Encaminhar para laparotomia", tempo: 20, tipo: "intervencao" },
+            { nome: "Encaminhar para cateterismo", tempo: 20, tipo: "intervencao" },
+            { nome: "Administrar analgesia forte", tempo: 5, tipo: "intervencao" },
+            { nome: "Aguardar mais exames", tempo: 20, tipo: "intervencao" },
+            { nome: "Controle de hemorragia externa (torniquete/compressão)", tempo: 10, tipo: "intervencao" },
+            { nome: "Ativar protocolo de transfusão maciça", tempo: 15, tipo: "intervencao" }
+        ]
+    };
+
+    const drugDatabase = {
+        "Captopril": { doses: ["12.5 mg", "25 mg", "50 mg", "100 mg"], frequencies: ["Dose única", "A cada 8 horas", "A cada 12 horas", "Uma vez ao dia"] },
+        "Nifedipino": { doses: ["5 mg", "10 mg", "20 mg"], frequencies: ["Dose única", "A cada 8 horas"] },
+        "Paracetamol": { doses: ["100 mg", "200 mg", "500 mg", "750 mg", "1 g"], frequencies: ["A cada 4 horas", "A cada 6 horas", "A cada 8 horas", "SOS"] },
+        "Ibuprofeno": { doses: ["100 mg", "200 mg", "400 mg", "600 mg"], frequencies: ["A cada 6 horas", "A cada 8 horas", "A cada 12 horas", "Dose única"] },
+        "Amoxicilina + Clavulanato": { doses: ["500/125 mg", "875/125 mg"], frequencies: ["A cada 8 horas", "A cada 12 horas", "Duas vezes ao dia"] },
+        "Levofloxacino": { doses: ["250 mg", "500 mg", "750 mg"], frequencies: ["Uma vez ao dia"] },
+        "Escitalopram": { doses: ["5 mg", "10 mg", "15 mg", "20 mg"], frequencies: ["Uma vez ao dia"] },
+        "Sertralina": { doses: ["25 mg", "50 mg", "100 mg"], frequencies: ["Uma vez ao dia"] },
+        "Diazepam": { doses: ["2 mg", "5 mg", "10 mg"], frequencies: ["A cada 6 horas", "A cada 8 horas", "SOS", "Dose única"] },
+        "Metformina": { doses: ["250 mg", "500 mg", "850 mg", "1000 mg"], frequencies: ["Uma vez ao dia", "Duas vezes ao dia", "Três vezes ao dia"] },
+        "Insulina": { doses: ["10 UI", "20 UI", "Dose individualizada"], frequencies: ["Uma vez ao dia", "Duas vezes ao dia", "Antes das refeições"] },
+        "Sumatriptano": { doses: ["25 mg", "50 mg", "100 mg"], frequencies: ["Dose única"] },
+        "Rizatriptano": { doses: ["5 mg", "10 mg"], frequencies: ["Dose única"] },
+        "Rivaroxabana": { doses: ["10 mg", "15 mg", "20 mg"], frequencies: ["Uma vez ao dia"] },
+        "Apixabana": { doses: ["2.5 mg", "5 mg"], frequencies: ["Duas vezes ao dia"] },
+        "Dabigatrana": { doses: ["110 mg", "150 mg"], frequencies: ["Duas vezes ao dia"] },
+        "Varfarina": { doses: ["2.5 mg", "5 mg", "Dose individualizada"], frequencies: ["Uma vez ao dia"] },
+        "Tiotrópio": { doses: ["18 mcg"], frequencies: ["Uma vez ao dia"] },
+        "Salmeterol": { doses: ["25 mcg", "50 mcg"], frequencies: ["Duas vezes ao dia"] },
+        "Salbutamol": { doses: ["2.5 mg", "5 mg", "4-8 puffs", "100 mcg/puff (2 puffs)"], frequencies: ["SOS", "A cada 4-6 horas", "A cada 20 minutos por 1 hora"] },
+        "Nitrofurantoína": { doses: ["50 mg", "100 mg"], frequencies: ["A cada 6 horas", "A cada 12 horas"] },
+        "Fosfomicina trometamol": { doses: ["3 g"], frequencies: ["Dose única"] },
+        "Ciprofloxacino": { doses: ["250 mg", "500 mg", "750 mg"], frequencies: ["Duas vezes ao dia"] },
+        "Amoxicilina": { doses: ["250 mg", "500 mg", "875 mg"], frequencies: ["A cada 8 horas", "A cada 12 horas"] },
+        "Pregabalina": { doses: ["25 mg", "50 mg", "75 mg", "150 mg"], frequencies: ["Duas vezes ao dia", "Três vezes ao dia"] },
+        "Gabapentina": { doses: ["100 mg", "300 mg", "400 mg"], frequencies: ["Três vezes ao dia"] },
+        "Hidralazina": { doses: ["10 mg", "25 mg", "50 mg"], frequencies: ["A cada 6 horas", "A cada 8 horas"] },
+        "AAS": { doses: ["81 mg", "100 mg", "325 mg"], frequencies: ["Uma vez ao dia"] },
+        "Dipirona": { doses: ["500 mg", "1 g"], frequencies: ["A cada 6 horas", "SOS"] },
+        "Levotiroxina": { doses: ["25 mcg", "50 mcg", "75 mcg", "100 mcg", "Aumento da dose (ex: +25 mcg)", "Ajuste conforme TSH"], frequencies: ["Uma vez ao dia"] },
+        "Cefalexina": { doses: ["250 mg", "500 mg"], frequencies: ["A cada 6 horas", "A cada 8 horas"] },
+        "Clindamicina": { doses: ["150 mg", "300 mg"], frequencies: ["A cada 6 horas", "A cada 8 horas"] },
+        "Omeprazol": { doses: ["10 mg", "20 mg", "40 mg"], frequencies: ["Uma vez ao dia (antes do café da manhã)", "Duas vezes ao dia"] },
+        "Pantoprazol": { doses: ["20 mg", "40 mg"], frequencies: ["Uma vez ao dia (antes do café da manhã)"] },
+        "Ranitidina": { doses: ["150 mg", "300 mg"], frequencies: ["Duas vezes ao dia"] },
+        "Alendronato": { doses: ["70 mg"], frequencies: ["Uma vez por semana"] },
+        "Risedronato": { doses: ["35 mg"], frequencies: ["Uma vez por semana"] },
+        "Atorvastatina": { doses: ["10 mg", "20 mg", "40 mg", "80 mg"], frequencies: ["Uma vez ao dia (noturno)"] },
+        "Rosuvastatina": { doses: ["5 mg", "10 mg", "20 mg", "40 mg"], frequencies: ["Uma vez ao dia (noturno)"] },
+        "Sinvastatina": { doses: ["10 mg", "20 mg", "40 mg"], frequencies: ["Uma vez ao dia (noturno)"] },
+        "Penicilina V potássica": { doses: ["250 mg", "500 mg"], frequencies: ["A cada 8 horas", "A cada 12 horas"] },
+        "Azitromicina": { doses: ["500 mg", "1 g"], frequencies: ["Uma vez ao dia", "Dose única"] },
+        "Ceftriaxona": { doses: ["1 g", "2 g"], frequencies: ["Uma vez ao dia"] },
+        "Ticagrelor": { doses: ["180 mg", "90 mg"], frequencies: ["Dose de ataque", "Duas vezes ao dia"] },
+        "Clopidogrel": { doses: ["75 mg", "300-600 mg"], frequencies: ["Uma vez ao dia", "Dose de ataque"] },
+        "Adrenalina": { doses: ["0.3-0.5 mg", "1 mg"], frequencies: ["Dose única (repetir se necessário)", "Infusão contínua"] },
+        "Epinefrina": { doses: ["0.3-0.5 mg", "1 mg"], frequencies: ["Dose única (repetir se necessário)", "Infusão contínua"] },
+        "Montelucaste": { doses: ["10 mg"], frequencies: ["Uma vez ao dia"] },
+        "Propiltiouracil": { doses: ["50 mg", "100 mg"], frequencies: ["A cada 8 horas"] },
+        "Noradrenalina": { doses: ["0.05-0.5 mcg/kg/min", "Titular para PAM ≥ 65 mmHg"], frequencies: ["Infusão contínua"] },
+        "Morfina": { doses: ["2-4 mg", "5-10 mg"], frequencies: ["SOS", "A cada 4 horas"] },
+
+        "Enalapril": { doses: ["2.5-5 mg", "5 mg", "10 mg"], frequencies: ["Duas vezes ao dia"] },
+        "Lisinopril": { doses: ["5 mg", "10 mg"], frequencies: ["Uma vez ao dia"] },
+        "Semaglutida": { doses: ["0.25 mg (titular)", "0.5 mg"], frequencies: ["Uma vez por semana"] },
+        "Empagliflozina": { doses: ["10 mg", "25 mg"], frequencies: ["Uma vez ao dia"] },
+        "Alteplase (trombólise)": { doses: ["0.9 mg/kg (máx 90 mg)"], frequencies: ["Dose de reperfusão"] },
+        "Tenecteplase": { doses: ["Protocolo de emergência"], frequencies: ["Dose única"] },
+        "Eritropoetina": { doses: ["Dose individualizada"], frequencies: ["Conforme protocolo"] },
+        "Darbepoetina": { doses: ["Dose individualizada"], frequencies: ["Conforme protocolo"] },
+        "Penicilina G benzatina": { doses: ["2.4 milhões UI"], frequencies: ["Dose única"] },
+        "Dexametasona": { doses: ["0.15-0.6 mg/kg", "4 mg"], frequencies: ["Dose única"] },
+        "Budesonida": { doses: ["Dose baixa-média", "Dose mínima eficaz", "2 mg"], frequencies: ["Duas vezes ao dia", "Dose única"] },
+        "Losartana": { doses: ["50 mg"], frequencies: ["Uma vez ao dia"] },
+        "Haloperidol": { doses: ["0.5-1 mg"], frequencies: ["SOS / a cada 8-12 h"] },
+        "Quetiapina": { doses: ["12.5-25 mg"], frequencies: ["SOS"] },
+        "Norepinefrina": { doses: ["Titular para PAM ≥ 65 mmHg"], frequencies: ["Infusão contínua"] },
+        "Prasugrel": { doses: ["60 mg"], frequencies: ["Dose de ataque"] },
+        "Soro de reidratação oral": { doses: ["Plano B / conforme peso"], frequencies: ["Conforme protocolo"] },
+        "Sais de reidratação oral": { doses: ["OMS"], frequencies: ["Conforme sede/perdas"] },
+        "Zolpidem": { doses: ["5-10 mg"], frequencies: ["À noite (curto prazo)"] },
+        "Melatonina": { doses: ["2-5 mg"], frequencies: ["À noite"] },
+        "dT (difteria-tétano)": { doses: ["Reforço"], frequencies: ["Dose única"] },
+        "dTpa": { doses: ["Reforço"], frequencies: ["Dose única"] },
+        "Dapagliflozina": { doses: ["10 mg"], frequencies: ["Uma vez ao dia"] },
+        "Budesonida nasal": { doses: ["32-64 mcg/narina"], frequencies: ["Uma vez ao dia"] },
+        "Fluticasona nasal": { doses: ["Dose usual"], frequencies: ["Uma vez ao dia"] },
+        "Denosumabe": { doses: ["60 mg"], frequencies: ["A cada 6 meses"] },
+        "Ácido zoledrônico": { doses: ["5 mg"], frequencies: ["Uma vez ao ano"] },
+        "Levodopa + Benserazida": { doses: ["Dose baixa titular"], frequencies: ["3 vezes ao dia"] },
+        "Levodopa + Carbidopa": { doses: ["Dose baixa titular"], frequencies: ["3 vezes ao dia"] },
+        "Nirmatrelvir/ritonavir": { doses: ["Conforme bula"], frequencies: ["A cada 12 horas (5 dias)"] },
+        "Molnupiravir": { doses: ["Conforme bula"], frequencies: ["A cada 12 horas (5 dias)"] },
+        "Glucagon": { doses: ["1 mg"], frequencies: ["Dose única"] },
+        "Glucagon nasal": { doses: ["3 mg"], frequencies: ["Dose única"] },
+        "Metildopa": { doses: ["250 mg"], frequencies: ["Duas a três vezes ao dia"] },
+        "Labetalol": { doses: ["100 mg"], frequencies: ["Duas vezes ao dia"] },
+        "Arteméter-lumefantrina": { doses: ["Conforme peso"], frequencies: ["Esquema de 3 dias"] },
+        "Venlafaxina": { doses: ["75 mg"], frequencies: ["Uma vez ao dia"] },
+        "Duloxetina": { doses: ["30-60 mg"], frequencies: ["Uma vez ao dia"] },
+        "Emoliente": { doses: ["Generoso"], frequencies: ["Várias vezes ao dia"] },
+        "Observação": { doses: ["N/A"], frequencies: ["N/A"] },
+        "Ringer lactato": { doses: ["2 mL × kg × %TBSA", "2-4 mL × kg × %TBSA"], frequencies: ["Metade nas primeiras 8 h", "Titular por débito urinário"] },
+        "Glibenclamida": { doses: ["5 mg"], frequencies: ["Uma vez ao dia"] },
+
+    };
+
+    const commonRoutes = ["Oral", "IV", "IM", "SC", "Tópica", "Inalatória", "Nasal", "Retal", "Oftálmica", "Vaginal", "N/A"];
+    const commonFrequencies = [
+        "Uma vez ao dia", "Duas vezes ao dia", "Três vezes ao dia", "Quatro vezes ao dia",
+        "A cada 4 horas", "A cada 6 horas", "A cada 8 horas", "A cada 12 horas",
+        "Dose única", "SOS", "Uma vez por semana",
+        "Uma vez ao dia (antes do café da manhã)", "Uma vez ao dia (noturno)",
+        "A cada 20 minutos por 1 hora", "A cada 4-6 horas", "Quando necessário",
+        "Dose de ataque", "Infusão contínua", "Dose única (repetir se necessário)",
+        "Titular para PAM ≥ 65 mmHg"
+    ];
+
+    // ===================== STATE =====================
+    let shuffledCases = [];
+    let shuffledTriage = [];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let streak = 0;
+    let bestStreak = 0;
+    let timerInterval = null;
+    let timeLeft = 90;
+    let mode = "prescricao"; // prescricao | triagem | exam | trauma
+    let history = [];
+    let hintsUsed = 0;
+    let triageAnswered = false;
+
+    // Trauma state
+    let traumaCaso = null;
+    let traumaEstabilidade = 70;
+    let traumaTempo = 180;
+    let traumaPontuacao = 0;
+    let traumaExames = [];
+    let traumaIntervencoes = [];
+    let traumaFinalizado = false;
+    let traumaTimerId = null;
+    let traumaHintsUsed = 0;
+    let traumaSession = { wins: 0, losses: 0, okActions: 0, badActions: 0, history: [] };
+    let traumaActionLog = [];
+
+    const $ = id => document.getElementById(id);
+
+    function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    function populateSelect(sel, options, placeholder) {
+        sel.innerHTML = `<option value="">${placeholder}</option>`;
+        options.forEach(o => {
+            const opt = document.createElement("option");
+            opt.value = o;
+            opt.textContent = o;
+            sel.appendChild(opt);
+        });
+    }
+
+    function updateStats() {
+        const len = mode === "triagem" ? shuffledTriage.length : (mode === "trauma" ? 1 : shuffledCases.length);
+        $("statCorrect").textContent = correctCount;
+        $("statIncorrect").textContent = incorrectCount;
+        $("statCase").textContent = mode === "trauma" ? "Trauma" : `${Math.min(currentIndex + 1, len)}/${len}`;
+        const total = correctCount + incorrectCount;
+        $("statAccuracy").textContent = total ? Math.round((correctCount / total) * 100) + "%" : "—";
+        $("progressBar").style.width = (len && mode !== "trauma" ? (currentIndex / len * 100) : 0) + "%";
+        if (streak > 0) {
+            $("streakDisplay").classList.remove("hidden");
+            $("streakDisplay").classList.add("flex");
+            $("streakCount").textContent = streak;
+        } else {
+            $("streakDisplay").classList.add("hidden");
+        }
+    }
+
+    function updateTimerDisplay() {
+        // Timer removido
+        if ($("timerText")) $("timerText").textContent = "—";
+        if ($("statTimer")) $("statTimer").textContent = "—";
+    }
+
+    function startTimer() {
+        // Temporizador removido por solicitação — aprendizado sem pressão de tempo
+        clearInterval(timerInterval);
+        timeLeft = 9999;
+        if ($("timerText")) $("timerText").textContent = "—";
+        if ($("statTimer")) $("statTimer").textContent = "—";
+    }
+
+    function stopTimer() { clearInterval(timerInterval); }
+
+    function setUIMode(m) {
+        mode = m;
+        document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("mode-active"));
+        const btnMap = { prescricao: "modePrescricao", triagem: "modeTriagem", trauma: "modeTrauma" };
+        if (btnMap[m]) $(btnMap[m]).classList.add("mode-active");
+
+        if (m === "trauma") {
+            $("viewPrescricao").classList.add("hidden");
+            $("viewTrauma").classList.remove("hidden");
+            iniciarTraumaCaso();
+        } else {
+            $("viewPrescricao").classList.remove("hidden");
+            $("viewTrauma").classList.add("hidden");
+            if (traumaTimerId) clearInterval(traumaTimerId);
+            setUIModePrescOrTriage(m === "triagem");
+        }
+    }
+
+    function setUIModePrescOrTriage(isTriage) {
+        if (isTriage) {
+            $("prescriptionPanel").classList.add("hidden");
+            $("safetyChecklist").classList.add("hidden");
+            $("triagePanel").classList.remove("hidden");
+            $("vitalsPanel").classList.remove("hidden");
+            $("hintBtn").style.display = "none";
+        } else {
+            $("prescriptionPanel").classList.remove("hidden");
+            $("safetyChecklist").classList.remove("hidden");
+            $("triagePanel").classList.add("hidden");
+            $("vitalsPanel").classList.add("hidden");
+            $("hintBtn").style.display = "";
+        }
+    }
+
+    
+    function pickFiveOptions(correctValue, pool, extraCorrects) {
+        const set = new Set();
+        if (correctValue) set.add(correctValue);
+        (extraCorrects || []).forEach(v => { if (v) set.add(v); });
+        const shuffled = shuffle(pool.filter(x => x && !set.has(x)));
+        for (const x of shuffled) {
+            if (set.size >= 5) break;
+            set.add(x);
+        }
+        // if still < 5, pad from pool
+        for (const x of pool) {
+            if (set.size >= 5) break;
+            set.add(x);
+        }
+        return shuffle(Array.from(set).slice(0, 5));
+    }
+
+    function buildPrescriptionOptions(c) {
+        const correct = c.correct;
+        const altMeds = (c.alternatives || []).map(a => a.medicine);
+        const allMeds = Object.keys(drugDatabase);
+        const medOptions = pickFiveOptions(correct.medicine, allMeds, altMeds);
+
+        // Doses: from correct med + alternatives + random from database of correct med
+        const dosePool = new Set();
+        if (drugDatabase[correct.medicine]) drugDatabase[correct.medicine].doses.forEach(d => dosePool.add(d));
+        dosePool.add(correct.dose);
+        (c.alternatives || []).forEach(a => dosePool.add(a.dose));
+        // add distractor doses from other drugs
+        allMeds.slice(0, 30).forEach(m => {
+            (drugDatabase[m]?.doses || []).forEach(d => dosePool.add(d));
+        });
+        const doseOptions = pickFiveOptions(correct.dose, Array.from(dosePool), (c.alternatives || []).map(a => a.dose));
+
+        const routeOptions = pickFiveOptions(correct.route, commonRoutes, (c.alternatives || []).map(a => a.route));
+        const freqPool = [...commonFrequencies];
+        if (drugDatabase[correct.medicine]) freqPool.push(...(drugDatabase[correct.medicine].frequencies || []));
+        const freqOptions = pickFiveOptions(correct.frequency, freqPool, (c.alternatives || []).map(a => a.frequency));
+
+        populateSelect($("medicine"), medOptions, "Selecione o medicamento...");
+        populateSelect($("dose"), doseOptions, "Selecione a dose...");
+        $("dose").disabled = false;
+        populateSelect($("route"), routeOptions, "Selecione a via...");
+        populateSelect($("frequency"), freqOptions, "Selecione a frequência...");
+    }
+
+
+    
+    function onMedicineChange() {
+        const med = $("medicine").value;
+        const c = shuffledCases[currentIndex];
+        if (!c || !med) return;
+        // Keep the same 5 dose options but ensure correct dose for selected med is available
+        const dosePool = new Set();
+        if (drugDatabase[med]) drugDatabase[med].doses.forEach(d => dosePool.add(d));
+        dosePool.add(c.correct.dose);
+        (c.alternatives || []).forEach(a => { if (a.medicine === med) dosePool.add(a.dose); });
+        // keep current options if possible
+        const currentOpts = Array.from($("dose").options).map(o => o.value).filter(Boolean);
+        currentOpts.forEach(d => dosePool.add(d));
+        const doses = pickFiveOptions(
+            (med.toLowerCase() === c.correct.medicine.toLowerCase() ? c.correct.dose : (drugDatabase[med]?.doses || ["—"])[0]),
+            Array.from(dosePool),
+            []
+        );
+        populateSelect($("dose"), doses, "Selecione a dose...");
+        $("dose").disabled = false;
+    }
+
+    function loadCase(idx) {
+        if (mode === "triagem") {
+            loadTriageCase(idx);
+            return;
+        }
+        if (idx >= shuffledCases.length) {
+            endGame();
+            return;
+        }
+        setUIModePrescOrTriage(false);
+        const c = shuffledCases[idx];
+        $("caseNumber").textContent = `Prescrição #${idx + 1}`;
+        $("caseCategory").textContent = c.category;
+        $("caseTitle").textContent = c.difficulty ? `${c.category} • ${c.difficulty}` : c.category;
+        $("caseDescription").textContent = c.description;
+
+        const tagsEl = $("patientTags");
+        tagsEl.innerHTML = "";
+        (c.tags || []).forEach(t => {
+            const span = document.createElement("span");
+            span.className = "patient-tag bg-slate-700 text-slate-300 border border-slate-600";
+            span.textContent = t;
+            tagsEl.appendChild(span);
+        });
+
+        buildPrescriptionOptions(c);
+
+        // Reset safety checks
+        document.querySelectorAll(".safety-check").forEach(cb => cb.checked = false);
+
+        $("feedbackBox").classList.add("hidden");
+        $("prescribeBtn").disabled = false;
+        $("nextBtn").disabled = true;
+        $("hintBtn").disabled = false;
+        hintsUsed = 0;
+        triageAnswered = false;
+
+        const tips = [
+            "Sempre considere idade, peso, função renal e hepática, alergias, interações, gravidez, indicação e contraindicações.",
+            "Verifique interações medicamentosas importantes antes de prescrever.",
+            "Em pediatria, calcule a dose por kg de peso.",
+            "Gestantes e idosos exigem escolha criteriosa de fármacos.",
+            "Documente alergias antes de qualquer prescrição.",
+            "Prefira a via oral sempre que possível e segura.",
+            "Reavalie a resposta terapêutica em tempo adequado.",
+            "ADA 2026: considere GLP-1 RA / SGLT2i precocemente em DM2 com risco CV/renal."
+        ];
+        $("sideTip").textContent = tips[Math.floor(Math.random() * tips.length)];
+
+        updateStats();
+        startTimer();
+    }
+
+    function loadTriageCase(idx) {
+        if (idx >= shuffledTriage.length) {
+            endGame();
+            return;
+        }
+        setUIModePrescOrTriage(true);
+        const c = shuffledTriage[idx];
+        triageAnswered = false;
+
+        $("caseNumber").textContent = `Triagem #${idx + 1}`;
+        $("caseCategory").textContent = "Classificação de Risco";
+        $("caseTitle").textContent = c.title;
+        $("caseDescription").textContent = c.description;
+
+        $("vitalHR").textContent = c.vitals.hr;
+        $("vitalBP").textContent = c.vitals.bp;
+        $("vitalRR").textContent = c.vitals.rr;
+        $("vitalSpO2").textContent = c.vitals.spo2;
+        $("vitalTemp").textContent = c.vitals.temp;
+        $("vitalPain").textContent = c.vitals.pain;
+        $("vitalGCS").textContent = c.vitals.gcs;
+
+        const tagsEl = $("patientTags");
+        tagsEl.innerHTML = "";
+        (c.discriminators || []).forEach(t => {
+            const span = document.createElement("span");
+            span.className = "patient-tag bg-amber-900/50 text-amber-300 border border-amber-700/50";
+            span.textContent = t;
+            tagsEl.appendChild(span);
+        });
+        const catSpan = document.createElement("span");
+        catSpan.className = "patient-tag bg-slate-700 text-slate-300 border border-slate-600";
+        catSpan.textContent = c.category;
+        tagsEl.appendChild(catSpan);
+
+        document.querySelectorAll(".triage-btn").forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove("ring-4", "ring-white/40", "opacity-50", "ring-emerald-400/60", "ring-red-400/60");
+        });
+
+        $("feedbackBox").classList.add("hidden");
+        $("nextBtn").disabled = true;
+
+        const tips = [
+            "Vermelho = ameaça à vida (atendimento imediato).",
+            "Laranja = condição muito urgente (≤ 10 minutos).",
+            "Amarelo = urgente (≤ 60 minutos).",
+            "Verde = pouco urgente (≤ 120 minutos).",
+            "Azul = não urgente (≤ 240 minutos).",
+            "Avalie sempre vias aéreas, respiração, circulação e consciência (ABC / xABCDE).",
+            "Discriminadores de risco guiam a cor da triagem."
+        ];
+        $("sideTip").textContent = tips[Math.floor(Math.random() * tips.length)];
+
+        updateStats();
+        startTimer();
+    }
+
+    function evaluateTriage(selectedPriority) {
+        if (triageAnswered) return;
+        triageAnswered = true;
+        stopTimer();
+
+        const c = shuffledTriage[currentIndex];
+        const isCorrect = selectedPriority === c.correctPriority;
+
+        document.querySelectorAll(".triage-btn").forEach(btn => {
+            btn.disabled = true;
+            const p = btn.dataset.priority;
+            if (p === c.correctPriority) btn.classList.add("ring-4", "ring-emerald-400/60");
+            else if (p === selectedPriority && !isCorrect) btn.classList.add("ring-4", "ring-red-400/60");
+            else btn.classList.add("opacity-50");
+        });
+
+        const priorityNames = {
+            vermelho: "Vermelho (Emergência – imediato)",
+            laranja: "Laranja (Muito urgente – ≤10 min)",
+            amarelo: "Amarelo (Urgente – ≤60 min)",
+            verde: "Verde (Pouco urgente – ≤120 min)",
+            azul: "Azul (Não urgente – ≤240 min)"
+        };
+
+        if (isCorrect) {
+            correctCount++;
+            streak++;
+            bestStreak = Math.max(bestStreak, streak);
+            showFeedback(true, "✅ Classificação correta!", [`Prioridade: ${priorityNames[c.correctPriority]}`, c.explanation]);
+        } else {
+            incorrectCount++;
+            streak = 0;
+            showFeedback(false, "❌ Classificação incorreta", [
+                `Você escolheu: ${priorityNames[selectedPriority]}`,
+                `Correto: ${priorityNames[c.correctPriority]}`,
+                c.explanation
+            ]);
+        }
+
+        history.unshift({ num: currentIndex + 1, correct: isCorrect, med: selectedPriority.toUpperCase(), cat: "Triagem" });
+        if (history.length > 12) history.pop();
+        renderHistory();
+        $("nextBtn").disabled = false;
+        updateStats();
+
+        setTimeout(() => {
+            $("explainTitle").textContent = isCorrect ? "✅ Triagem correta" : "📖 Explicação da triagem";
+            $("explainContent").innerHTML = `
+                <p class="text-slate-300 leading-relaxed mb-3">${c.explanation}</p>
+                <div class="p-3 rounded-xl bg-slate-800/60 mb-3">
+                    <p class="text-xs text-slate-400 uppercase mb-1">Prioridade correta</p>
+                    <p class="font-bold text-lg">${priorityNames[c.correctPriority]}</p>
+                </div>
+                <div class="text-sm text-slate-400">
+                    <p class="font-semibold text-slate-300 mb-1">Discriminadores:</p>
+                    <ul class="list-disc list-inside">${(c.discriminators || []).map(d => `<li>${d}</li>`).join("")}</ul>
+                </div>
+                <p class="text-xs text-slate-500 mt-4">Referência: Protocolo de Manchester / Acolhimento com Classificação de Risco (Ministério da Saúde)</p>
+            `;
+            $("explainModal").classList.remove("hidden");
+        }, 500);
+    }
+
+    function populateDoses(med) {
+        const sel = $("dose");
+        sel.innerHTML = '<option value="">Selecione a dose...</option>';
+        if (!med || !drugDatabase[med]) {
+            sel.disabled = true;
+            return;
+        }
+        const doses = new Set(drugDatabase[med].doses);
+        const c = shuffledCases[currentIndex];
+        if (c && c.correct && c.correct.medicine === med) doses.add(c.correct.dose);
+        (c?.alternatives || []).forEach(a => { if (a.medicine === med) doses.add(a.dose); });
+        populateSelect(sel, Array.from(doses), "Selecione a dose...");
+        sel.disabled = false;
+    }
+
+    function evaluate(timedOut = false) {
+        stopTimer();
+        const c = shuffledCases[currentIndex];
+        const user = {
+            medicine: $("medicine").value.trim(),
+            dose: $("dose").value.trim(),
+            route: $("route").value.trim(),
+            frequency: $("frequency").value.trim()
+        };
+
+        if (!timedOut && (!user.medicine || !user.dose || !user.route || !user.frequency)) {
+            showFeedback(false, "Preencha todos os campos da prescrição.", []);
+            $("prescribeBtn").disabled = false;
+            return;
+        }
+
+        let isCorrect = false;
+        let messages = [];
+        // timer removed
+
+        const matchMain = user.medicine.toLowerCase() === c.correct.medicine.toLowerCase() &&
+            user.dose.toLowerCase() === c.correct.dose.toLowerCase() &&
+            user.route.toLowerCase() === c.correct.route.toLowerCase() &&
+            user.frequency.toLowerCase() === c.correct.frequency.toLowerCase();
+
+        const matchAlt = (c.alternatives || []).some(a =>
+            a.medicine.toLowerCase() === user.medicine.toLowerCase() &&
+            a.dose.toLowerCase() === user.dose.toLowerCase() &&
+            a.route.toLowerCase() === user.route.toLowerCase() &&
+            a.frequency.toLowerCase() === user.frequency.toLowerCase()
+        );
+
+        if (matchMain || matchAlt) {
+            isCorrect = true;
+            messages.push(matchMain ? "✅ Prescrição principal correta!" : "✅ Alternativa aceita!");
+            messages.push(`📋 Resposta: ${c.correct.medicine} • ${c.correct.dose} • ${c.correct.route} • ${c.correct.frequency}`);
+        } else {
+            messages.push(`📋 Resposta correta: ${c.correct.medicine} • ${c.correct.dose} • ${c.correct.route} • ${c.correct.frequency}`);
+        }
+
+        (c.penalties || []).forEach(p => {
+            let triggered = true;
+            for (const k in p.trigger) {
+                if (!String(user[k] || "").toLowerCase().includes(String(p.trigger[k]).toLowerCase())) {
+                    triggered = false;
+                    break;
+                }
+            }
+            if (triggered) {
+                messages.push(`⚠️ ${p.message}`);
+                isCorrect = false;
+            }
+        });
+
+        // Soft reminder about safety checklist
+        const checked = document.querySelectorAll(".safety-check:checked").length;
+        if (checked < 5 && !timedOut) {
+            messages.push("💡 Lembrete: em prática real, sempre documente idade, peso, função renal/hepática, alergias, interações, gravidez e contraindicações.");
+        }
+
+        if (isCorrect) {
+            correctCount++;
+            streak++;
+            bestStreak = Math.max(bestStreak, streak);
+            showFeedback(true, c.feedback.correct, messages);
+        } else {
+            incorrectCount++;
+            streak = 0;
+            showFeedback(false, c.feedback.incorrect, messages);
+        }
+
+        history.unshift({ num: currentIndex + 1, correct: isCorrect, med: user.medicine || "—", cat: c.category });
+        if (history.length > 12) history.pop();
+        renderHistory();
+
+        $("prescribeBtn").disabled = true;
+        $("nextBtn").disabled = false;
+        $("hintBtn").disabled = true;
+        updateStats();
+        setTimeout(() => showExplanation(c, isCorrect), 600);
+    }
+
+    function showFeedback(ok, general, details) {
+        const box = $("feedbackBox");
+        box.classList.remove("hidden");
+        box.className = `rounded-2xl p-5 border fade-in ${ok ? "bg-emerald-950/40 border-emerald-700/50" : "bg-red-950/40 border-red-700/50"}`;
+        box.innerHTML = `
+            <p class="font-semibold mb-2 ${ok ? "text-emerald-300" : "text-red-300"}">${general}</p>
+            <ul class="text-sm space-y-1 text-slate-300">${details.map(d => `<li>${d}</li>`).join("")}</ul>
+        `;
+    }
+
+    function showExplanation(c, ok) {
+        $("explainTitle").textContent = ok ? "✅ Resposta correta" : "❌ Resposta incorreta — veja o esperado";
+        const alts = (c.alternatives || []).map(a =>
+            `<li class="font-mono text-slate-300">${a.medicine} • ${a.dose} • ${a.route} • ${a.frequency}</li>`
+        ).join("");
+        $("explainContent").innerHTML = `
+            <div class="p-4 rounded-xl ${ok ? "bg-emerald-950/50 border border-emerald-700/40" : "bg-red-950/40 border border-red-700/40"} mb-4">
+                <p class="text-xs uppercase tracking-wider mb-2 ${ok ? "text-emerald-400" : "text-red-400"}">Prescrição correta</p>
+                <p class="font-mono text-lg font-bold text-white">${c.correct.medicine}</p>
+                <p class="font-mono text-medical-300 mt-1">${c.correct.dose} • ${c.correct.route} • ${c.correct.frequency}</p>
+            </div>
+            ${alts ? `<div class="mb-3"><p class="text-xs text-slate-400 uppercase mb-1">Alternativas também aceitas</p><ul class="text-sm space-y-1">${alts}</ul></div>` : ""}
+            <p class="text-slate-300 leading-relaxed mb-3">${c.explanation || "Consulte as diretrizes da especialidade."}</p>
+            ${(c.refs || []).length ? `
+                <div class="mt-3 p-3 rounded-xl bg-slate-800/60">
+                    <p class="text-xs text-medical-400 uppercase mb-1 font-semibold">📚 Referências atualizadas</p>
+                    <ul class="text-sm text-slate-300 list-disc list-inside space-y-0.5">${c.refs.map(r => `<li>${r}</li>`).join("")}</ul>
+                </div>
+            ` : ""}
+            <p class="text-xs text-slate-500 mt-4">Checklist: idade · peso · função renal · função hepática · alergias · interações · gravidez · indicação · contraindicações.</p>
+        `;
+        $("explainModal").classList.remove("hidden");
+    }
+
+    function renderHistory() {
+        const list = $("historyList");
+        if (!history.length) {
+            list.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhum caso respondido ainda</p>';
+            return;
+        }
+        list.innerHTML = history.map(h => `
+            <div class="flex items-center justify-between py-1.5 px-2 rounded-lg ${h.correct ? "bg-emerald-900/20" : "bg-red-900/20"}">
+                <span class="text-slate-300">#${h.num} • ${h.cat}</span>
+                <span class="${h.correct ? "text-emerald-400" : "text-red-400"} font-medium">${h.correct ? "✓" : "✗"} ${h.med.substring(0, 18)}</span>
+            </div>
+        `).join("");
+    }
+
+    function endGame() {
+        stopTimer();
+        $("endCorrect").textContent = correctCount;
+        $("endIncorrect").textContent = incorrectCount;
+        const total = correctCount + incorrectCount;
+        $("endAccuracy").textContent = total ? Math.round((correctCount / total) * 100) + "%" : "0%";
+        $("endStreak").textContent = bestStreak;
+        $("endModal").classList.remove("hidden");
+    }
+
+    function initGame() {
+        shuffledCases = shuffle(cases);
+        shuffledTriage = shuffle(triageCases);
+        currentIndex = 0;
+        correctCount = 0;
+        incorrectCount = 0;
+        streak = 0;
+        bestStreak = 0;
+        history = [];
+        triageAnswered = false;
+        $("endModal").classList.add("hidden");
+        $("explainModal").classList.add("hidden");
+        if (mode === "trauma") {
+            iniciarTraumaCaso();
+        } else {
+            loadCase(0);
+        }
+        renderHistory();
+    }
+
+    // ===================== TRAUMA MODULE (ATLS 11) =====================
+    function gerarTraumaCaso() {
+        const trauma = traumaBase.traumas[Math.floor(Math.random() * traumaBase.traumas.length)];
+        const queixas = trauma.queixas.slice(0, Math.floor(Math.random() * 2) + 2);
+        return {
+            id: String(Math.floor(Math.random() * 900) + 100),
+            trauma: trauma.nome,
+            historico: traumaBase.historicos[Math.floor(Math.random() * traumaBase.historicos.length)],
+            sinaisVitais: trauma.sinaisVitais,
+            queixas,
+            examesDisponiveis: Object.keys(trauma.exames).map(nome => ({ nome, resultado: trauma.exames[nome] })),
+            intervencoesCorretas: trauma.intervencoesCorretas,
+            intervencoesIncorretas: trauma.intervencoesIncorretas,
+            racionalCorretas: trauma.racionalCorretas,
+            referencia: trauma.referencia
+        };
+    }
+
+    function iniciarTraumaCaso() {
+        if (traumaTimerId) clearInterval(traumaTimerId);
+        traumaCaso = gerarTraumaCaso();
+        traumaEstabilidade = 70;
+        traumaTempo = 180;
+        traumaPontuacao = 0;
+        traumaExames = [];
+        traumaIntervencoes = [];
+        traumaFinalizado = false;
+        traumaHintsUsed = 0;
+        traumaActionLog = [];
+        if ($("traumaFeedback")) $("traumaFeedback").innerHTML = "";
+        if ($("traumaGameOver")) $("traumaGameOver").classList.add("hidden");
+        if ($("traumaHintBtn")) $("traumaHintBtn").disabled = false;
+        atualizarTraumaSessionStats();
+        atualizarTraumaUI();
+    }
+
+    function atualizarTraumaSessionStats() {
+        if ($("traumaStatWin")) $("traumaStatWin").textContent = traumaSession.wins;
+        if ($("traumaStatLose")) $("traumaStatLose").textContent = traumaSession.losses;
+        if ($("traumaStatOk")) $("traumaStatOk").textContent = traumaSession.okActions;
+        if ($("traumaStatBad")) $("traumaStatBad").textContent = traumaSession.badActions;
+    }
+
+    function traumaDica() {
+        if (!traumaCaso || traumaFinalizado) return;
+        if (traumaHintsUsed === 0) {
+            adicionarTraumaFeedback("💡 Dica: Lembre o xABCDE — controle hemorragia exsanguinante externa antes de via aérea quando aplicável (ATLS 11).", "info");
+            traumaHintsUsed = 1;
+        } else if (traumaHintsUsed === 1) {
+            const keys = traumaCaso.intervencoesCorretas || [];
+            adicionarTraumaFeedback("💡 Dica: intervenções-chave deste caso envolvem: " + keys.map(k => k.split(" ")[0]).join(", ") + "…", "info");
+            traumaHintsUsed = 2;
+        } else {
+            adicionarTraumaFeedback("💡 Sem mais dicas. Priorize as ameaças à vida (xABCDE) e Damage Control Resuscitation.", "warning");
+            if ($("traumaHintBtn")) $("traumaHintBtn").disabled = true;
+        }
+    }
+
+    function traumaPular() {
+        if (!traumaCaso) return;
+        traumaSession.losses++;
+        traumaSession.history.push({ trauma: traumaCaso.trauma, result: "pulado", score: traumaPontuacao });
+        adicionarTraumaFeedback("⏭ Caso pulado. Carregando próximo…", "warning");
+        atualizarTraumaSessionStats();
+        setTimeout(iniciarTraumaCaso, 600);
+    }
+
+    function traumaFinalizarManual() {
+        if (!traumaCaso || traumaFinalizado) return;
+        // Evaluate: win if stability high enough AND all key interventions done, else loss with teaching
+        const keys = traumaCaso.intervencoesCorretas || [];
+        const allDone = keys.every(i => traumaIntervencoes.includes(i));
+        if (traumaEstabilidade >= 80 && allDone) {
+            finalizarTrauma(`Caso finalizado — paciente estabilizado! Pontuação: ${traumaPontuacao}`, "venceu");
+        } else if (traumaEstabilidade <= 0) {
+            finalizarTrauma("Caso finalizado — paciente instável/falecido.", "perdeu");
+        } else {
+            // Partial: show teaching as loss/partial
+            const missing = keys.filter(i => !traumaIntervencoes.includes(i));
+            let msg = `Caso finalizado. Estabilidade: ${traumaEstabilidade}%. `;
+            if (missing.length) msg += `Intervenções faltando: ${missing.join("; ")}.`;
+            else msg += "Intervenções-chave feitas, mas estabilidade ainda baixa.";
+            finalizarTrauma(msg, traumaEstabilidade >= 60 && allDone ? "venceu" : "perdeu");
+        }
+    }
+
+    function mostrarTraumaRelatorio() {
+        const h = traumaSession.history;
+        const total = traumaSession.wins + traumaSession.losses;
+        const acc = total ? Math.round(traumaSession.wins / total * 100) : 0;
+        let histHtml = h.length ? h.slice().reverse().map((x, i) =>
+            `<div class="flex justify-between py-1.5 px-2 rounded-lg ${x.result === "venceu" ? "bg-emerald-900/30" : "bg-red-900/20"}">
+                <span class="text-slate-300">${x.trauma}</span>
+                <span class="${x.result === "venceu" ? "text-emerald-400" : "text-red-400"}">${x.result} (${x.score} pts)</span>
+            </div>`
+        ).join("") : '<p class="text-slate-500 text-center">Nenhum caso finalizado ainda nesta sessão.</p>';
+        $("traumaReportContent").innerHTML = `
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Casos estabilizados</p><p class="text-2xl font-bold text-emerald-400">${traumaSession.wins}</p></div>
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Falhas / pulados</p><p class="text-2xl font-bold text-red-400">${traumaSession.losses}</p></div>
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Ações corretas</p><p class="text-2xl font-bold text-medical-400">${traumaSession.okActions}</p></div>
+                <div class="bg-slate-800/60 rounded-xl p-3"><p class="text-xs text-slate-400">Ações incorretas</p><p class="text-2xl font-bold text-amber-400">${traumaSession.badActions}</p></div>
+            </div>
+            <p class="text-center text-slate-400">Taxa de sucesso: <strong class="text-white">${acc}%</strong> (${total} casos)</p>
+            <div>
+                <p class="text-xs text-slate-400 uppercase mb-2">Histórico da sessão</p>
+                <div class="space-y-1 max-h-48 overflow-y-auto">${histHtml}</div>
+            </div>
+            <p class="text-xs text-slate-500">Referência: ATLS 11 (ACS) — xABCDE • Damage Control Resuscitation • AHA 2025 quando aplicável</p>
+        `;
+        $("traumaReportModal").classList.remove("hidden");
+    }
+
+
+    function atualizarTraumaUI() {
+        if (!traumaCaso) return;
+        $("traumaPacienteId").textContent = traumaCaso.id;
+        $("traumaHistorico").textContent = traumaCaso.historico;
+        $("traumaQueixas").textContent = traumaCaso.queixas.join(", ");
+        $("traumaNome").textContent = traumaCaso.trauma;
+        $("traumaSinais").innerHTML = `
+            <li><strong>FC:</strong> ${traumaCaso.sinaisVitais.fc}</li>
+            <li><strong>PA:</strong> ${traumaCaso.sinaisVitais.pa}</li>
+            <li><strong>FR:</strong> ${traumaCaso.sinaisVitais.fr}</li>
+            <li><strong>Sat O2:</strong> ${traumaCaso.sinaisVitais.sat}</li>
+            <li><strong>GCS:</strong> ${traumaCaso.sinaisVitais.gcs}</li>
+        `;
+        $("traumaStabilityBar").style.width = traumaEstabilidade + "%";
+        if (traumaEstabilidade > 70) $("traumaStabilityBar").className = "h-full rounded-full bg-blue-500 stability-bar";
+        else if (traumaEstabilidade > 40) $("traumaStabilityBar").className = "h-full rounded-full bg-green-500 stability-bar";
+        else if (traumaEstabilidade > 10) $("traumaStabilityBar").className = "h-full rounded-full bg-yellow-500 stability-bar";
+        else $("traumaStabilityBar").className = "h-full rounded-full bg-red-600 stability-bar";
+        $("traumaStabilityVal").textContent = traumaEstabilidade;
+
+        // Timer removido — não acessar elemento inexistente
+        if ($("traumaScore")) $("traumaScore").textContent = traumaPontuacao;
+
+        $("traumaExamesList").innerHTML = traumaCaso.examesDisponiveis.map(ex => `
+            <button class="block w-full text-left p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition text-sm ${traumaExames.includes(ex.nome) || traumaExames.length >= 2 || traumaFinalizado ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${traumaExames.includes(ex.nome) || traumaExames.length >= 2 || traumaFinalizado ? 'disabled' : ''}
+                data-acao="${ex.nome}" onclick="window.executarTraumaAcao(this.getAttribute('data-acao'))">
+                Solicitar <strong>${ex.nome}</strong>
+            </button>
+        `).join("");
+
+        $("traumaIntervencoesList").innerHTML = traumaBase.intervencoes.filter(i => i.tipo === "intervencao").map(int => `
+            <button class="block w-full text-left p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition text-sm ${traumaFinalizado ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${traumaFinalizado ? 'disabled' : ''}
+                data-acao="${int.nome}" onclick="window.executarTraumaAcao(this.getAttribute('data-acao'))">
+                <strong>${int.nome}</strong>
+            </button>
+        `).join("");
+    }
+
+    window.executarTraumaAcao = function(acaoNome) {
+        if (traumaFinalizado) return;
+        const acao = traumaBase.intervencoes.find(i => i.nome === acaoNome);
+        if (!acao) return;
+
+        if (acao.tipo === "exame") {
+            if (traumaExames.length >= 2) {
+                adicionarTraumaFeedback("Máximo de 2 exames já solicitados.", "info");
+                return;
+            }
+            if (traumaExames.includes(acaoNome)) return;
+            const exame = traumaCaso.examesDisponiveis.find(e => e.nome === acaoNome);
+            if (exame) {
+                traumaExames.push(acaoNome);
+                traumaPontuacao += 10;
+                adicionarTraumaFeedback(`<strong>Exame - ${acaoNome}:</strong> ${exame.resultado}`, "success");
+            } else {
+                adicionarTraumaFeedback(`Exame "${acaoNome}" não aplicável neste caso.`, "warning");
+                traumaEstabilidade = Math.max(0, traumaEstabilidade - 5);
+            }
+        } else {
+            if (traumaIntervencoes.includes(acaoNome)) {
+                adicionarTraumaFeedback(`Intervenção "${acaoNome}" já realizada.`, "info");
+                return;
+            }
+            traumaIntervencoes.push(acaoNome);
+            if (traumaCaso.intervencoesCorretas.includes(acaoNome)) {
+                traumaEstabilidade = Math.min(100, traumaEstabilidade + 20);
+                traumaPontuacao += 30;
+                traumaSession.okActions++;
+                traumaActionLog.push({ nome: acaoNome, ok: true });
+                adicionarTraumaFeedback(`<strong>Ação correta:</strong> ${acaoNome} — ${traumaCaso.racionalCorretas[acaoNome]}`, "success");
+            } else {
+                traumaEstabilidade = Math.max(0, traumaEstabilidade - 20);
+                const exp = traumaCaso.intervencoesIncorretas[acaoNome] || "Não indicado ou pode agravar o quadro.";
+                traumaPontuacao = Math.max(0, traumaPontuacao - 15);
+                traumaSession.badActions++;
+                traumaActionLog.push({ nome: acaoNome, ok: false });
+                adicionarTraumaFeedback(`<strong>Ação incorreta:</strong> ${acaoNome} — ${exp}`, "error");
+            }
+            atualizarTraumaSessionStats();
+        }
+        // tempo não reduz mais
+        verificarTraumaFim();
+        atualizarTraumaUI();
+    };
+
+    function adicionarTraumaFeedback(msg, tipo) {
+        const colors = { success: "text-green-300", error: "text-red-400", warning: "text-yellow-300", info: "text-blue-300" };
+        $("traumaFeedback").innerHTML += `<p class="${colors[tipo] || "text-slate-300"} mb-1">${msg}</p>`;
+        $("traumaFeedback").scrollTop = $("traumaFeedback").scrollHeight;
+    }
+
+    function verificarTraumaFim() {
+        if (traumaEstabilidade <= 0) {
+            finalizarTrauma("Paciente faleceu. As ações não foram suficientes para estabilizá-lo.", "perdeu");
+        } else if (traumaEstabilidade >= 80 && traumaCaso.intervencoesCorretas.every(i => traumaIntervencoes.includes(i))) {
+            const bonus = Math.floor(traumaTempo / 10);
+            traumaPontuacao += bonus;
+            finalizarTrauma(`Paciente estabilizado com sucesso! Pontuação: ${traumaPontuacao} (bônus tempo: +${bonus})`, "venceu");
+        }
+    }
+
+    function finalizarTrauma(mensagem, resultado) {
+        traumaFinalizado = true;
+        if (traumaTimerId) clearInterval(traumaTimerId);
+        if (resultado === "venceu") traumaSession.wins++;
+        else traumaSession.losses++;
+        traumaSession.history.push({
+            trauma: traumaCaso ? traumaCaso.trauma : "—",
+            result: resultado,
+            score: traumaPontuacao
+        });
+        atualizarTraumaSessionStats();
+        $("traumaGameOver").classList.remove("hidden");
+        $("traumaGameOverMsg").textContent = mensagem;
+        let detalhes = `<p><strong>Trauma:</strong> ${traumaCaso.trauma}</p>`;
+        if (resultado === "venceu") detalhes += `<p class="text-green-300 font-bold">Parabéns! Você estabilizou o paciente (ATLS 11 / xABCDE).</p>`;
+        else detalhes += `<p class="text-red-300 font-bold">Desfecho: não foi possível estabilizar.</p>`;
+        detalhes += `<p class="mt-3"><strong>Intervenções-chave:</strong></p><ul class="list-disc list-inside ml-4">`;
+        traumaCaso.intervencoesCorretas.forEach(int => {
+            detalhes += `<li>${int} — <span class="text-slate-400">${traumaCaso.racionalCorretas[int]}</span></li>`;
+        });
+        detalhes += `</ul><p class="mt-3"><strong>Referência:</strong> <em>${traumaCaso.referencia}</em></p>`;
+        detalhes += `<p class="mt-2 text-xs text-slate-400">ATLS 11: priorize x (hemorragia externa exsanguinante) quando presente, antes de A-B-C-D-E. Damage Control Resuscitation: sangue precoce, limitar cristaloides, hipotensão permissiva quando indicada.</p>`;
+        $("traumaGameOverDetails").innerHTML = detalhes;
+        atualizarTraumaUI();
+    }
+
+    // ===================== REFERENCES =====================
+    const refsHTML = `
+        <div>
+            <h3 class="font-bold text-medical-300 mb-2">🔄 Atualizações 2025/2026 (prioritárias)</h3>
+            <ul class="list-disc list-inside space-y-1 text-slate-300">
+                <li><strong>AHA 2025 Guidelines for CPR and ECC</strong> — substituem a edição completa de 2020 (publicadas out/2025 em Circulation). Cadeia de sobrevivência unificada; atualizações em engasgo, naloxona em overdose de opioides, compressões em lactentes, controle de temperatura pós-PCR (≥36 h se não responsivo).</li>
+                <li><strong>ATLS 11ª edição (ACS, 2025)</strong> — xABCDE: controle de hemorragia externa exsanguinante (x) antes de via aérea quando aplicável. Damage Control Resuscitation; limitar cristaloides; sangue precoce.</li>
+                <li><strong>ADA Standards of Care in Diabetes—2026</strong> — atualização anual (dez/2025). CGM mais amplo; GLP-1 RA e SGLT2i considerados precocemente; metas individualizadas; tecnologia sem barreiras desnecessárias.</li>
+                <li><strong>ABA Clinical Practice Guidelines on Burn Shock Resuscitation (2024/atual)</strong> — iniciar reanimação com <strong>2 mL/kg/%TBSA</strong> (adultos) em vez de Parkland 4 mL/kg/%TBSA, para reduzir sobrecarga hídrica e edema. Titular por débito urinário (~0,5 mL/kg/h). Considerar albumina em queimaduras extensas.</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-bold text-medical-300 mb-2">📚 Livros-texto clássicos</h3>
+            <ul class="list-disc list-inside space-y-1 text-slate-300">
+                <li>Goodman & Gilman – As Bases Farmacológicas da Terapêutica</li>
+                <li>Katzung – Farmacologia Básica e Clínica</li>
+                <li>Rang & Dale – Farmacologia</li>
+                <li>Harrison’s Principles of Internal Medicine</li>
+                <li>Goldman-Cecil Medicine</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-bold text-medical-300 mb-2">🇧🇷 Diretrizes e Protocolos Brasileiros</h3>
+            <ul class="list-disc list-inside space-y-1 text-slate-300">
+                <li>PCDT – Ministério da Saúde</li>
+                <li>Acolhimento com Classificação de Risco – MS (HumanizaSUS)</li>
+                <li>Protocolo de Manchester de Classificação de Risco</li>
+                <li>Diretrizes de RCP e ACE – SBC (alinhadas a AHA/ILCOR)</li>
+                <li>ATLS 11 – ACS (referência internacional adotada)</li>
+                <li>Diretrizes SBC, SBD, SBPT, SBI, SBEM, ABN, SBP</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-bold text-medical-300 mb-2">🌍 Diretrizes Internacionais</h3>
+            <ul class="list-disc list-inside space-y-1 text-slate-300">
+                <li>ADA Standards of Care in Diabetes—2026</li>
+                <li>GOLD Report (DPOC) / GINA Report (Asma)</li>
+                <li>IDSA Guidelines</li>
+                <li>ACC/AHA Guidelines</li>
+                <li>AHA 2025 CPR & ECC (BLS, ALS, Post-Cardiac Arrest Care)</li>
+                <li>ILCOR CoSTR</li>
+                <li>Surviving Sepsis Campaign (Hour-1 Bundle)</li>
+                <li>ABA Burn Shock Resuscitation Guidelines</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-bold text-medical-300 mb-2">✅ Checklist de segurança da prescrição</h3>
+            <p class="text-slate-300 text-sm">Toda prescrição deve considerar de forma sistemática:</p>
+            <ul class="list-disc list-inside space-y-1 text-slate-300 mt-1">
+                <li>Idade</li>
+                <li>Peso (especialmente pediatria e doses por kg)</li>
+                <li>Função renal (TFG / creatinina)</li>
+                <li>Função hepática</li>
+                <li>Alergias e reações prévias</li>
+                <li>Interações medicamentosas</li>
+                <li>Gravidez e lactação</li>
+                <li>Indicação clara e baseada em evidência</li>
+                <li>Contraindicações absolutas e relativas</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-bold text-medical-300 mb-2">⚠️ Aviso importante</h3>
+            <p class="text-slate-400 text-sm">
+                Este sistema é uma ferramenta educacional. As prescrições, doses e condutas seguem padrões comuns da prática clínica e diretrizes de sociedades de especialidade atualizadas até 2025/2026, mas <strong>não substituem</strong> o julgamento clínico individualizado, a consulta a bulas, a verificação de alergias, interações, função renal/hepática e as atualizações mais recentes das fontes oficiais. Sempre confirme em fontes primárias antes de prescrever ou intervir.
+            </p>
+        </div>
+    `;
+
+    // ===================== EVENTS =====================
+    document.addEventListener("DOMContentLoaded", () => {
+        let progress = 0;
+        const splashInt = setInterval(() => {
+            progress += 8 + Math.random() * 12;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(splashInt);
+                setTimeout(() => {
+                    $("splashScreen").style.opacity = "0";
+                    setTimeout(() => {
+                        $("splashScreen").style.display = "none";
+                        $("app").classList.remove("hidden");
+                        initGame();
+                    }, 500);
+                }, 300);
+            }
+            $("splashProgress").style.width = progress + "%";
+        }, 120);
+
+        $("medicine").addEventListener("change", onMedicineChange);
+        $("prescribeBtn").addEventListener("click", () => evaluate(false));
+        $("nextBtn").addEventListener("click", () => {
+            currentIndex++;
+            loadCase(currentIndex);
+        });
+        $("restartBtn").addEventListener("click", initGame);
+        $("skipBtn").addEventListener("click", () => {
+            stopTimer();
+            incorrectCount++;
+            streak = 0;
+            const cat = mode === "triagem" ? (shuffledTriage[currentIndex]?.category || "Triagem") : (shuffledCases[currentIndex]?.category || "—");
+            history.unshift({ num: currentIndex + 1, correct: false, med: "Pulado", cat });
+            renderHistory();
+            currentIndex++;
+            loadCase(currentIndex);
+        });
+        $("hintBtn").addEventListener("click", () => {
+            if (mode === "triagem" || mode === "trauma") return;
+            const c = shuffledCases[currentIndex];
+            if (hintsUsed === 0) {
+                alert(`💡 Dica: A categoria é ${c.category}. Pense na primeira linha de tratamento para esta condição.`);
+                hintsUsed = 1;
+            } else if (hintsUsed === 1) {
+                alert(`💡 Dica mais específica: O medicamento principal começa com a letra "${c.correct.medicine[0]}".`);
+                hintsUsed = 2;
+                $("hintBtn").disabled = true;
+            }
+        });
+
+        // Mode buttons
+        $("modePrescricao").addEventListener("click", () => {
+            mode = "prescricao";
+            setUIMode("prescricao");
+            currentIndex = 0; correctCount = 0; incorrectCount = 0; streak = 0; history = [];
+            loadCase(0); renderHistory();
+        });
+        $("modeTriagem").addEventListener("click", () => {
+            mode = "triagem";
+            setUIMode("triagem");
+            currentIndex = 0; correctCount = 0; incorrectCount = 0; streak = 0; history = [];
+            shuffledTriage = shuffle(triageCases);
+            loadCase(0); renderHistory();
+        });
+        $("modeTrauma").addEventListener("click", () => {
+            mode = "trauma";
+            setUIMode("trauma");
+        });
+
+
+        document.querySelectorAll(".triage-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                if (mode !== "triagem" || triageAnswered) return;
+                evaluateTriage(btn.dataset.priority);
+            });
+        });
+
+        $("refsBtn").addEventListener("click", () => {
+            $("refsContent").innerHTML = refsHTML;
+            $("refsModal").classList.remove("hidden");
+        });
+        $("closeRefs").addEventListener("click", () => $("refsModal").classList.add("hidden"));
+        $("refsModal").addEventListener("click", e => { if (e.target === $("refsModal")) $("refsModal").classList.add("hidden"); });
+
+        $("closeExplain").addEventListener("click", () => $("explainModal").classList.add("hidden"));
+        $("closeExplainBtn").addEventListener("click", () => $("explainModal").classList.add("hidden"));
+        $("playAgainBtn").addEventListener("click", initGame);
+        $("traumaNewCase").addEventListener("click", iniciarTraumaCaso);
+        const th = (id, fn) => { const el = $(id); if (el) el.addEventListener("click", fn); };
+        th("traumaHintBtn", traumaDica);
+        th("traumaSkipBtn", traumaPular);
+        th("traumaFinishBtn", traumaFinalizarManual);
+        th("traumaRestartBtn", () => { adicionarTraumaFeedback("↺ Reiniciando o mesmo tipo de caso…", "info"); iniciarTraumaCaso(); });
+        th("traumaReportBtn", mostrarTraumaRelatorio);
+        th("closeTraumaReport", () => $("traumaReportModal").classList.add("hidden"));
+        th("closeTraumaReportBtn", () => $("traumaReportModal").classList.add("hidden"));
+        th("traumaReportNewCase", () => { $("traumaReportModal").classList.add("hidden"); iniciarTraumaCaso(); });
+        if ($("traumaReportModal")) $("traumaReportModal").addEventListener("click", e => { if (e.target.id === "traumaReportModal") $("traumaReportModal").classList.add("hidden"); });
+    });
+    </script>
+</body>
+</html>

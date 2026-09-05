@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desafio Médico — PenseQuiz Pro</title>
+<style>
+:root{
+  --bg:#eef3f8; --card:#fff; --text:#17202a; --muted:#68798a;
+  --primary:#087fce; --primary-dark:#063b67; --success:#159957; --danger:#d93025;
+  --border:#dce5ec; --case-bg:#f6f9fc; --pill:#f0f5f9; --shadow:0 8px 28px #00000012;
+}
+body.dark{
+  --bg:#0f172a; --card:#1e293b; --text:#e2e8f0; --muted:#94a3b8;
+  --primary:#38bdf8; --primary-dark:#0ea5e9; --success:#22c55e; --danger:#ef4444;
+  --border:#334155; --case-bg:#1e293b; --pill:#334155; --shadow:0 8px 28px #00000040;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s}
+header{background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;padding:18px 16px;text-align:center;position:relative}
+header h1{margin:0;font-size:24px}
+header p{margin:6px 0 0;opacity:.9;font-size:14px}
+.theme-btn{position:absolute;right:14px;top:14px;background:rgba(255,255,255,.2);border:0;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:18px}
+.wrap{max-width:980px;margin:auto;padding:16px}
+.screen{display:none}.screen.active{display:block;animation:fadeIn .35s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border-radius:18px;padding:20px;margin:12px 0;box-shadow:var(--shadow)}
+.hero{text-align:center;padding:32px 18px}
+.hero .logo{font-size:56px;line-height:1}
+.hero h2{font-size:26px;margin:10px 0 6px}
+.hero p{color:var(--muted);margin:0 0 18px}
+.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;margin:4px;font-size:14px;transition:transform .15s,opacity .15s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:var(--primary);color:#fff}
+.secondary{background:var(--pill);color:var(--text)}
+.success{background:var(--success);color:#fff}
+.danger{background:var(--danger);color:#fff}
+.outline{background:transparent;border:2px solid var(--border);color:var(--text)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--card);border-radius:14px;padding:12px;text-align:center;box-shadow:var(--shadow)}
+.stat small{display:block;color:var(--muted);font-size:11px}
+.stat b{font-size:20px}
+.progress{height:10px;background:var(--border);border-radius:20px;overflow:hidden;margin:12px 0}
+.bar{height:100%;background:var(--primary);width:0;transition:.35s}
+.badge{display:inline-block;background:#e7f5fd;color:#07699f;padding:5px 10px;border-radius:30px;font-size:11px;font-weight:800}
+body.dark .badge{background:#0c4a6e;color:#7dd3fc}
+.case{background:var(--case-bg);border-left:5px solid var(--primary);padding:14px;border-radius:12px;line-height:1.6;margin:12px 0;font-size:15px}
+.question{font-size:18px;font-weight:800;margin:16px 0 12px}
+.options{display:grid;gap:10px}
+.option{border:2px solid var(--border);background:var(--card);padding:13px;border-radius:12px;text-align:left;font-size:14px;cursor:pointer;transition:border-color .2s,background .2s}
+.option:hover:not(:disabled){border-color:var(--primary)}
+.correct{background:#e2f7ea!important;border-color:var(--success)!important}
+.wrong{background:#ffe7e5!important;border-color:var(--danger)!important}
+body.dark .correct{background:#14532d!important}
+body.dark .wrong{background:#7f1d1d!important}
+.feedback{display:none;margin-top:14px;padding:14px;border-radius:12px;line-height:1.55;font-size:14px}
+.feedback.show{display:block}
+.fbok{background:#e7f8ee;border-left:5px solid var(--success)}
+.fbno{background:#fff0ee;border-left:5px solid var(--danger)}
+body.dark .fbok{background:#14532d}
+body.dark .fbno{background:#7f1d1d}
+.pillbox{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+.pill{background:var(--pill);padding:6px 10px;border-radius:20px;font-size:12px}
+.triad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tri{background:var(--case-bg);padding:11px;border-radius:10px;font-size:13px}
+.tri b{display:block;color:var(--primary);margin-bottom:4px}
+.flashfront{min-height:160px;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.answer{display:none;background:#eefaf3;border-left:5px solid var(--success);padding:14px;border-radius:12px;line-height:1.55;margin-top:12px}
+body.dark .answer{background:#14532d}
+.result{text-align:center}
+.score{font-size:52px;font-weight:900;color:var(--primary)}
+.ref{font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:12px;padding-top:10px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:22px}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.mode-card{background:var(--case-bg);border:2px solid var(--border);border-radius:14px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s}
+.mode-card:hover,.mode-card.selected{border-color:var(--primary)}
+.mode-card h4{margin:0 0 4px;font-size:15px}
+.mode-card p{margin:0;font-size:12px;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;justify-content:center}
+.filter-btn{padding:7px 12px;border-radius:20px;border:2px solid var(--border);background:var(--card);font-size:12px;font-weight:600;cursor:pointer}
+.filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.timer-bar{height:6px;background:var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.timer-fill{height:100%;background:var(--success);width:100%;transition:width 1s linear}
+.timer-fill.urgent{background:var(--danger)}
+.highscore{font-size:13px;color:var(--muted);margin-top:8px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.stats-row .stat b{font-size:22px}
+.review-item{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--border);font-size:14px}
+.review-item:last-child{border:0}
+.hint-btn{margin-top:8px}
+.kbd{display:inline-block;background:var(--pill);padding:2px 6px;border-radius:4px;font-size:11px;font-family:monospace}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;z-index:99;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.confetti{position:fixed;pointer-events:none;z-index:100}
+/* Fisiopatologia detalhada */
+.physio-block{background:var(--case-bg);border-radius:12px;padding:14px;margin:10px 0;border-left:4px solid var(--primary)}
+.physio-block h4{margin:0 0 8px;color:var(--primary);font-size:14px}
+.physio-block p,.physio-block ul{margin:0;font-size:13.5px;line-height:1.55}
+.physio-block ul{padding-left:18px}
+.physio-step{display:flex;gap:10px;margin:8px 0;align-items:flex-start}
+.physio-num{background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.explore-list{display:grid;gap:10px}
+.explore-item{background:var(--case-bg);border:2px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:border-color .2s}
+.explore-item:hover{border-color:var(--primary)}
+.explore-item h4{margin:0 0 4px;font-size:15px}
+.explore-item p{margin:0;font-size:12px;color:var(--muted)}
+.deep-content{font-size:14px;line-height:1.65}
+.deep-content h3{margin:18px 0 8px;font-size:16px;color:var(--primary)}
+.deep-content h4{margin:14px 0 6px;font-size:14px}
+@media(max-width:700px){
+  .grid,.grid3,.stats-row{grid-template-columns:repeat(2,1fr)}
+  .triad{grid-template-columns:1fr}
+  .mode-grid{grid-template-columns:1fr}
+  .wrap{padding:10px}
+  .card{padding:16px}
+  header h1{font-size:20px}
+}
+</style>
+</head>
+<body>
+<header>
+  <button class="theme-btn" onclick="toggleTheme()" title="Alternar tema">🌓</button>
+  <h1>🩺 Desafio Médico Pro</h1>
+  <p>Patologia • Fisiopatologia • Pistas-chave • Raciocínio clínico</p>
+</header>
+
+<main class="wrap">
+
+<!-- HOME -->
+<section id="home" class="screen active">
+  <div class="card hero">
+    <div class="logo">🧠🩺</div>
+    <h2>Desafio Médico Pro</h2>
+    <p>Reconheça padrões clínicos, entenda a fisiopatologia em profundidade e fixe diagnóstico + conduta.</p>
+    <div class="highscore" id="highscore">🏆 Recorde: —</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Escolha o modo</h3>
+    <div class="mode-grid">
+      <div class="mode-card selected" data-mode="classic" onclick="selectMode(this)">
+        <h4>🚀 Clássico</h4>
+        <p>8–12 questões • 3 vidas • Combo</p>
+      </div>
+      <div class="mode-card" data-mode="timed" onclick="selectMode(this)">
+        <h4>⏱️ Contra o tempo</h4>
+        <p>60s por questão • +bônus de velocidade</p>
+      </div>
+      <div class="mode-card" data-mode="survival" onclick="selectMode(this)">
+        <h4>💀 Sobrevivência</h4>
+        <p>1 vida • até errar</p>
+      </div>
+      <div class="mode-card" data-mode="practice" onclick="selectMode(this)">
+        <h4>📖 Prática</h4>
+        <p>Sem vidas • veja todas as respostas</p>
+      </div>
+    </div>
+
+    <h4 style="margin:18px 0 8px">Filtrar por especialidade</h4>
+    <div class="filters" id="filters"></div>
+
+    <div style="text-align:center;margin-top:18px">
+      <button class="btn primary" onclick="startGame()">Começar Desafio</button>
+      <button class="btn secondary" onclick="startFlash()">📚 Flashcards</button>
+      <button class="btn secondary" onclick="startExplore()">🔬 Fisiopatologia Detalhada</button>
+      <button class="btn outline" onclick="showStats()">📊 Estatísticas</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🔑 Como funciona</h3>
+    <p><b>Caso clínico → Pergunta de mecanismo → Feedback com pistas + tríade + fisiopatologia aprofundada + conduta.</b></p>
+    <p style="font-size:13px;color:var(--muted)">Atalhos: <span class="kbd">1-4</span> responder • <span class="kbd">Enter</span> / <span class="kbd">N</span> próxima • <span class="kbd">H</span> dica • <span class="kbd">Esc</span> menu</p>
+  </div>
+</section>
+
+<!-- GAME -->
+<section id="game" class="screen">
+  <div class="grid">
+    <div class="stat"><small>Questão</small><b id="qn">1/8</b></div>
+    <div class="stat"><small>Pontos</small><b id="pts">0</b></div>
+    <div class="stat"><small>Vidas</small><b id="lives">❤️❤️❤️</b></div>
+    <div class="stat"><small>Combo</small><b id="combo">0🔥</b></div>
+  </div>
+  <div class="timer-bar" id="timerBar" style="display:none"><div class="timer-fill" id="timerFill"></div></div>
+  <div class="progress"><div id="bar" class="bar"></div></div>
+
+  <div class="card">
+    <span id="cat" class="badge"></span>
+    <h2 id="title" style="margin:8px 0;font-size:20px"></h2>
+    <div id="case" class="case"></div>
+    <h3 class="question" id="question"></h3>
+    <div id="options" class="options"></div>
+    <button id="hintBtn" class="btn secondary hint-btn" style="display:none" onclick="useHint()">💡 Dica (−5 pts)</button>
+    <div id="feedback" class="feedback">
+      <h3 id="fbtitle"></h3>
+      <div id="fbtext"></div>
+    </div>
+    <div style="margin-top:12px">
+      <button id="next" class="btn primary" style="display:none" onclick="nextQ()">Próxima →</button>
+      <button class="btn outline" onclick="confirmQuit()">🏠 Menu</button>
+    </div>
+  </div>
+</section>
+
+<!-- FLASH -->
+<section id="flash" class="screen">
+  <div class="card flashfront">
+    <span class="badge">🔑 FLASHCARD</span>
+    <h2 id="ftitle"></h2>
+    <p id="fquestion"></p>
+    <button class="btn primary" id="revealBtn" onclick="reveal()">👁️ Mostrar resposta</button>
+  </div>
+  <div id="fanswer" class="answer"></div>
+  <div class="card" style="text-align:center">
+    <button class="btn secondary" onclick="prevFlash()">← Anterior</button>
+    <button class="btn secondary" onclick="nextFlash()">Próximo →</button>
+    <button class="btn outline" onclick="home()">🏠 Menu</button>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px" id="fcount"></p>
+  </div>
+</section>
+
+<!-- EXPLORE FISIOPATOLOGIA -->
+<section id="explore" class="screen">
+  <div class="card">
+    <h2 style="margin-top:0">🔬 Fisiopatologia Detalhada</h2>
+    <p style="color:var(--muted);font-size:14px">Escolha um caso para estudar o mecanismo em profundidade (cascata, mediadores, consequências clínicas).</p>
+    <div class="filters" id="exploreFilters" style="margin-bottom:14px"></div>
+    <div class="explore-list" id="exploreList"></div>
+    <button class="btn outline" style="margin-top:14px" onclick="home()">🏠 Menu</button>
+  </div>
+</section>
+
+<section id="exploreDetail" class="screen">
+  <div class="card">
+    <button class="btn secondary" onclick="startExplore()">← Voltar à lista</button>
+    <div id="deepContent" class="deep-content"></div>
+    <button class="btn outline" style="margin-top:16px" onclick="home()">🏠 Menu</button>
+  </div>
+</section>
+
+<!-- RESULT -->
+<section id="result" class="screen">
+  <div class="card result">
+    <h2>🏆 Resultado</h2>
+    <div class="score" id="final">0</div>
+    <p id="message"></p>
+    <div class="stats-row" id="resultStats"></div>
+    <div id="summary" style="text-align:left;margin:16px 0"></div>
+    <button class="btn primary" onclick="startGame()">🔄 Jogar novamente</button>
+    <button class="btn secondary" onclick="startReview()">📝 Revisar erros</button>
+    <button class="btn outline" onclick="home()">🏠 Menu</button>
+  </div>
+</section>
+
+<!-- REVIEW -->
+<section id="review" class="screen">
+  <div class="card">
+    <h2 style="margin-top:0">📝 Revisão dos erros</h2>
+    <div id="reviewList"></div>
+    <button class="btn primary" onclick="home()">🏠 Menu</button>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats" class="screen">
+  <div class="card">
+    <h2 style="margin-top:0">📊 Suas estatísticas</h2>
+    <div id="statsContent"></div>
+    <button class="btn secondary" onclick="resetStats()">🗑️ Zerar estatísticas</button>
+    <button class="btn outline" onclick="home()">🏠 Menu</button>
+  </div>
+</section>
+
+</main>
+<footer>Ferramenta educacional. Confirme sempre condutas em diretrizes e protocolos atualizados.</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== BANCO DE CASOS COM FISIOPATOLOGIA DETALHADA ========== */
+const db = [
+{
+  nome:"Infarto Agudo do Miocárdio", esp:"Cardiologia",
+  caso:"Homem de 58 anos, hipertenso e tabagista, apresenta dor torácica opressiva há 40 minutos, irradiando para o braço esquerdo, com sudorese fria e náuseas.",
+  pergunta:"Qual mecanismo melhor explica o quadro?",
+  op:["Ruptura de placa aterosclerótica com trombose coronariana","Infecção bacteriana do miocárdio","Broncoespasmo agudo","Obstrução intestinal"],
+  ok:0,
+  pistas:["Dor torácica opressiva","Irradiação","Sudorese","Troponina/ECG"],
+  tri:["Clínica: dor típica","Exame: ECG","Marcador: troponina"],
+  f:`<b>Fisiopatologia resumida:</b> ruptura de placa aterosclerótica → trombose coronariana → isquemia e necrose miocárdica.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Infarto Agudo do Miocárdio</h3>
+<div class="physio-block"><h4>1. Aterosclerose e placa vulnerável</h4>
+<p>A placa aterosclerótica se forma por acúmulo de lipídios, células inflamatórias e matriz extracelular na íntima. Placas “vulneráveis” têm núcleo lipídico grande, capa fibrosa fina e intensa inflamação (macrófagos e células T). A inflamação degrada o colágeno da capa via metaloproteinases.</p></div>
+<div class="physio-block"><h4>2. Ruptura e trombose</h4>
+<p>A ruptura expõe o conteúdo trombogênico (fator tecidual, colágeno) ao sangue. Isso ativa a cascata de coagulação e agregação plaquetária → trombo oclusivo ou suboclusivo. No STEMI o trombo costuma ser oclusivo; no NSTEMI, suboclusivo ou com reperfusão espontânea parcial.</p></div>
+<div class="physio-block"><h4>3. Cascata isquêmica</h4>
+<ul>
+<li>Segundos: depleção de ATP, disfunção diastólica</li>
+<li>Minutos: disfunção sistólica, alterações elétricas (onda T, supradesnível de ST)</li>
+<li>20–40 min: início de necrose irreversível (do subendocárdio para o epicárdio — “onda de necrose”)</li>
+<li>Horas: necrose transmural se a oclusão persistir</li>
+</ul></div>
+<div class="physio-block"><h4>4. Consequências</h4>
+<p>Liberação de troponinas, CK-MB; risco de arritmias (FV), insuficiência de bomba, ruptura, choque cardiogênico. A reperfusão precoce limita o tamanho do infarto (tempo é músculo).</p></div>
+<p><b>Conduta-chave:</b> reperfusão (ICP primária preferencial ou trombólise se tempo e critérios) + antiagregação + anticoagulação + otimização de comorbidades.</p>`,
+  ref:"ACC/AHA Guideline for the Management of Patients With Acute Coronary Syndromes, 2025.",
+  dica:"Pense em oclusão coronariana aguda por trombo sobre placa vulnerável."
+},
+{
+  nome:"Pneumonia Adquirida na Comunidade", esp:"Pneumologia",
+  caso:"Paciente de 67 anos apresenta febre, tosse produtiva, dispneia e crepitações em base direita à ausculta. Radiografia mostra infiltrado alveolar.",
+  pergunta:"Qual alteração fisiopatológica é mais característica?",
+  op:["Inflamação pulmonar com preenchimento alveolar por exsudato","Destruição exclusiva de neurônios","Aumento isolado de insulina","Obstrução intestinal"],
+  ok:0,
+  pistas:["Febre","Tosse produtiva","Crepitações","Infiltrado alveolar"],
+  tri:["Clínica: febre + tosse","Exame: crepitações","Imagem: infiltrado"],
+  f:`<b>Fisiopatologia resumida:</b> resposta inflamatória no parênquima gera exsudato alveolar que prejudica a troca gasosa.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Pneumonia</h3>
+<div class="physio-block"><h4>1. Invasão e resposta inicial</h4>
+<p>Patógenos (S. pneumoniae, H. influenzae, vírus, atípicos) superam as defesas das vias aéreas (muco, cílios, macrófagos alveolares). Reconhecimento via TLRs e outros PRRs ativa NF-κB e liberação de citocinas (TNF-α, IL-1, IL-6, IL-8).</p></div>
+<div class="physio-block"><h4>2. Exsudato alveolar</h4>
+<p>Aumento da permeabilidade capilar e do epitélio alveolar → extravasamento de plasma, proteínas, neutrófilos e hemácias para o espaço alveolar. Formam-se as fases clássicas da pneumonia lobar (congestão → hepatização vermelha → cinzenta → resolução).</p></div>
+<div class="physio-block"><h4>3. Alteração da troca gasosa</h4>
+<ul>
+<li>Shunt intrapulmonar (alvéolos preenchidos mas perfundidos)</li>
+<li>Mismatch V/Q</li>
+<li>Redução da complacência pulmonar → trabalho respiratório aumentado</li>
+<li>Hipoxemia e, em casos graves, hipercapnia</li>
+</ul></div>
+<div class="physio-block"><h4>4. Resposta sistêmica</h4>
+<p>Febre, taquicardia, leucocitose; risco de sepse se a resposta se desregular. Consolidação radiológica corresponde ao exsudato.</p></div>
+<p><b>Conduta-chave:</b> antibióticos conforme gravidade (CURB-65/PSI) e fatores de risco + suporte oxigenatório.</p>`,
+  ref:"ATS/IDSA Guideline for Community-acquired Pneumonia.",
+  dica:"Preenchimento alveolar = consolidação e crepitações."
+},
+{
+  nome:"AVC Isquêmico", esp:"Neurologia",
+  caso:"Mulher de 72 anos, fibrilação atrial, apresenta início súbito de afasia e hemiparesia direita há 1h30.",
+  pergunta:"Qual mecanismo básico define o AVC isquêmico?",
+  op:["Interrupção ou redução crítica do fluxo sanguíneo cerebral","Excesso de bile","Infecção exclusiva da pele","Fratura vertebral"],
+  ok:0,
+  pistas:["Início súbito","Déficit focal","Afasia","Fibrilação atrial"],
+  tri:["Clínica: déficit focal súbito","Imagem: TC/RM","Tempo: janela terapêutica"],
+  f:`<b>Fisiopatologia resumida:</b> redução do fluxo compromete oferta de O₂ e glicose → lesão neuronal em minutos a horas.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — AVC Isquêmico</h3>
+<div class="physio-block"><h4>1. Mecanismos de oclusão</h4>
+<p>Embolia (cardioembólica — FA, valvulopatia; arterio-arterial) ou trombose in situ sobre placa aterosclerótica. Também hipoperfusão em estenoses críticas e estados de hipercoagulabilidade.</p></div>
+<div class="physio-block"><h4>2. Cascata isquêmica neuronal</h4>
+<ul>
+<li>Falha energética → perda da bomba Na⁺/K⁺-ATPase</li>
+<li>Despolarização anóxica e liberação massiva de glutamato</li>
+<li>Excitotoxicidade: entrada de Ca²⁺ → ativação de proteases, lipases, NO sintase</li>
+<li>Estresse oxidativo e inflamação (horas a dias)</li>
+<li>Morte celular por necrose (núcleo) e apoptose (penumbra)</li>
+</ul></div>
+<div class="physio-block"><h4>3. Núcleo vs penumbra</h4>
+<p>Núcleo: fluxo &lt;10 mL/100g/min → morte rápida. Penumbra: fluxo reduzido mas ainda viável se reperfusão ocorrer a tempo. A janela terapêutica existe porque a penumbra pode ser salva.</p></div>
+<div class="physio-block"><h4>4. Edema e complicações</h4>
+<p>Edema citotóxico precoce e vasogênico tardio; risco de transformação hemorrágica após reperfusão, hipertensão intracraniana e hérnias.</p></div>
+<p><b>Conduta-chave:</b> tempo é cérebro — trombólise e/ou trombectomia conforme janela e imagem; prevenção secundária da causa.</p>`,
+  ref:"AHA/ASA Guideline for Early Management of Acute Ischemic Stroke.",
+  dica:"Tempo é cérebro. Fonte embólica comum: fibrilação atrial."
+},
+{
+  nome:"Diabetes Mellitus Tipo 2", esp:"Endocrinologia",
+  caso:"Homem de 52 anos, obesidade central e história familiar, apresenta poliúria, polidipsia e glicemia de jejum 168 mg/dL em duas ocasiões.",
+  pergunta:"Qual mecanismo é típico do diabetes tipo 2?",
+  op:["Resistência à insulina + disfunção progressiva das células beta","Ausência congênita de hemoglobina","Excesso absoluto de T4","Deficiência de vitamina C"],
+  ok:0,
+  pistas:["Hiperglicemia","Obesidade","Poliúria/polidipsia","Resistência à insulina"],
+  tri:["Clínica: sintomas clássicos","Metabolismo: hiperglicemia","Mecanismo: resistência + β"],
+  f:`<b>Fisiopatologia resumida:</b> resistência periférica à insulina associada à falência progressiva das células beta.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Diabetes Mellitus Tipo 2</h3>
+<div class="physio-block"><h4>1. Resistência à insulina</h4>
+<p>Tecido adiposo (especialmente visceral), músculo e fígado respondem mal à insulina. Mediadores: ácidos graxos livres, adipocinas (↓adiponectina, ↑TNF-α, resistina), inflamação de baixo grau e defeitos de sinalização (IRS-1, PI3K-Akt).</p></div>
+<div class="physio-block"><h4>2. Compensação e falência das células β</h4>
+<p>Inicialmente as células β aumentam a secreção de insulina (hiperinsulinemia compensatória). Com o tempo ocorre disfunção e perda de massa β por glucolipotoxicidade, estresse de retículo, inflamação e amilina.</p></div>
+<div class="physio-block"><h4>3. Hiperglicemia e seus efeitos</h4>
+<ul>
+<li>Produção hepática de glicose inadequadamente elevada</li>
+<li>Redução da captação muscular de glicose</li>
+<li>Glicosúria quando ultrapassa o limiar renal → poliúria osmótica → polidipsia</li>
+<li>Glicação de proteínas (HbA1c) e vias do poliol, hexosamina, PKC e AGE → complicações micro e macrovasculares</li>
+</ul></div>
+<div class="physio-block"><h4>4. Outros eixos</h4>
+<p>Incretinas (GLP-1, GIP) diminuídas funcionalmente; aumento de glucagon; possível contribuição renal (SGLT2) e do sistema nervoso central.</p></div>
+<p><b>Conduta-chave:</b> estilo de vida + metformina (maioria) e intensificação com SGLT2i, GLP-1 RA, etc., conforme perfil e diretrizes.</p>`,
+  ref:"ADA Standards of Care in Diabetes.",
+  dica:"Não é deficiência absoluta de insulina (isso caracteriza o DM1)."
+},
+{
+  nome:"Asma", esp:"Pneumologia",
+  caso:"Adolescente de 16 anos tem episódios recorrentes de sibilância, tosse e dispneia, pior à noite e após exposição a ácaros ou exercício.",
+  pergunta:"Qual alteração caracteriza a fisiopatologia da asma?",
+  op:["Inflamação e hiperresponsividade das vias aéreas com obstrução variável","Necrose renal obrigatória","Obstrução intestinal permanente","Destruição de hepatócitos"],
+  ok:0,
+  pistas:["Sibilância","Variabilidade","Gatilhos","Obstrução reversível"],
+  tri:["Sintomas: sibilância","Mecanismo: hiperresponsividade","Padrão: variável/reversível"],
+  f:`<b>Fisiopatologia resumida:</b> inflamação crônica + hiperresponsividade brônquica → limitação variável do fluxo aéreo.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Asma</h3>
+<div class="physio-block"><h4>1. Inflamação tipo 2 (clássica)</h4>
+<p>Em muitos pacientes: resposta Th2 → IL-4, IL-5, IL-13. IL-5 recruta eosinófilos; IL-13 e IL-4 promovem produção de IgE e hipersecreção de muco. Mastócitos sensibilizados por IgE liberam histamina, leucotrienos e prostaglandinas após exposição ao alérgeno.</p></div>
+<div class="physio-block"><h4>2. Hiperresponsividade e obstrução</h4>
+<ul>
+<li>Broncoconstrição (músculo liso hiper-reativo)</li>
+<li>Edema de mucosa</li>
+<li>Hipersecreção de muco e plugs</li>
+<li>Limitação variável e reversível do fluxo expiratório</li>
+</ul></div>
+<div class="physio-block"><h4>3. Remodelamento</h4>
+<p>Em doença persistente: hipertrofia/hiperplasia do músculo liso, espessamento da membrana basal, angiogênese e alterações estruturais que podem reduzir a reversibilidade.</p></div>
+<div class="physio-block"><h4>4. Fenótipos</h4>
+<p>Além da asma alérgica eosinofílica, existem fenótipos não-T2 (neutrofílica, paucigranulocítica) com diferentes vias e respostas a corticoide.</p></div>
+<p><b>Conduta-chave:</b> corticoide inalatório ± formoterol (estratégia SMART/GINA); biológicos nos casos graves selecionados.</p>`,
+  ref:"GINA Global Strategy for Asthma Management and Prevention.",
+  dica:"Obstrução variável e reversível é a chave diagnóstica."
+},
+{
+  nome:"Anemia Ferropriva", esp:"Hematologia",
+  caso:"Mulher de 34 anos, menstruações abundantes, refere fadiga e palidez. Hemograma: Hb 9,2 g/dL, VCM 72 fL, HCM baixo; ferritina 8 ng/mL.",
+  pergunta:"Qual mecanismo explica a anemia?",
+  op:["Redução da disponibilidade de ferro para síntese de hemoglobina","Aumento obrigatório da hemoglobina","Excesso de vitamina B12","Produção excessiva de plaquetas"],
+  ok:0,
+  pistas:["Microcitose","Hipocromia","Ferritina baixa","Perda menstrual"],
+  tri:["Hemograma: micro/hipo","Ferro: deficiência","Causa: investigar perda"],
+  f:`<b>Fisiopatologia resumida:</b> falta de ferro limita a síntese de heme → anemia microcítica e hipocrômica.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Anemia Ferropriva</h3>
+<div class="physio-block"><h4>1. Papel do ferro</h4>
+<p>O ferro é essencial para o grupo heme da hemoglobina. Absorvido no duodeno (DMT1, ferroportina), transportado pela transferrina e estocado como ferritina/hemossiderina. A hepcidina regula negativamente a absorção e a liberação dos estoques.</p></div>
+<div class="physio-block"><h4>2. Sequência da deficiência</h4>
+<ul>
+<li>Depleção de estoques (ferritina baixa) — ainda sem anemia</li>
+<li>Ferro eritroide insuficiente → eritropoiese ferropriva</li>
+<li>Redução da síntese de hemoglobina → microcitose e hipocromia</li>
+<li>Anemia manifesta (Hb baixa)</li>
+</ul></div>
+<div class="physio-block"><h4>3. Por que microcítica e hipocrômica?</h4>
+<p>Com menos hemoglobina por célula, os eritrócitos são menores (↓VCM) e mais pálidos (↓HCM/CHCM). Há também aumento de RDW e possível trombocitose reativa.</p></div>
+<div class="physio-block"><h4>4. Causas principais</h4>
+<p>Perda crônica (menorragia, GI), aumento de demanda (gestação, crescimento), má absorção (doença celíaca, cirurgia bariátrica) ou dieta insuficiente.</p></div>
+<p><b>Conduta-chave:</b> reposição de ferro (oral ou EV) + investigação e tratamento da causa da perda ou má absorção.</p>`,
+  ref:"WHO Guideline on ferritin concentrations to assess iron status.",
+  dica:"Ferritina baixa confirma depleção de estoques de ferro."
+},
+{
+  nome:"Sepse", esp:"Emergência",
+  caso:"Idoso com pneumonia apresenta taquicardia, taquipneia, confusão mental e PAM 62 mmHg após volume. Lactato 4,1 mmol/L.",
+  pergunta:"Qual conceito melhor define sepse?",
+  op:["Disfunção orgânica potencialmente fatal por resposta desregulada à infecção","Qualquer febre","Infecção localizada da pele","Doença exclusivamente viral"],
+  ok:0,
+  pistas:["Infecção","Disfunção orgânica","Hipotensão","Lactato elevado"],
+  tri:["Infecção: foco","Resposta: desregulada","Órgão: disfunção"],
+  f:`<b>Conceito (Sepsis-3):</b> disfunção orgânica potencialmente fatal decorrente de resposta desregulada do hospedeiro à infecção.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Sepse</h3>
+<div class="physio-block"><h4>1. Resposta desregulada do hospedeiro</h4>
+<p>Reconhecimento de PAMPs (patógenos) e DAMPs (dano tecidual) → tempestade de citocinas (TNF, IL-1, IL-6, IL-8) e, em paralelo, resposta anti-inflamatória que pode levar a imunossupressão tardia.</p></div>
+<div class="physio-block"><h4>2. Disfunção endotelial e microcirculação</h4>
+<ul>
+<li>Aumento da permeabilidade → extravasamento e hipovolemia relativa</li>
+<li>Vasodilatação (NO excessivo) → hipotensão</li>
+<li>Ativação da coagulação e inibição da fibrinólise → CIVD e microtrombose</li>
+<li>Shunts e heterogenicidade do fluxo → hipóxia tecidual apesar de débito às vezes elevado (choque distributivo)</li>
+</ul></div>
+<div class="physio-block"><h4>3. Disfunção orgânica</h4>
+<p>Mensurada clinicamente pelo SOFA (respiração, coagulação, fígado, cardiovascular, SNC, rim). Lactato elevado reflete hipoperfusão e/ou disfunção mitocondrial.</p></div>
+<div class="physio-block"><h4>4. Choque séptico</h4>
+<p>Subset de sepse com anormalidades circulatórias e celulares/metabólicas profundas (hipotensão refratária a volume + lactato elevado).</p></div>
+<p><b>Conduta-chave:</b> reconhecimento precoce, culturas, antibióticos em 1h, controle de foco, fluidos e vasopressores guiados, suporte de órgãos.</p>`,
+  ref:"Surviving Sepsis Campaign Guidelines.",
+  dica:"Não é só infecção — é infecção + disfunção orgânica por resposta desregulada."
+},
+{
+  nome:"Doença Renal Crônica", esp:"Nefrologia",
+  caso:"Paciente de 64 anos, diabético e hipertenso, com TFG estimada 38 mL/min/1,73m² há mais de 3 meses e albuminúria A2.",
+  pergunta:"Qual consequência pode ocorrer na perda progressiva da função renal?",
+  op:["Acúmulo de produtos metabólicos e alterações hidroeletrolíticas","Aumento obrigatório da filtração","Melhora automática da função","Produção ilimitada de eritropoietina"],
+  ok:0,
+  pistas:["TFG reduzida","Albuminúria","Persistência >3 meses","Distúrbios metabólicos"],
+  tri:["Função: TFG","Marcador: albuminúria","Complicação: distúrbios"],
+  f:`<b>Fisiopatologia resumida:</b> perda de néfrons reduz capacidade de excreção e de manutenção do equilíbrio hidroeletrolítico e ácido-base.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Doença Renal Crônica</h3>
+<div class="physio-block"><h4>1. Perda progressiva de néfrons</h4>
+<p>Qualquer agressão crônica (diabetes, hipertensão, glomerulopatias, etc.) reduz o número de néfrons funcionantes. Os remanescentes sofrem hiperfiltração (hipótese de Brenner) mediada por vasodilatação da arteríola aferente e aumento da pressão intraglomerular.</p></div>
+<div class="physio-block"><h4>2. Ciclo de progressão</h4>
+<ul>
+<li>Hiperfiltração → esclerose glomerular</li>
+<li>Proteinúria tóxica para túbulos → inflamação e fibrose intersticial</li>
+<li>Ativação do SRAA local e sistêmico</li>
+<li>Hipóxia tecidual e estresse oxidativo</li>
+</ul></div>
+<div class="physio-block"><h4>3. Consequências da TFG baixa</h4>
+<p>Acúmulo de toxinas urêmicas, hiperfosfatemia, hipocalcemia, hiperparatireoidismo secundário, anemia (↓EPO), acidose metabólica, hipercalemia, sobrecarga volêmica e risco cardiovascular muito elevado.</p></div>
+<div class="physio-block"><h4>4. Definição</h4>
+<p>DRC = alteração estrutural ou funcional do rim por ≥3 meses, com implicações para a saúde (KDIGO). Estadiamento por TFG e albuminúria.</p></div>
+<p><b>Conduta-chave:</b> controlar progressão (IECA/BRA, SGLT2i, finerenona em diabéticos, etc.) e tratar complicações.</p>`,
+  ref:"KDIGO 2024 Clinical Practice Guideline for CKD.",
+  dica:"DRC = alteração estrutural ou funcional por ≥3 meses."
+},
+{
+  nome:"Insuficiência Cardíaca com Fração de Ejeção Reduzida", esp:"Cardiologia",
+  caso:"Homem de 68 anos, pós-IAM, apresenta dispneia aos esforços, ortopneia e edema de membros inferiores. Ecocardiograma: FEVE 32%.",
+  pergunta:"Qual mecanismo central está envolvido?",
+  op:["Redução do débito cardíaco com ativação neuro-hormonal compensatória","Obstrução exclusivamente brônquica","Deficiência isolada de vitamina D","Infecção viral da pele"],
+  ok:0,
+  pistas:["Dispneia","Ortopneia","Edema","FEVE reduzida"],
+  tri:["Clínica: congestão","Imagem: FEVE baixa","Mecanismo: neuro-hormonal"],
+  f:`<b>Fisiopatologia resumida:</b> disfunção sistólica → baixo débito → ativação do SNS e SRAA → remodelamento e piora progressiva.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — IC com FE Reduzida</h3>
+<div class="physio-block"><h4>1. Lesão inicial e queda do débito</h4>
+<p>IAM, miocardiopatia, valvopatia etc. reduzem a contratilidade (↓FEVE). O débito cardíaco cai e a pressão de enchimento sobe (congestão pulmonar e sistêmica).</p></div>
+<div class="physio-block"><h4>2. Ativação neuro-hormonal</h4>
+<ul>
+<li><b>SNS:</b> taquicardia, vasoconstricção, aumento de contratilidade (curto prazo); toxicidade miocárdica e apoptose (longo prazo)</li>
+<li><b>SRAA:</b> angiotensina II e aldosterona → vasoconstricção, retenção de Na⁺/água, fibrose</li>
+<li><b>Vasopressina e endotelina:</b> reforçam vasoconstricção e retenção hídrica</li>
+<li>Peptídeos natriuréticos (ANP/BNP) tentam contrabalançar, mas são insuficientes</li>
+</ul></div>
+<div class="physio-block"><h4>3. Remodelamento ventricular</h4>
+<p>Dilatação, hipertrofia excêntrica, fibrose e alteração da geometria → piora progressiva da função e maior risco de arritmias.</p></div>
+<div class="physio-block"><h4>4. Manifestações clínicas</h4>
+<p>Congestão (ortopneia, edema, estertores) e baixo débito (fadiga, hipoperfusão). Classificação por FE e por estágios/NYHA.</p></div>
+<p><b>Conduta-chave:</b> quatro pilares modificadores de prognóstico (ARNI/IECA/BRA, betabloqueador, ARM, SGLT2i) + diuréticos para congestão.</p>`,
+  ref:"ESC / AHA/ACC Heart Failure Guidelines.",
+  dica:"A ativação neuro-hormonal é o motor da progressão da IC."
+},
+{
+  nome:"Tromboembolismo Pulmonar", esp:"Pneumologia",
+  caso:"Mulher de 45 anos, pós-cirurgia ortopédica há 8 dias, apresenta dispneia súbita, dor torácica pleurítica e saturação 88% em ar ambiente. Wells alto.",
+  pergunta:"Qual o mecanismo principal?",
+  op:["Obstrução da circulação pulmonar por êmbolo (geralmente de origem venosa)","Espasmo coronariano puro","Infecção alveolar primária","Ruptura de esôfago"],
+  ok:0,
+  pistas:["Dispneia súbita","Pleurítica","Pós-operatório","Fatores de risco de TVP"],
+  tri:["Clínica: dispneia súbita","Risco: Virchow","Imagem: angioTC"],
+  f:`<b>Fisiopatologia resumida:</b> êmbolo (quase sempre de TVP) obstrui artérias pulmonares → aumento da pós-carga do VD e alteração V/Q.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Tromboembolismo Pulmonar</h3>
+<div class="physio-block"><h4>1. Origem do êmbolo (tríade de Virchow)</h4>
+<p>Estase, lesão endotelial e hipercoagulabilidade → TVP (principalmente membros inferiores e pelve). Fragmentos se desprendem e migram para a circulação pulmonar.</p></div>
+<div class="physio-block"><h4>2. Efeitos pulmonares</h4>
+<ul>
+<li>Aumento do espaço morto fisiológico (alvéolos ventilados mas não perfundidos)</li>
+<li>Hipoxemia por mismatch V/Q e, em parte, por shunt</li>
+<li>Broncoconstrição local e atelectasia por perda de surfactante</li>
+<li>Infarto pulmonar se a circulação brônquica colateral for insuficiente (mais comum em pacientes com doença cardíaca/pulmonar prévia)</li>
+</ul></div>
+<div class="physio-block"><h4>3. Efeitos cardíacos</h4>
+<p>Obstrução e vasoconstricção pulmonar (serotonina, tromboxano, hipóxia) elevam a pós-carga do ventrículo direito → dilatação, isquemia do VD e, em casos graves, choque obstrutivo.</p></div>
+<div class="physio-block"><h4>4. Gravidade</h4>
+<p>Desde TEP de baixo risco até maciço com instabilidade hemodinâmica. Biomarcadores (troponina, BNP) e ecocardiograma ajudam a estratificar.</p></div>
+<p><b>Conduta-chave:</b> anticoagulação; trombólise ou outras terapias de reperfusão se instabilidade hemodinâmica.</p>`,
+  ref:"ESC Guidelines on Acute Pulmonary Embolism.",
+  dica:"Tríade de Virchow + dispneia súbita = pense em TEP."
+},
+{
+  nome:"Cetoacidose Diabética", esp:"Endocrinologia",
+  caso:"Jovem de 19 anos com DM1 apresenta náuseas, vômitos, dor abdominal, respiração de Kussmaul e glicemia 420 mg/dL. Gasometria: pH 7,12; bicarbonato baixo; cetonemia positiva.",
+  pergunta:"Qual o mecanismo central da CAD?",
+  op:["Deficiência absoluta de insulina gerando lipólise e produção de corpos cetônicos","Excesso de insulina","Hipoglicemia isolada","Deficiência de cortisol"],
+  ok:0,
+  pistas:["DM1","Cetonemia","Acidose metabólica","Kussmaul"],
+  tri:["Hiperglicemia","Cetose","Acidose"],
+  f:`<b>Fisiopatologia resumida:</b> falta de insulina → lipólise → ácidos graxos livres → corpos cetônicos → acidose metabólica com ânion gap elevado.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Cetoacidose Diabética</h3>
+<div class="physio-block"><h4>1. Deficiência absoluta de insulina + excesso de hormônios contrarreguladores</h4>
+<p>Insulina baixa (ou ausente) + glucagon, catecolaminas, cortisol e GH elevados → lipólise intensa no tecido adiposo e liberação de ácidos graxos livres (AGL).</p></div>
+<div class="physio-block"><h4>2. Cetogênese hepática</h4>
+<p>AGL entram na mitocôndria hepatocitária (via CPT-1, desinibida pela queda de malonil-CoA). β-oxidação gera acetil-CoA em excesso → formação de acetoacetato, β-hidroxibutirato e acetona (corpos cetônicos).</p></div>
+<div class="physio-block"><h4>3. Acidose e desidratação</h4>
+<ul>
+<li>Corpos cetônicos dissociam-se → H⁺ → acidose metabólica com ânion gap elevado</li>
+<li>Hiperglicemia → diurese osmótica → desidratação grave, perda de eletrólitos (K⁺, Na⁺, fosfato)</li>
+<li>Respiração de Kussmaul: compensação respiratória da acidose metabólica</li>
+</ul></div>
+<div class="physio-block"><h4>4. Potássio</h4>
+<p>K⁺ total corporal está deplecionado, mas a potassemia pode estar normal ou alta inicialmente (deslocamento pela acidose e falta de insulina). O tratamento com insulina faz o K⁺ cair rapidamente.</p></div>
+<p><b>Conduta-chave:</b> hidratação, insulina regular EV, reposição criteriosa de potássio e correção do fator precipitante.</p>`,
+  ref:"ADA / ISPAD guidelines on DKA.",
+  dica:"Tríade clássica: hiperglicemia + cetose + acidose."
+},
+{
+  nome:"Meningite Bacteriana", esp:"Infectologia",
+  caso:"Adolescente de 17 anos apresenta febre alta, cefaleia intensa, rigidez de nuca e petéquias. Líquor: neutrófilos altos, glicose baixa, proteína elevada.",
+  pergunta:"Qual o mecanismo de gravidade principal?",
+  op:["Inflamação meníngea com possível edema cerebral e sepse","Hiperglicemia isolada","Obstrução coronariana","Deficiência de ferro"],
+  ok:0,
+  pistas:["Febre","Rigidez de nuca","Petéquias","Líquor típico"],
+  tri:["Clínica: meninge","Líquor: bacteriano","Risco: sepse/choque"],
+  f:`<b>Fisiopatologia resumida:</b> invasão bacteriana do espaço subaracnóideo gera inflamação intensa, aumento da permeabilidade e risco de edema cerebral e sepse.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Meningite Bacteriana</h3>
+<div class="physio-block"><h4>1. Invasão do SNC</h4>
+<p>Bacteremia (N. meningitidis, S. pneumoniae, etc.) ou contiguidade → travessia da barreira hematoencefálica/hematoliquórica. No espaço subaracnóideo há relativamente poucos mecanismos de defesa iniciais.</p></div>
+<div class="physio-block"><h4>2. Cascata inflamatória</h4>
+<ul>
+<li>Reconhecimento de componentes bacterianos (LPS, ácido teicoico, peptidoglicano)</li>
+<li>Liberação de citocinas e quimiocinas → afluxo maciço de neutrófilos</li>
+<li>Aumento da permeabilidade da BHE → edema vasogênico</li>
+<li>Exsudato purulento no espaço subaracnóideo</li>
+</ul></div>
+<div class="physio-block"><h4>3. Consequências intracranianas</h4>
+<p>Edema cerebral (vasogênico + citotóxico + intersticial), aumento da PIC, redução da perfusão cerebral, risco de hérnia, vasculite e infartos, hidrocefalia e crises epilépticas.</p></div>
+<div class="physio-block"><h4>4. Achados do líquor</h4>
+<p>Pleocitose neutrofílica, proteína elevada (aumento da permeabilidade), glicose baixa (consumo por bactérias e células inflamatórias + transporte alterado).</p></div>
+<p><b>Conduta-chave:</b> antibióticos empíricos imediatos (não atrasar por imagem ou punção) + dexametasona quando indicada + suporte.</p>`,
+  ref:"IDSA Guidelines for Bacterial Meningitis.",
+  dica:"Não atrase o antibiótico por causa de imagem ou punção lombar."
+},
+{
+  nome:"Apendicite Aguda", esp:"Cirurgia",
+  caso:"Homem de 23 anos com dor periumbilical migrando para fossa ilíaca direita, anorexia, náuseas e sinal de Blumberg positivo. Leucocitose com desvio.",
+  pergunta:"Qual a sequência fisiopatológica típica?",
+  op:["Obstrução → distensão → isquemia → inflamação/necrose","Espasmo coronariano","Deficiência de insulina","Infecção viral exclusiva do fígado"],
+  ok:0,
+  pistas:["Migração da dor","Anorexia","Blumberg","Leucocitose"],
+  tri:["Dor migratória","Sinais peritoneais","Inflamação laboratorial"],
+  f:`<b>Fisiopatologia resumida:</b> obstrução do lúmen → aumento de pressão → isquemia da parede → inflamação e risco de perfuração.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Apendicite Aguda</h3>
+<div class="physio-block"><h4>1. Obstrução luminal</h4>
+<p>Fecálito, hiperplasia linfoide (especialmente em jovens), parasitas ou tumor obstruem o lúmen do apêndice.</p></div>
+<div class="physio-block"><h4>2. Distensão e isquemia</h4>
+<ul>
+<li>Secreção contínua de muco + obstrução → aumento da pressão intraluminal</li>
+<li>Compressão de vasos da parede → isquemia mucosa e depois transmural</li>
+<li>Proliferação bacteriana no lúmen</li>
+</ul></div>
+<div class="physio-block"><h4>3. Inflamação e necrose</h4>
+<p>Isquemia + infecção → inflamação transmural, necrose e risco de perfuração com peritonite localizada (abscesso) ou generalizada.</p></div>
+<div class="physio-block"><h4>4. Por que a dor migra?</h4>
+<p>Fase inicial: distensão visceral → dor visceral periumbilical (fibras simpáticas T10). Fase tardia: inflamação do peritônio parietal → dor somática localizada em FID (sinal de Blumberg, defesa).</p></div>
+<p><b>Conduta-chave:</b> apendicectomia (laparoscópica ou aberta) + antibióticos perioperatórios; em casos selecionados pode-se considerar tratamento conservador.</p>`,
+  ref:"WSES / guidelines de apendicite aguda.",
+  dica:"Dor que migra de periumbilical para FID é o padrão clássico."
+},
+{
+  nome:"Hipotireoidismo Primário", esp:"Endocrinologia",
+  caso:"Mulher de 48 anos refere fadiga, ganho de peso, pele seca, constipação e bradicardia. TSH elevado e T4 livre baixo.",
+  pergunta:"Qual o mecanismo laboratorial esperado no hipotireoidismo primário?",
+  op:["Falha tireoidiana → TSH elevado por feedback","Excesso de T3 e T4","Deficiência isolada de ACTH","Hipoglicemia isolada"],
+  ok:0,
+  pistas:["Fadiga","Pele seca","TSH alto","T4 livre baixo"],
+  tri:["Clínica: hipometabolismo","Lab: TSH↑ T4↓","Causa: tireoidiana"],
+  f:`<b>Fisiopatologia resumida:</b> falha da glândula tireoide reduz T4/T3 → perda do feedback negativo → elevação do TSH.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Hipotireoidismo Primário</h3>
+<div class="physio-block"><h4>1. Eixo hipotálamo-hipófise-tireoide</h4>
+<p>TRH (hipotálamo) → TSH (hipófise) → T4 e T3 (tireoide). T3/T4 exercem feedback negativo sobre hipófise e hipotálamo.</p></div>
+<div class="physio-block"><h4>2. Falha tireoidiana (primário)</h4>
+<p>Hashimoto (tireoidite autoimune), pós-cirurgia, iodo radioativo, drogas (amiodarona, lítio), deficiência de iodo, etc. A glândula não produz hormônio suficiente → T4 livre baixo.</p></div>
+<div class="physio-block"><h4>3. Resposta do eixo</h4>
+<p>Com menos feedback negativo, a hipófise aumenta a secreção de TSH (e a hipófise pode aumentar de volume). TSH elevado + T4 baixo = hipotireoidismo primário. (No secundário/terciário o TSH está baixo ou inapropriadamente normal.)</p></div>
+<div class="physio-block"><h4>4. Efeitos teciduais</h4>
+<p>Redução do metabolismo basal: bradicardia, constipação, pele seca, ganho de peso, fadiga, mixedema, dislipidemia, possível derrame pericárdico e, em casos extremos, coma mixedematoso.</p></div>
+<p><b>Conduta-chave:</b> levotiroxina com ajuste pela TSH (alvo individualizado).</p>`,
+  ref:"ATA Guidelines for Hypothyroidism.",
+  dica:"Primário = problema na tireoide → TSH alto e T4 baixo."
+},
+{
+  nome:"Crise Asmática Grave", esp:"Emergência",
+  caso:"Paciente asmático conhecido chega com dispneia intensa, uso de musculatura acessória, fala entrecortada e saturação 89%. Sibilos difusos.",
+  pergunta:"Qual a prioridade imediata?",
+  op:["Oxigênio + broncodilatador de curta ação + corticoide sistêmico","Antibiótico isolado","Diurético de alça","Insulina regular"],
+  ok:0,
+  pistas:["Dispneia grave","Uso de acessórios","Sibilos","História de asma"],
+  tri:["Gravidade: sinais de esforço","Tratamento: SABA + O₂","Anti-inflamatório: corticoide"],
+  f:`<b>Fisiopatologia resumida:</b> broncoconstrição intensa + inflamação + plug mucoso → obstrução grave ao fluxo aéreo.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Crise Asmática Grave</h3>
+<div class="physio-block"><h4>1. Obstrução aguda grave</h4>
+<p>Sobre o fundo de inflamação crônica ocorre broncoconstrição intensa (mediada por mastócitos, leucotrienos, histamina), edema de mucosa e formação de plugs mucosos viscosos. O fluxo aéreo cai dramaticamente.</p></div>
+<div class="physio-block"><h4>2. Consequências gasométricas e mecânicas</h4>
+<ul>
+<li>Hiperinsuflação dinâmica e auto-PEEP</li>
+<li>Aumento do trabalho respiratório (uso de acessórios, taquipneia)</li>
+<li>Hipoxemia (mismatch V/Q)</li>
+<li>Inicialmente hipocapnia (hiperventilação); normalização ou elevação de PaCO₂ = sinal de fadiga e gravidade extrema</li>
+</ul></div>
+<div class="physio-block"><h4>3. Risco de parada respiratória</h4>
+<p>Fadiga muscular, silêncio auscultatório (fluxo mínimo), alteração do nível de consciência e hipercapnia progressiva indicam iminência de parada e necessidade de ventilação.</p></div>
+<div class="physio-block"><h4>4. Tratamento fisiopatológico</h4>
+<p>SABA (e anticolinérgico) relaxam o músculo liso; corticoide sistêmico combate a inflamação (efeito em horas); O₂ corrige hipoxemia; magnésio e ventilação não invasiva/invasiva em refratários.</p></div>
+<p><b>Conduta-chave:</b> O₂, SABA + ipratrópio, corticoide sistêmico precoce; não subestimar a gravidade.</p>`,
+  ref:"GINA / BTS/SIGN asthma guidelines.",
+  dica:"Corticoide sistêmico deve ser administrado cedo na crise."
+},
+{
+  nome:"Choque Hipovolêmico", esp:"Emergência",
+  caso:"Vítima de acidente com fratura de pelve apresenta taquicardia, pele fria e úmida, PAM 55 mmHg e reenchimento capilar >3s.",
+  pergunta:"Qual o mecanismo principal do choque hipovolêmico?",
+  op:["Redução do volume intravascular com queda do retorno venoso e débito cardíaco","Vasodilatação isolada por sepse","Obstrução mecânica do coração","Insuficiência adrenal aguda"],
+  ok:0,
+  pistas:["Trauma","Hipotensão","Pele fria","Taquicardia"],
+  tri:["Volume: perdido","Perfusão: reduzida","Compensação: taquicardia"],
+  f:`<b>Fisiopatologia resumida:</b> perda de volume → ↓ pré-carga → ↓ débito cardíaco → hipoperfusão tecidual.`,
+  deep:`<h3>🔬 Fisiopatologia detalhada — Choque Hipovolêmico</h3>
+<div class="physio-block"><h4>1. Perda de volume efetivo</h4>
+<p>Hemorragia (traumática, gastrointestinal, etc.) ou perdas de fluidos (queimaduras, desidratação grave, terceirização). O volume intravascular cai.</p></div>
+<div class="physio-block"><h4>2. Queda do retorno venoso e do débito</h4>
+<p>↓ Pré-carga (lei de Frank-Starling) → ↓ volume sistólico → ↓ débito cardíaco. A pressão arterial cai quando os mecanismos compensatórios são superados.</p></div>
+<div class="physio-block"><h4>3. Compensação</h4>
+<ul>
+<li>Ativação do SNS: taquicardia, vasoconstricção cutânea e visceral (pele fria e úmida, reenchimento capilar lento)</li>
+<li>SRAA e vasopressina: retenção de água e sódio, vasoconstricção</li>
+<li>Desvio de fluido intersticial para o intravascular</li>
+</ul></div>
+<div class="physio-block"><h4>4. Descompensação e lesão de órgãos</h4>
+<p>Hipoperfusão prolongada → metabolismo anaeróbico, acidose láctica, disfunção de órgãos (rim, fígado, cérebro, coração) e, se não revertido, espiral de morte celular e falência múltipla.</p></div>
+<p><b>Conduta-chave:</b> controle da hemorragia (damage control) + reposição volêmica/hemocomponentes de forma balanceada (ATLS / protocolos de reanimação).</p>`,
+  ref:"ATLS / guidelines de choque hemorrágico.",
+  dica:"Pele fria diferencia do choque distributivo (geralmente pele quente)."
+}
+];
+
+/* ========== ESTADO ========== */
+let mode = "classic";
+let selectedEsp = "Todas";
+let order = [], i = 0, score = 0, lives = 3, combo = 0, answered = false, history = [], fi = 0;
+let timer = null, timeLeft = 60, hintUsed = false;
+let startTime = 0;
+const $ = id => document.getElementById(id);
+
+/* ========== PERSISTÊNCIA ========== */
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem("medquiz_stats") || "{}"); }
+  catch { return {}; }
+}
+function saveStats(s) { localStorage.setItem("medquiz_stats", JSON.stringify(s)); }
+function getHighScore() { return loadStats().highScore || 0; }
+function updateHighScore(sc) {
+  const s = loadStats();
+  if (sc > (s.highScore || 0)) { s.highScore = sc; saveStats(s); }
+  $("highscore").textContent = "🏆 Recorde: " + (s.highScore || 0) + " pts";
+}
+
+/* ========== UI HELPERS ========== */
+function screen(id) {
+  document.querySelectorAll(".screen").forEach(x => x.classList.remove("active"));
+  $(id).classList.add("active");
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }
+function confettiBurst() {
+  for (let k = 0; k < 40; k++) {
+    const el = document.createElement("div");
+    el.className = "confetti";
+    el.style.cssText = `left:${Math.random()*100}vw;top:-10px;width:8px;height:8px;background:hsl(${Math.random()*360},80%,60%);position:fixed;border-radius:50%;z-index:100;animation:fall ${1+Math.random()}s linear forwards`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+  }
+}
+const style = document.createElement("style");
+style.textContent = `@keyframes fall{to{transform:translateY(100vh) rotate(720deg);opacity:0}}`;
+document.head.appendChild(style);
+
+/* ========== TEMA ========== */
+function toggleTheme() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("medquiz_theme", document.body.classList.contains("dark") ? "dark" : "light");
+}
+if (localStorage.getItem("medquiz_theme") === "dark") document.body.classList.add("dark");
+
+/* ========== MODO & FILTROS ========== */
+function selectMode(el) {
+  document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
+  mode = el.dataset.mode;
+}
+function buildFilters() {
+  const esps = ["Todas", ...new Set(db.map(x => x.esp))];
+  $("filters").innerHTML = esps.map(e =>
+    `<button class="filter-btn ${e===selectedEsp?"active":""}" onclick="setFilter('${e}')">${e}</button>`
+  ).join("");
+}
+function setFilter(e) {
+  selectedEsp = e;
+  buildFilters();
+}
+
+/* ========== JOGO ========== */
+function startGame() {
+  let pool = selectedEsp === "Todas" ? [...db] : db.filter(x => x.esp === selectedEsp);
+  if (pool.length === 0) pool = [...db];
+  order = shuffle(pool);
+  if (mode === "classic") order = order.slice(0, Math.min(12, order.length));
+  i = 0; score = 0; combo = 0; history = []; answered = false;
+  lives = mode === "survival" ? 1 : mode === "practice" ? 99 : 3;
+  startTime = Date.now();
+  screen("game");
+  $("timerBar").style.display = mode === "timed" ? "block" : "none";
+  loadQ();
+}
+function loadQ() {
+  answered = false; hintUsed = false;
+  if (i >= order.length || (lives <= 0 && mode !== "practice")) { finish(); return; }
+  clearInterval(timer);
+  const q = order[i];
+  $("qn").textContent = `${i+1}/${order.length}`;
+  $("pts").textContent = score;
+  $("lives").textContent = mode === "practice" ? "∞" : "❤️".repeat(Math.max(0, lives));
+  $("combo").textContent = combo + "🔥";
+  $("bar").style.width = ((i / order.length) * 100) + "%";
+  $("cat").textContent = q.esp;
+  $("title").textContent = q.nome;
+  $("case").textContent = q.caso;
+  $("question").textContent = q.pergunta;
+  $("feedback").className = "feedback";
+  $("next").style.display = "none";
+  $("hintBtn").style.display = mode === "practice" ? "none" : "inline-block";
+  $("options").innerHTML = "";
+  const opts = shuffle(q.op.map((t, n) => ({ t, n })));
+  opts.forEach((x, idx) => {
+    const b = document.createElement("button");
+    b.className = "option";
+    b.textContent = (idx + 1) + ". " + x.t;
+    b.dataset.n = x.n;
+    b.onclick = () => answer(b, x.n);
+    $("options").appendChild(b);
+  });
+  if (mode === "timed") {
+    timeLeft = 60;
+    $("timerFill").style.width = "100%";
+    $("timerFill").classList.remove("urgent");
+    timer = setInterval(() => {
+      timeLeft--;
+      $("timerFill").style.width = (timeLeft / 60 * 100) + "%";
+      if (timeLeft <= 15) $("timerFill").classList.add("urgent");
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        if (!answered) {
+          const first = $("options").querySelector(".option");
+          answer(first, -1);
+        }
+      }
+    }, 1000);
+  }
+}
+function answer(btn, n) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timer);
+  const q = order[i];
+  document.querySelectorAll(".option").forEach(x => x.disabled = true);
+  $("hintBtn").style.display = "none";
+  const ok = n === q.ok;
+  if (ok) {
+    btn.classList.add("correct");
+    combo++;
+    let pts = 10 + combo * 2;
+    if (mode === "timed" && timeLeft > 30) pts += 5;
+    if (hintUsed) pts = Math.max(5, pts - 5);
+    score += pts;
+    $("feedback").className = "feedback show fbok";
+    $("fbtitle").textContent = "🎯 Correto! +" + pts + " pts";
+    if (combo >= 3) confettiBurst();
+  } else {
+    btn.classList.add("wrong");
+    combo = 0;
+    if (mode !== "practice") lives--;
+    document.querySelectorAll(".option").forEach(x => {
+      if (+x.dataset.n === q.ok) x.classList.add("correct");
+    });
+    $("feedback").className = "feedback show fbno";
+    $("fbtitle").textContent = n === -1 ? "⏰ Tempo esgotado!" : "🔎 Revise as pistas-chave";
+  }
+  $("pts").textContent = score;
+  $("lives").textContent = mode === "practice" ? "∞" : "❤️".repeat(Math.max(0, lives));
+  $("combo").textContent = combo + "🔥";
+  $("fbtext").innerHTML = `
+    <div><b>🔑 Pistas-chave</b><div class="pillbox">${q.pistas.map(p => `<span class="pill">${p}</span>`).join("")}</div></div>
+    <div><b>🧠 Tríade de fixação</b><div class="triad">${q.tri.map((x, k) => `<div class="tri"><b>${k+1}</b>${x}</div>`).join("")}</div></div>
+    <p>${q.f}</p>
+    <button class="btn secondary" style="margin:10px 0" onclick="showDeepFromGame(${i})">🔬 Ver fisiopatologia detalhada</button>
+    <div class="ref">📚 <b>Referência:</b> ${q.ref}</div>`;
+  $("next").style.display = "inline-block";
+  history.push({ nome: q.nome, ok, esp: q.esp, q });
+}
+function showDeepFromGame(idx) {
+  const q = order[idx];
+  screen("exploreDetail");
+  $("deepContent").innerHTML = `<span class="badge">${q.esp}</span><h2>${q.nome}</h2>` + q.deep + `<div class="ref">📚 ${q.ref}</div>`;
+}
+function useHint() {
+  if (answered || hintUsed) return;
+  hintUsed = true;
+  const q = order[i];
+  toast("💡 " + q.dica);
+  $("hintBtn").style.display = "none";
+}
+function nextQ() {
+  i++;
+  if (lives <= 0 && mode !== "practice") { finish(); return; }
+  loadQ();
+}
+function finish() {
+  clearInterval(timer);
+  screen("result");
+  $("final").textContent = score;
+  const ac = history.filter(x => x.ok).length;
+  const total = history.length;
+  const acc = total ? Math.round(ac / total * 100) : 0;
+  const tempo = Math.round((Date.now() - startTime) / 1000);
+  $("message").textContent = `Você acertou ${ac} de ${total} (${acc}%).`;
+  $("resultStats").innerHTML = `
+    <div class="stat"><small>Acertos</small><b>${ac}/${total}</b></div>
+    <div class="stat"><small>Precisão</small><b>${acc}%</b></div>
+    <div class="stat"><small>Tempo</small><b>${tempo}s</b></div>`;
+  $("summary").innerHTML = history.map(x =>
+    `<div class="review-item">${x.ok ? "✅" : "❌"} <span>${x.nome} <small style="color:var(--muted)">(${x.esp})</small></span></div>`
+  ).join("");
+  const s = loadStats();
+  s.games = (s.games || 0) + 1;
+  s.totalCorrect = (s.totalCorrect || 0) + ac;
+  s.totalQuestions = (s.totalQuestions || 0) + total;
+  s.bestCombo = Math.max(s.bestCombo || 0, combo);
+  if (score > (s.highScore || 0)) s.highScore = score;
+  saveStats(s);
+  updateHighScore(score);
+}
+
+/* ========== REVISÃO ========== */
+function startReview() {
+  const errs = history.filter(x => !x.ok);
+  if (!errs.length) { toast("Nenhum erro para revisar! 🎉"); return; }
+  screen("review");
+  $("reviewList").innerHTML = errs.map(x => {
+    const q = x.q;
+    return `<div class="card" style="margin:10px 0">
+      <span class="badge">${q.esp}</span>
+      <h3>${q.nome}</h3>
+      <div class="case">${q.caso}</div>
+      <p><b>Pergunta:</b> ${q.pergunta}</p>
+      <p><b>Resposta correta:</b> ${q.op[q.ok]}</p>
+      <div class="pillbox">${q.pistas.map(p => `<span class="pill">${p}</span>`).join("")}</div>
+      <p>${q.f}</p>
+      <button class="btn secondary" onclick='showDeepReview(${JSON.stringify(q.nome)})'>🔬 Fisiopatologia detalhada</button>
+    </div>`;
+  }).join("");
+}
+function showDeepReview(nome) {
+  const q = db.find(x => x.nome === nome);
+  if (!q) return;
+  screen("exploreDetail");
+  $("deepContent").innerHTML = `<span class="badge">${q.esp}</span><h2>${q.nome}</h2>` + q.deep + `<div class="ref">📚 ${q.ref}</div>`;
+}
+
+/* ========== EXPLORAR FISIOPATOLOGIA ========== */
+function startExplore() {
+  screen("explore");
+  const esps = ["Todas", ...new Set(db.map(x => x.esp))];
+  $("exploreFilters").innerHTML = esps.map(e =>
+    `<button class="filter-btn ${e===selectedEsp?"active":""}" onclick="setExploreFilter('${e}')">${e}</button>`
+  ).join("");
+  renderExploreList();
+}
+function setExploreFilter(e) {
+  selectedEsp = e;
+  startExplore();
+}
+function renderExploreList() {
+  let pool = selectedEsp === "Todas" ? db : db.filter(x => x.esp === selectedEsp);
+  $("exploreList").innerHTML = pool.map((q, idx) =>
+    `<div class="explore-item" onclick="showDeep(${db.indexOf(q)})">
+      <h4>${q.nome}</h4>
+      <p>${q.esp} • ${q.pistas.slice(0,3).join(" · ")}</p>
+    </div>`
+  ).join("");
+}
+function showDeep(idx) {
+  const q = db[idx];
+  screen("exploreDetail");
+  $("deepContent").innerHTML = `<span class="badge">${q.esp}</span><h2>${q.nome}</h2>
+    <div class="case">${q.caso}</div>
+    ${q.deep}
+    <div class="ref">📚 ${q.ref}</div>`;
+}
+
+/* ========== FLASHCARDS ========== */
+function startFlash() {
+  let pool = selectedEsp === "Todas" ? db : db.filter(x => x.esp === selectedEsp);
+  if (!pool.length) pool = db;
+  order = pool;
+  fi = 0;
+  screen("flash");
+  loadF();
+}
+function loadF() {
+  const q = order[fi];
+  $("ftitle").textContent = q.nome;
+  $("fquestion").innerHTML = `<b>Quais pistas fazem você pensar em ${q.nome}?</b><br><br>Tente lembrar a tríade antes de revelar.`;
+  $("fanswer").style.display = "none";
+  $("revealBtn").style.display = "inline-block";
+  $("fcount").textContent = `${fi + 1} / ${order.length}`;
+}
+function reveal() {
+  const q = order[fi];
+  $("fanswer").innerHTML = `
+    <h3>🔑 Pistas-chave</h3>
+    <div class="pillbox">${q.pistas.map(p => `<span class="pill">${p}</span>`).join("")}</div>
+    <h3>🧠 Tríade</h3>
+    <div class="triad">${q.tri.map((x, k) => `<div class="tri"><b>${k+1}</b>${x}</div>`).join("")}</div>
+    <p>${q.f}</p>
+    <button class="btn secondary" onclick="showDeep(${db.indexOf(q)})">🔬 Fisiopatologia detalhada</button>
+    <div class="ref">📚 ${q.ref}</div>`;
+  $("fanswer").style.display = "block";
+  $("revealBtn").style.display = "none";
+}
+function nextFlash() { fi = (fi + 1) % order.length; loadF(); }
+function prevFlash() { fi = (fi - 1 + order.length) % order.length; loadF(); }
+
+/* ========== ESTATÍSTICAS ========== */
+function showStats() {
+  screen("stats");
+  const s = loadStats();
+  const acc = s.totalQuestions ? Math.round((s.totalCorrect / s.totalQuestions) * 100) : 0;
+  $("statsContent").innerHTML = `
+    <div class="stats-row">
+      <div class="stat"><small>Partidas</small><b>${s.games || 0}</b></div>
+      <div class="stat"><small>Recorde</small><b>${s.highScore || 0}</b></div>
+      <div class="stat"><small>Precisão global</small><b>${acc}%</b></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><small>Acertos totais</small><b>${s.totalCorrect || 0}</b></div>
+      <div class="stat"><small>Questões</small><b>${s.totalQuestions || 0}</b></div>
+      <div class="stat"><small>Melhor combo</small><b>${s.bestCombo || 0}🔥</b></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px">Os dados ficam salvos apenas neste navegador (localStorage).</p>`;
+}
+function resetStats() {
+  if (confirm("Zerar todas as estatísticas?")) {
+    localStorage.removeItem("medquiz_stats");
+    updateHighScore(0);
+    showStats();
+    toast("Estatísticas zeradas");
+  }
+}
+
+/* ========== NAVEGAÇÃO ========== */
+function home() {
+  clearInterval(timer);
+  screen("home");
+  updateHighScore(getHighScore());
+}
+function confirmQuit() {
+  if (answered || confirm("Sair do desafio? O progresso desta partida será perdido.")) home();
+}
+
+/* ========== TECLADO ========== */
+document.addEventListener("keydown", e => {
+  if (!$("game").classList.contains("active")) return;
+  if (answered) {
+    if (e.key === "Enter" || e.key === "n" || e.key === "N") nextQ();
+    return;
+  }
+  if (e.key >= "1" && e.key <= "4") {
+    const btns = [...$("options").querySelectorAll(".option")];
+    const idx = +e.key - 1;
+    if (btns[idx]) btns[idx].click();
+  }
+  if (e.key === "h" || e.key === "H") useHint();
+  if (e.key === "Escape") confirmQuit();
+});
+
+/* ========== INIT ========== */
+buildFilters();
+updateHighScore(getHighScore());
+</script>
+</body>
+</html>

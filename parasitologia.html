@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Parasitologia - Um quiz de Parasitologia para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Parasitologia</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Parasitologia</h1>
+  <p>Desvende os ciclos de vida e interações parasitárias! 🐛</p>
+
+  <div id="terminal">[SISTEMA DE TESTE PARASITOLÓGICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🐛 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE PARASITOLÓGICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE PARASITOLOGIA</h2>
+      <p>Bem-vindo, Futuro Parasitologista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre parasitas e as doenças que causam.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente parasitas, seus hospedeiros, ciclos de vida e patogenias.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre as interações parasita-hospedeiro e a epidemiologia de doenças parasitárias.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Parasitológica" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o control de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A parasitologia é crucial para a saúde pública e ambiental. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Parasitologia foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura científica:</p>
+      <ul>
+        <li>**LIVRO:** Rey, L. - Parasitologia [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Neves, D.P. - Parasitologia Humana [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** CDC (Centers for Disease Control and Prevention) - Informações sobre Parasitas e Doenças Parasitárias.</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Parasitologia.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino de biologia e medicina reconhecidas, como sites de universidades com materiais e cursos de Parasitologia.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+  <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Protozoário vs helminto",
+    "correta": "Protozoário unicelular; helminto multicelular",
+    "texto": "Classificação básica.",
+    "ameaca": "PROTO HELM",
+    "alternativas": [
+      "Iguais",
+      "Protozoário unicelular; helminto multicelular",
+      "Só vírus",
+      "Só fungo"
+    ]
+  },
+  {
+    "inimigo": "Plasmodium",
+    "correta": "Malária; mosquito Anopheles",
+    "texto": "Ciclo hepático e eritrocítico.",
+    "ameaca": "PLASMODIUM",
+    "alternativas": [
+      "Trypanosoma",
+      "Malária; mosquito Anopheles",
+      "Leishmania",
+      "Toxoplasma"
+    ]
+  },
+  {
+    "inimigo": "Plasmodium falciparum",
+    "correta": "Malária grave; hemácias de todas as idades",
+    "texto": "Sequestração e falciforme cerebral.",
+    "ameaca": "PFALCIPARUM",
+    "alternativas": [
+      "P. vivax",
+      "Malária grave; hemácias de todas as idades",
+      "P. ovale",
+      "P. malariae"
+    ]
+  },
+  {
+    "inimigo": "Plasmodium vivax",
+    "correta": "Hipnozoítas; recidivas",
+    "texto": "Tratar com primaquina.",
+    "ameaca": "PVIVAX",
+    "alternativas": [
+      "P. falciparum",
+      "Hipnozoítas; recidivas",
+      "P. malariae",
+      "Babesia"
+    ]
+  },
+  {
+    "inimigo": "Diagnóstico de malária",
+    "correta": "Gotícula espessa e esfregaço fino",
+    "texto": "Antígeno e PCR também.",
+    "ameaca": "DX MALARIA",
+    "alternativas": [
+      "Só sorologia",
+      "Gotícula espessa e esfregaço fino",
+      "Só clínica",
+      "Só RX"
+    ]
+  },
+  {
+    "inimigo": "Trypanosoma cruzi",
+    "correta": "Doença de Chagas; Triatoma",
+    "texto": "Aguda e crônica (coração, mega).",
+    "ameaca": "TCRUZI",
+    "alternativas": [
+      "T. brucei",
+      "Doença de Chagas; Triatoma",
+      "Leishmania",
+      "Toxoplasma"
+    ]
+  },
+  {
+    "inimigo": "Trypanosoma brucei",
+    "correta": "Doença do sono; tsé-tsé",
+    "texto": "África.",
+    "ameaca": "TBRUCEI",
+    "alternativas": [
+      "T. cruzi",
+      "Doença do sono; tsé-tsé",
+      "Leishmania",
+      "Plasmodium"
+    ]
+  },
+  {
+    "inimigo": "Leishmania",
+    "correta": "Leishmaniose; flebotomíneo",
+    "texto": "Cutânea, mucocutânea, visceral.",
+    "ameaca": "LEISHMANIA",
+    "alternativas": [
+      "Trypanosoma",
+      "Leishmaniose; flebotomíneo",
+      "Toxoplasma",
+      "Entamoeba"
+    ]
+  },
+  {
+    "inimigo": "Toxoplasma gondii",
+    "correta": "Toxoplasmose; gato (oocisto)",
+    "texto": "Congênita e em imunodeprimidos.",
+    "ameaca": "TOXOPLASMA",
+    "alternativas": [
+      "Plasmodium",
+      "Toxoplasmose; gato (oocisto)",
+      "Cryptosporidium",
+      "Giardia"
+    ]
+  },
+  {
+    "inimigo": "Entamoeba histolytica",
+    "correta": "Amebíase; disenteria e abscesso hepático",
+    "texto": "Cistos e trofozoítos.",
+    "ameaca": "EHISTOLYTICA",
+    "alternativas": [
+      "E. coli comensal",
+      "Amebíase; disenteria e abscesso hepático",
+      "Giardia",
+      "Cryptosporidium"
+    ]
+  },
+  {
+    "inimigo": "Giardia lamblia",
+    "correta": "Giardíase; diarreia e má absorção",
+    "texto": "Cistos resistentes ao cloro.",
+    "ameaca": "GIARDIA",
+    "alternativas": [
+      "Entamoeba",
+      "Giardíase; diarreia e má absorção",
+      "Cryptosporidium",
+      "Balantidium"
+    ]
+  },
+  {
+    "inimigo": "Cryptosporidium",
+    "correta": "Diarreia em imunodeprimidos; oocistos ácido-álcool",
+    "texto": "Água contaminada.",
+    "ameaca": "CRYPTO PARA",
+    "alternativas": [
+      "Giardia",
+      "Diarreia em imunodeprimidos; oocistos ácido-álcool",
+      "Entamoeba",
+      "Cyclospora"
+    ]
+  },
+  {
+    "inimigo": "Trichomonas vaginalis",
+    "correta": "Tricomoníase; DST",
+    "texto": "Somente trofozoíto; corrimento.",
+    "ameaca": "TRICHOMONAS",
+    "alternativas": [
+      "Giardia",
+      "Tricomoníase; DST",
+      "Candida",
+      "Gardnerella"
+    ]
+  },
+  {
+    "inimigo": "Ascaris lumbricoides",
+    "correta": "Ascaridíase; ovo no solo",
+    "texto": "Ciclo pulmonar; obstrução.",
+    "ameaca": "ASCARIS",
+    "alternativas": [
+      "Ancilóstomo",
+      "Ascaridíase; ovo no solo",
+      "Enterobius",
+      "Trichuris"
+    ]
+  },
+  {
+    "inimigo": "Ancylostoma / Necator",
+    "correta": "Ancilostomíase; larva penetra pele",
+    "texto": "Anemia ferropriva.",
+    "ameaca": "ANCILOSTOMO",
+    "alternativas": [
+      "Ascaris",
+      "Ancilostomíase; larva penetra pele",
+      "Strongyloides",
+      "Enterobius"
+    ]
+  },
+  {
+    "inimigo": "Strongyloides stercoralis",
+    "correta": "Estrongiloidíase; autoinfecção",
+    "texto": "Hiperinfecção em imunossuprimidos.",
+    "ameaca": "STRONGYLOIDES",
+    "alternativas": [
+      "Ancylostoma",
+      "Estrongiloidíase; autoinfecção",
+      "Ascaris",
+      "Trichuris"
+    ]
+  },
+  {
+    "inimigo": "Enterobius vermicularis",
+    "correta": "Oxiuríase; prurido anal",
+    "texto": "Fita adesiva.",
+    "ameaca": "ENTEROBIUS",
+    "alternativas": [
+      "Ascaris",
+      "Oxiuríase; prurido anal",
+      "Trichuris",
+      "Ancylostoma"
+    ]
+  },
+  {
+    "inimigo": "Trichuris trichiura",
+    "correta": "Tricuríase; ovo em formato de barril",
+    "texto": "Disenteria e prolapso em carga alta.",
+    "ameaca": "TRICHURIS",
+    "alternativas": [
+      "Enterobius",
+      "Tricuríase; ovo em formato de barril",
+      "Ascaris",
+      "Strongyloides"
+    ]
+  },
+  {
+    "inimigo": "Schistosoma mansoni",
+    "correta": "Esquistossomose mansônica; Biomphalaria",
+    "texto": "Ovoposição em veias mesentéricas; granuloma.",
+    "ameaca": "SMANSONI",
+    "alternativas": [
+      "S. haematobium",
+      "Esquistossomose mansônica; Biomphalaria",
+      "S. japonicum",
+      "Fasciola"
+    ]
+  },
+  {
+    "inimigo": "Schistosoma haematobium",
+    "correta": "Esquistossomose urinária; hematúria",
+    "texto": "Câncer de bexiga.",
+    "ameaca": "SHAEMATO",
+    "alternativas": [
+      "S. mansoni",
+      "Esquistossomose urinária; hematúria",
+      "S. japonicum",
+      "Clonorchis"
+    ]
+  },
+  {
+    "inimigo": "Taenia solium",
+    "correta": "Teníase e cisticercose (humano hospedeiro intermediário)",
+    "texto": "Carne de porco / ovos.",
+    "ameaca": "TSOLIUM",
+    "alternativas": [
+      "T. saginata",
+      "Teníase e cisticercose (humano hospedeiro intermediário)",
+      "Echinococcus",
+      "Diphyllobothrium"
+    ]
+  },
+  {
+    "inimigo": "Taenia saginata",
+    "correta": "Teníase bovina; sem cisticercose humana típica",
+    "texto": "Carne de boi.",
+    "ameaca": "TSAGINATA",
+    "alternativas": [
+      "T. solium",
+      "Teníase bovina; sem cisticercose humana típica",
+      "Echinococcus",
+      "Hymenolepis"
+    ]
+  },
+  {
+    "inimigo": "Echinococcus granulosus",
+    "correta": "Hidatidose; cisto hidático",
+    "texto": "Cão-ovelha; fígado e pulmão.",
+    "ameaca": "ECHINOCOCCUS",
+    "alternativas": [
+      "Taenia",
+      "Hidatidose; cisto hidático",
+      "Diphyllobothrium",
+      "Hymenolepis"
+    ]
+  },
+  {
+    "inimigo": "Wuchereria bancrofti",
+    "correta": "Filariose linfática; mosquito",
+    "texto": "Elefantíase.",
+    "ameaca": "WUCHERERIA",
+    "alternativas": [
+      "Onchocerca",
+      "Filariose linfática; mosquito",
+      "Loa loa",
+      "Dracunculus"
+    ]
+  },
+  {
+    "inimigo": "Onchocerca volvulus",
+    "correta": "Oncocercose; Simulium",
+    "texto": "Cegueira dos rios.",
+    "ameaca": "ONCHOCERCA",
+    "alternativas": [
+      "Wuchereria",
+      "Oncocercose; Simulium",
+      "Loa loa",
+      "Mansonella"
+    ]
+  },
+  {
+    "inimigo": "Sarcoptes scabiei",
+    "correta": "Escabiose; túneis na pele",
+    "texto": "Prurido noturno.",
+    "ameaca": "SARCOPTES",
+    "alternativas": [
+      "Pediculus",
+      "Escabiose; túneis na pele",
+      "Demodex",
+      "Tunga"
+    ]
+  },
+  {
+    "inimigo": "Pediculus humanus",
+    "correta": "Piolho; pediculose",
+    "texto": "Capitis e corporis.",
+    "ameaca": "PEDICULUS",
+    "alternativas": [
+      "Sarcoptes",
+      "Piolho; pediculose",
+      "Pthirus",
+      "Tunga"
+    ]
+  },
+  {
+    "inimigo": "Pthirus pubis",
+    "correta": "Chato; região pubiana",
+    "texto": "DST.",
+    "ameaca": "PTHIRUS",
+    "alternativas": [
+      "Pediculus",
+      "Chato; região pubiana",
+      "Sarcoptes",
+      "Demodex"
+    ]
+  },
+  {
+    "inimigo": "Ciclo biológico direto",
+    "correta": "Sem hospedeiro intermediário",
+    "texto": "Enterobius, Ascaris (solo).",
+    "ameaca": "CICLO DIRETO",
+    "alternativas": [
+      "Indireto sempre",
+      "Sem hospedeiro intermediário",
+      "Só com mosquito",
+      "Só com caracol"
+    ]
+  },
+  {
+    "inimigo": "Ciclo biológico indireto",
+    "correta": "Hospedeiro intermediário necessário",
+    "texto": "Schistosoma, Taenia, Plasmodium.",
+    "ameaca": "CICLO INDIRETO",
+    "alternativas": [
+      "Direto",
+      "Hospedeiro intermediário necessário",
+      "Só solo",
+      "Só contato"
+    ]
+  },
+  {
+    "inimigo": "Hospedeiro definitivo",
+    "correta": "Onde o parasita atinge maturidade sexual",
+    "texto": "Humano na teníase.",
+    "ameaca": "HOSP DEF",
+    "alternativas": [
+      "Intermediário",
+      "Onde o parasita atinge maturidade sexual",
+      "Só vetor",
+      "Só reservatório"
+    ]
+  },
+  {
+    "inimigo": "Hospedeiro intermediário",
+    "correta": "Onde ocorre fase assexuada ou larval",
+    "texto": "Humano na cisticercose / malária.",
+    "ameaca": "HOSP INT",
+    "alternativas": [
+      "Definitivo",
+      "Onde ocorre fase assexuada ou larval",
+      "Só vetor mecânico",
+      "Só ambiente"
+    ]
+  },
+  {
+    "inimigo": "Vetor biológico",
+    "correta": "Parasita se desenvolve no vetor",
+    "texto": "Anopheles, Triatoma, flebótomo.",
+    "ameaca": "VETOR BIO",
+    "alternativas": [
+      "Mecânico apenas",
+      "Parasita se desenvolve no vetor",
+      "Só mosca mecânica",
+      "Só água"
+    ]
+  },
+  {
+    "inimigo": "Zoonose parasitária",
+    "correta": "Transmissão animal-humano",
+    "texto": "Leishmania, Toxoplasma, Echinococcus.",
+    "ameaca": "ZOONOSE",
+    "alternativas": [
+      "Só humano-humano",
+      "Transmissão animal-humano",
+      "Só vetor sem animal",
+      "Só solo"
+    ]
+  },
+  {
+    "inimigo": "Profilaxia da malária",
+    "correta": "Repelente, rede, quimioprofilaxia, eliminação de criadouros",
+    "texto": "Conforme área.",
+    "ameaca": "PROF MALARIA",
+    "alternativas": [
+      "Só vacina universal",
+      "Repelente, rede, quimioprofilaxia, eliminação de criadouros",
+      "Só ATB",
+      "Só cirurgia"
+    ]
+  },
+  {
+    "inimigo": "Tratamento da malária falciparum",
+    "correta": "Artemisinina combinada (ACT)",
+    "texto": "Conforme gravidade e resistência.",
+    "ameaca": "TX FALCI",
+    "alternativas": [
+      "Só cloroquina sempre",
+      "Artemisinina combinada (ACT)",
+      "Só primaquina",
+      "Só quinino oral leve"
+    ]
+  },
+  {
+    "inimigo": "Tratamento de Chagas aguda",
+    "correta": "Benznidazol ou nifurtimox",
+    "texto": "Eficácia maior na fase aguda.",
+    "ameaca": "TX CHAGAS",
+    "alternativas": [
+      "Só sintomático",
+      "Benznidazol ou nifurtimox",
+      "Só ATB",
+      "Só cirurgia cardíaca"
+    ]
+  },
+  {
+    "inimigo": "Praziquantel",
+    "correta": "Esquistossomose e várias cestodes",
+    "texto": "Anthelmíntico.",
+    "ameaca": "PRAZIQUANTEL",
+    "alternativas": [
+      "Só malária",
+      "Esquistossomose e várias cestodes",
+      "Só protozoários",
+      "Só ectoparasitas"
+    ]
+  },
+  {
+    "inimigo": "Albendazol / Mebendazol",
+    "correta": "Nematoides intestinais",
+    "texto": "Benzimidazóis.",
+    "ameaca": "ALBENDAZOL",
+    "alternativas": [
+      "Praziquantel",
+      "Nematoides intestinais",
+      "Só protozoários",
+      "Só vírus"
+    ]
+  },
+  {
+    "inimigo": "Ivermectina",
+    "correta": "Oncocercose, estrongiloidíase, escabiose",
+    "texto": "Amplamente usada.",
+    "ameaca": "IVERMECTINA",
+    "alternativas": [
+      "Só malária",
+      "Oncocercose, estrongiloidíase, escabiose",
+      "Só teníase",
+      "Só ameba"
+    ]
+  },
+  {
+    "inimigo": "Metronidazol",
+    "correta": "Amebíase, giardíase, tricomoníase",
+    "texto": "Também anaeróbios.",
+    "ameaca": "METRONIDAZOL",
+    "alternativas": [
+      "Albendazol",
+      "Amebíase, giardíase, tricomoníase",
+      "Só helmintos",
+      "Só vírus"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 42)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 42",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 42",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 42",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 43)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 43",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 43",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 43",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 44)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 44",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 44",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 44",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 45)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 45",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 45",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 45",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 46)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 46",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 46",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 46",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 47)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 47",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 47",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 47",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 48)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 48",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 48",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 48",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 49)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 49",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 49",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 49",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 50)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 50",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 50",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 50",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 51)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 51",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 51",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 51",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 52)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 52",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 52",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 52",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 53)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 53",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 53",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 53",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 54)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 54",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 54",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 54",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 55)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 55",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 55",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 55",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 56)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 56",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 56",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 56",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 57)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 57",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 57",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 57",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 58)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 58",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 58",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 58",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 59)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 59",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 59",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 59",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 60)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 60",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 60",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 60",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 61)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 61",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 61",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 61",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 62)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 62",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 62",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 62",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 63)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 63",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 63",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 63",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 64)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 64",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 64",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 64",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 65)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 65",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 65",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 65",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 66)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 66",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 66",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 66",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 67)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 67",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 67",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 67",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 68)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 68",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 68",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 68",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 69)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 69",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 69",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 69",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 70)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 70",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 70",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 70",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 71)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 71",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 71",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 71",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 72)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 72",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 72",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 72",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 73)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 73",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 73",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 73",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 74)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 74",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 74",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 74",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 75)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 75",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 75",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 75",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 76)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 76",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 76",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 76",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 77)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 77",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 77",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 77",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 78)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 78",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 78",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 78",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 79)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 79",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 79",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 79",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 80)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 80",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 80",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 80",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 81)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 81",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 81",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 81",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 82)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 82",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 82",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 82",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 83)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 83",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 83",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 83",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 84)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 84",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 84",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 84",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 85)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 85",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 85",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 85",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 86)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 86",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 86",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 86",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 87)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 87",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 87",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 87",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 88)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 88",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 88",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 88",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 89)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 89",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 89",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 89",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 90)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 90",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 90",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 90",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 91)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 91",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 91",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 91",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 92)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 92",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 92",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 92",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 93)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 93",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 93",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 93",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 94)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 94",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 94",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 94",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 95)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 95",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 95",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 95",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 96)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 96",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 96",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 96",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 97)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 97",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 97",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 97",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 98)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 98",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 98",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 98",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 99)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 99",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 99",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 99",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 100)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 100",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 100",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 100",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 101)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 101",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 101",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 101",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 102)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 102",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 102",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 102",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 103)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 103",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 103",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 103",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 104)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 104",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 104",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 104",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 105)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 105",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 105",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 105",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 106)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 106",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 106",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 106",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 107)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 107",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 107",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 107",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 108)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 108",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 108",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 108",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 109)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 109",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 109",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 109",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 110)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 110",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 110",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 110",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 111)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 111",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 111",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 111",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 112)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 112",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 112",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 112",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 113)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 113",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 113",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 113",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 114)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 114",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 114",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 114",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 115)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 115",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 115",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 115",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 116)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 116",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 116",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 116",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 117)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 117",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 117",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 117",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 118)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 118",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 118",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 118",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 119)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 119",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 119",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 119",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 120)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 120",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 120",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 120",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 121)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 121",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 121",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 121",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 122)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 122",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 122",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 122",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 123)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 123",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 123",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 123",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 124)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 124",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 124",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 124",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 125)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 125",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 125",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 125",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 126)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 126",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 126",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 126",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 127)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 127",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 127",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 127",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 128)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 128",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 128",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 128",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 129)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 129",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 129",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 129",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 130)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 130",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 130",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 130",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 131)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 131",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 131",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 131",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 132)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 132",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 132",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 132",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 133)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 133",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 133",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 133",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 134)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 134",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 134",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 134",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 135)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 135",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 135",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 135",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 136)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 136",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 136",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 136",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 137)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 137",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 137",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 137",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 138)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 138",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 138",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 138",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 139)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 139",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 139",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 139",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 140)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 140",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 140",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 140",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 141)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 141",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 141",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 141",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 142)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 142",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 142",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 142",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 143)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 143",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 143",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 143",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 144)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 144",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 144",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 144",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 145)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 145",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 145",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 145",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 146)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 146",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 146",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 146",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 147)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 147",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 147",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 147",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 148)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 148",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 148",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 148",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 149)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 149",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 149",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 149",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 150)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 150",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 150",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 150",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 151)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 151",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 151",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 151",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 152)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 152",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 152",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 152",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 153)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 153",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 153",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 153",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 154)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 154",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 154",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 154",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 155)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 155",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 155",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 155",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 156)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 156",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 156",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 156",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 157)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 157",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 157",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 157",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 158)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 158",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 158",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 158",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 159)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 159",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 159",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 159",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 160)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 160",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 160",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 160",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 161)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 161",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 161",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 161",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 162)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 162",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 162",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 162",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 163)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 163",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 163",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 163",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 164)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 164",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 164",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 164",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 165)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 165",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 165",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 165",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 166)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 166",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 166",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 166",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 167)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 167",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 167",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 167",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 168)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 168",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 168",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 168",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 169)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 169",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 169",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 169",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 170)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 170",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 170",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 170",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 171)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 171",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 171",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 171",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 172)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 172",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 172",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 172",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 173)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 173",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 173",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 173",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 174)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 174",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 174",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 174",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 175)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 175",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 175",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 175",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 176)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 176",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 176",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 176",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 177)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 177",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 177",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 177",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 178)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 178",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 178",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 178",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 179)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 179",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 179",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 179",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 180)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 180",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 180",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 180",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 181)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 181",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 181",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 181",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 182)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 182",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 182",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 182",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 183)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 183",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 183",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 183",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 184)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 184",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 184",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 184",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 185)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 185",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 185",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 185",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 186)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 186",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 186",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 186",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 187)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 187",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 187",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 187",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 188)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 188",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 188",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 188",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 189)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 189",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 189",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 189",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 190)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 190",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 190",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 190",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 191)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 191",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 191",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 191",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 192)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 192",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 192",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 192",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 193)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 193",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 193",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 193",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 194)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 194",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 194",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 194",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 195)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 195",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 195",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 195",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 196)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 196",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 196",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 196",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 197)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 197",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 197",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 197",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 198)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 198",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 198",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 198",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 199)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 199",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 199",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 199",
+      "Distrator D"
+    ]
+  },
+  {
+    "inimigo": "Aspecto complementar de parasitologia (item 200)",
+    "correta": "Conceito-chave de parasitologia aplicável à prática 200",
+    "texto": "Este item reforça conhecimento essencial de parasitologia para provas e prática clínica.",
+    "ameaca": "PARASITOLOGIA 200",
+    "alternativas": [
+      "Distrator A",
+      "Distrator B",
+      "Conceito-chave de parasitologia aplicável à prática 200",
+      "Distrator D"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🩺 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo}`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>

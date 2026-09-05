@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PenseQuiz Genética - Um quiz de Genética para estudantes e entusiastas.">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>PenseQuiz Genética</title>
+  <style>
+    /* Estilo geral do corpo da página - Tema Retro Terminal */
+    body {
+      margin: 0;
+      background-color: #1a1a1a; /* Fundo escuro */
+      color: #00ff00; /* Cor verde neon para o texto padrão */
+      font-family: "Courier New", monospace; /* Fonte monoespaçada clássica */
+      padding: 20px;
+      overflow: hidden; /* Controla a rolagem no corpo da página */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      text-shadow: 0 0 3px #00ff00; /* Efeito de brilho no texto */
+    }
+
+    /* Estilo dos cabeçalhos e parágrafos */
+    h1, p {
+      text-align: center;
+      text-shadow: 0 0 8px #00ff00; /* Brilho mais intenso para títulos */
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 0.9em;
+      margin-top: 0;
+    }
+
+    /* Estilo do terminal de exibição das mensagens */
+    #terminal {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      height: 40vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se o conteúdo exceder */
+      margin-bottom: 10px;
+      border: 2px solid #00ff00; /* Borda sólida verde neon */
+      padding: 15px;
+      background-color: #0d0d0d; /* Fundo do terminal mais escuro */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Sombra externa para o brilho do terminal */
+      scroll-behavior: smooth;
+      position: relative; /* Para o cursor */
+    }
+
+    /* Estilo para cada entrada de log no terminal */
+    .log-entry {
+      margin-bottom: 8px; /* Espaçamento entre as linhas de log */
+      padding: 2px 0;
+      display: block; /* Garante que cada entrada ocupe sua própria linha */
+    }
+
+    /* Cores específicas para mensagens de alerta e diagnóstico */
+    .log-entry.alerta {
+        color: #FF0000; /* Vermelho vibrante para alertas */
+        text-shadow: 0 0 5px #FF0000, 0 0 10px rgba(255, 0, 0, 0.7); /* Brilho vermelho */
+        font-weight: bold;
+    }
+
+    .log-entry.diagnostico {
+        color: #00BFFF; /* Azul profundo para diagnóstico */
+        text-shadow: 0 0 5px #00BFFF, 0 0 10px rgba(0, 191, 255, 0.7); /* Brilho azul */
+        font-weight: bold;
+    }
+
+    .log-entry.input_req { /* Nova cor para INPUT_REQ */
+        color: gold; /* Gold */
+        text-shadow: 0 0 5px gold, 0 0 10px rgba(255, 215, 0, 0.7);
+        font-weight: bold;
+    }
+
+    /* Cursor piscante */
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background-color: #00ff00;
+      animation: blink-caret 0.75s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink-caret {
+      from, to { background-color: transparent }
+      50% { background-color: #00ff00; }
+    }
+
+    /* Contêiner para os botões de escolha */
+    #choices {
+      display: flex;
+      flex-direction: row; /* Alterado para linha */
+      flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+      justify-content: center; /* Centraliza os botões na linha */
+      gap: 10px; /* Espaço entre os botões */
+      margin-top: 15px;
+      height: 30vh; /* Altura ajustada para acomodar botões extra */
+      overflow-y: auto; /* Adiciona rolagem vertical se as escolhas excederem */
+      align-items: flex-start; /* Alinha os itens ao topo */
+    }
+
+    /* Estilo dos botões de alternativa */
+    .choice {
+      background: #333; /* Fundo escuro para os botões */
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center; /* Centraliza o texto dentro do botão */
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 4px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5); /* Sombra para efeito 3D */
+      flex: 1 1 calc(50% - 10px); /* Ocupa 50% da largura menos o gap, permite encolher */
+      max-width: calc(50% - 10px); /* Garante que não exceda 50% */
+    }
+
+    /* Ajuste para telas menores para que os botões fiquem em coluna novamente se necessário */
+    @media (max-width: 600px) {
+        .choice {
+            flex: 1 1 100%; /* Ocupa 100% da largura em telas pequenas */
+            max-width: 100%;
+        }
+    }
+
+    /* Efeito ao passar o mouse sobre os botões */
+    .choice:hover {
+      background-color: #444; /* Fundo um pouco mais claro no hover */
+      box-shadow: 0 0 10px #00ff00, 0 0 15px rgba(0, 255, 0, 0.3);
+      transform: translateY(-2px); /* Pequeno levantamento */
+    }
+
+    /* Estilo para botões desabilitados */
+    .choice:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        background-color: #222;
+    }
+
+    /* Cores de feedback para os botões de escolha */
+    .choice.selected { /* Cor quando o usuário clica */
+        background-color: #FFD700; /* Gold */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #FFD700;
+    }
+
+    .choice.correct { /* Cor da resposta correta */
+        background-color: #39ff14; /* Verde sucesso */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #39ff14;
+    }
+
+    .choice.incorrect { /* Cor da resposta incorreta selecionada pelo usuário */
+        background-color: #ff3333; /* Vermelho falha */
+        color: #1a1a1a;
+        box-shadow: 0 0 10px #ff3333;
+    }
+
+
+    /* Estilo do placar de pontuação */
+    #placar {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-shadow: 0 0 6px #00ff00;
+      border: 1px dashed #00ff00;
+      padding: 8px;
+      border-radius: 5px;
+      background-color: #0d0d0d;
+    }
+
+    /* Estilo do rodapé */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      margin-top: auto;
+      padding-top: 15px;
+      color: #99ff99; /* Cor mais suave para o rodapé */
+      text-shadow: none;
+    }
+
+    /* Contêiner para os botões de controle (reiniciar, manual, referência) */
+    #control-buttons-container {
+        display: flex; /* Usa flexbox para colocá-los lado a lado */
+        justify-content: center; /* Centraliza os botões no contêiner */
+        gap: 15px; /* Espaço entre os botões */
+        margin-top: 20px; /* Espaçamento acima */
+    }
+
+    /* Estilo dos botões de controle */
+    .control-button {
+      padding: 10px 20px;
+      background-color: #333;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 0 8px #00ff00, 0 0 15px rgba(0, 255, 0, 0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .control-button:hover {
+      background-color: #555;
+      box-shadow: 0 0 15px #00ff00, 0 0 25px rgba(0, 255, 0, 0.6) inset;
+      transform: scale(1.02);
+    }
+
+    /* Estilo específico para o botão reiniciar (que aparece depois) */
+    #reiniciar {
+      display: none; /* Inicia oculto */
+      margin-top: 20px; /* Separar um pouco dos outros */
+      width: fit-content; /* Ajusta a largura ao conteúdo */
+    }
+
+    /* Estilo do modal (manual e referências) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 5% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 2px solid #00ff00;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-family: "Courier New", monospace;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h2 {
+        text-align: center;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 20px;
+    }
+
+    .modal-content p, .modal-content ul {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .modal-content ul li {
+        margin-left: 20px;
+        list-style-type: '⚡ '; /* Custom bullet point */
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PenseQuiz Genética</h1>
+  <p>Desvende os segredos do DNA e da hereditariedade! 🧬</p>
+
+  <div id="terminal">[SISTEMA DE TESTE GENÉTICO INICIADO] 🔐</div>
+  <div id="placar">✅ Acertos: 0 | ❌ Erros: 0 | 🧬 Perguntas restantes: 0</div>
+  <div id="choices"></div>
+  
+  <div id="control-buttons-container">
+    <button id="manualBtn" class="control-button" onclick="showManual()">📚 MANUAL DO SISTEMA</button>
+    <button id="referencesBtn" class="control-button" onclick="showReferences()">📑 REFERÊNCIAS BIBLIOGRÁFICAS</button>
+  </div>
+  <button id="reiniciar" class="control-button" onclick="reiniciarQuiz()">🔁 REINICIAR TESTE GENÉTICO</button>
+
+  <footer>
+    © 2025 PenseQuiz.com — Todos os direitos reservados.<br>
+    Contato: juniosilvasouza@yahoo.com.br | WhatsApp: (92) 98856-2216
+  </footer>
+
+  <div id="manualModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('manualModal')">&times;</span>
+      <h2>MANUAL DO SISTEMA DE GENÉTICA</h2>
+      <p>Bem-vindo, Futuro Geneticista! Este simulador foi desenvolvido para aprimorar seus conhecimentos sobre os princípios da hereditariedade e a biologia molecular.</p>
+      
+      <h3>OBJETIVO DA MISSÃO:</h3>
+      <ul>
+        <li>Identificar corretamente conceitos genéticos, estruturas de ácidos nucleicos e padrões de herança.</li>
+        <li>Selecionar a opção mais precisa entre as alternativas disponíveis.</li>
+        <li>Aumentar seu conhecimento sobre como as características são transmitidas e expressas.</li>
+      </ul>
+
+      <h3>COMO JOGAR:</h3>
+      <ol>
+        <li><strong>Início:</strong> O sistema iniciará a simulação e apresentará uma "Questão Genética" no terminal.</li>
+        <li><strong>Análise:</strong> Leia a questão e a descrição ("SCAN") cuidadosamente.</li>
+        <li><strong>Seleção:</strong> Abaixo do terminal, você encontrará quatro opções de resposta. Clique na opção que você considera a correta.</li>
+        <li><strong>Feedback:</strong> O sistema informará se sua resposta foi "CORRETA" ou "INCORRETA". A alternativa correta será destacada.</li>
+        <li><strong>Progresso:</strong> O placar no topo da tela manterá o controle de seus acertos, erros e o número de questões restantes.</li>
+        <li><strong>Finalização:</strong> A simulação terminará quando todas as questões tiverem sido processadas.</li>
+      </ol>
+
+      <h3>PONTUAÇÃO:</h3>
+      <ul>
+        <li>Cada resposta correta aumenta seu contador de "Acertos".</li>
+        <li>Cada resposta incorreta aumenta seu contador de "Erros".</li>
+      </ul>
+
+      <p>Prepare-se para o desafio! A genética é a chave para entender a diversidade da vida. Boa sorte, Operador!</p>
+    </div>
+  </div>
+
+  <div id="referencesModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal('referencesModal')">&times;</span>
+      <h2>REFERÊNCIAS BIBLIOGRÁFICAS</h2>
+      <p>As perguntas e respostas contidas neste PenseQuiz Genética foram elaboradas com base em conhecimentos gerais da área, com o objetivo de auxiliar no aprendizado e revisão.</p>
+      <p>Para aprofundamento e estudo detalhado, recomenda-se consultar as seguintes fontes fidedignas da literatura científica:</p>
+      <ul>
+        <li>**LIVRO:** Griffiths, Wessler, Carroll & Doebley - Introdução à Genética [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Pierce - Genética: Um Enfoque Conceitual [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**LIVRO:** Klug, Cummings, Spencer & Palladino - Conceitos de Genética [Ano da Edição], Editora [Nome da Editora].</li>
+        <li>**ARTIGOS CIENTÍFICOS:** Artigos e revisões publicados em periódicos científicos renomados na área de Genética.</li>
+        <li>**RECURSOS ONLINE:** Plataformas de ensino de biologia molecular e genética reconhecidas, como sites de universidades com materiais e cursos de Genética.</li>
+      </ul>
+      <p>Lembre-se que este quiz é uma ferramenta de estudo e não substitui o aprofundamento em livros didáticos e consultas a fontes primárias de conhecimento.</p>
+    </div>
+  </div>
+
+    <script>
+    const terminal = document.getElementById("terminal");
+    const choicesDiv = document.getElementById("choices");
+    const placarDiv = document.getElementById("placar");
+    const botaoReiniciar = document.getElementById("reiniciar");
+    const manualModal = document.getElementById("manualModal");
+    const referencesModal = document.getElementById("referencesModal");
+
+    const desafiosOriginais = [
+  {
+    "inimigo": "Unidade básica da hereditariedade em um locus cromossômico",
+    "correta": "Gene",
+    "texto": "Sequência de DNA que codifica um produto funcional (proteína ou RNA).",
+    "ameaca": "GENE",
+    "alternativas": [
+      "Cromossomo",
+      "Gene",
+      "Códon",
+      "Íntron"
+    ]
+  },
+  {
+    "inimigo": "Replicação do DNA em que cada molécula nova tem uma fita antiga e uma nova",
+    "correta": "Semiconservativa",
+    "texto": "Modelo de Watson e Crick confirmado por Meselson-Stahl.",
+    "ameaca": "REPLICACAO",
+    "alternativas": [
+      "Conservativa",
+      "Dispersiva",
+      "Semiconservativa",
+      "Aleatória"
+    ]
+  },
+  {
+    "inimigo": "Trinca de nucleotídeos no mRNA que codifica um aminoácido",
+    "correta": "Códon",
+    "texto": "64 códons possíveis; código degenerado.",
+    "ameaca": "CODON",
+    "alternativas": [
+      "Anticódon",
+      "Códon",
+      "Íntron",
+      "Éxon"
+    ]
+  },
+  {
+    "inimigo": "Manifestação observável de um genótipo",
+    "correta": "Fenótipo",
+    "texto": "Resultado da interação genótipo × ambiente.",
+    "ameaca": "FENOTIPO",
+    "alternativas": [
+      "Genótipo",
+      "Fenótipo",
+      "Alelo",
+      "Locus"
+    ]
+  },
+  {
+    "inimigo": "Troca de segmentos entre cromossomos homólogos na meiose",
+    "correta": "Crossing-over",
+    "texto": "Ocorre na prófase I; aumenta recombinação.",
+    "ameaca": "CROSSING OVER",
+    "alternativas": [
+      "Translocação",
+      "Inversão",
+      "Crossing-over",
+      "Não-disjunção"
+    ]
+  },
+  {
+    "inimigo": "Herança em que ambos os alelos se expressam no heterozigoto",
+    "correta": "Codominância",
+    "texto": "Ex.: sistema ABO (AB).",
+    "ameaca": "CODOMINANCIA",
+    "alternativas": [
+      "Dominância completa",
+      "Recessividade",
+      "Codominância",
+      "Epistasia"
+    ]
+  },
+  {
+    "inimigo": "Alteração permanente na sequência de nucleotídeos do DNA",
+    "correta": "Mutação",
+    "texto": "Pode ser pontual, de frameshift, cromossômica etc.",
+    "ameaca": "MUTACAO",
+    "alternativas": [
+      "Recombinação",
+      "Mutação",
+      "Tradução",
+      "Splicing"
+    ]
+  },
+  {
+    "inimigo": "Síntese de proteína a partir do mRNA",
+    "correta": "Tradução",
+    "texto": "Ocorre nos ribossomos; envolve tRNA e aminoácidos.",
+    "ameaca": "TRADUCAO",
+    "alternativas": [
+      "Transcrição",
+      "Tradução",
+      "Replicação",
+      "Splicing"
+    ]
+  },
+  {
+    "inimigo": "Composição genética de um organismo (alelos)",
+    "correta": "Genótipo",
+    "texto": "AA, Aa ou aa para um loco.",
+    "ameaca": "GENOTIPO",
+    "alternativas": [
+      "Fenótipo",
+      "Genótipo",
+      "Cariótipo",
+      "Haplótipo"
+    ]
+  },
+  {
+    "inimigo": "Conjunto de genes adjacentes sob um único promotor (bactérias)",
+    "correta": "Operon",
+    "texto": "Ex.: operon lac.",
+    "ameaca": "OPERON",
+    "alternativas": [
+      "Éxon",
+      "Íntron",
+      "Operon",
+      "Enhancer"
+    ]
+  },
+  {
+    "inimigo": "Pareamento de bases no DNA",
+    "correta": "A-T e G-C (pontes de hidrogênio)",
+    "texto": "Adenina com Timina (2 H); Guanina com Citosina (3 H).",
+    "ameaca": "BASES",
+    "alternativas": [
+      "A-G e T-C",
+      "A-T e G-C (pontes de hidrogênio)",
+      "A-C e G-T",
+      "A-A e T-T"
+    ]
+  },
+  {
+    "inimigo": "Enzima que sintetiza a nova fita de DNA",
+    "correta": "DNA polimerase",
+    "texto": "Necessita de primer; atividade 5'→3'.",
+    "ameaca": "DNA POL",
+    "alternativas": [
+      "RNA polimerase",
+      "Ligase",
+      "DNA polimerase",
+      "Helicase"
+    ]
+  },
+  {
+    "inimigo": "Enzima que abre a dupla hélice na replicação",
+    "correta": "Helicase",
+    "texto": "Quebra pontes de hidrogênio entre as bases.",
+    "ameaca": "HELICASE",
+    "alternativas": [
+      "Ligase",
+      "Primase",
+      "Helicase",
+      "Topoisomerase"
+    ]
+  },
+  {
+    "inimigo": "Enzima que une fragmentos de Okazaki",
+    "correta": "DNA ligase",
+    "texto": "Forma ligações fosfodiéster.",
+    "ameaca": "LIGASE",
+    "alternativas": [
+      "Helicase",
+      "Primase",
+      "DNA ligase",
+      "Telomerase"
+    ]
+  },
+  {
+    "inimigo": "Fragmentos sintetizados na fita descontínua",
+    "correta": "Fragmentos de Okazaki",
+    "texto": "Fita lagging; unidos pela ligase.",
+    "ameaca": "OKAZAKI",
+    "alternativas": [
+      "Primers",
+      "Éxons",
+      "Fragmentos de Okazaki",
+      "Íntrons"
+    ]
+  },
+  {
+    "inimigo": "Síntese de RNA a partir do DNA",
+    "correta": "Transcrição",
+    "texto": "RNA polimerase; no núcleo (eucariotos).",
+    "ameaca": "TRANSCRICAO",
+    "alternativas": [
+      "Tradução",
+      "Replicação",
+      "Transcrição",
+      "Splicing"
+    ]
+  },
+  {
+    "inimigo": "Região do gene que é removida no splicing",
+    "correta": "Íntron",
+    "texto": "Não codifica proteína; éíxons que permanecem.",
+    "ameaca": "INTRON",
+    "alternativas": [
+      "Éxon",
+      "Promotor",
+      "Íntron",
+      "Códon de início"
+    ]
+  },
+  {
+    "inimigo": "Região codificadora que permanece no mRNA maduro",
+    "correta": "Éxon",
+    "texto": "Splicing remove íntrons e une éxons.",
+    "ameaca": "EXON",
+    "alternativas": [
+      "Íntron",
+      "Éxon",
+      "Operon",
+      "Enhancer"
+    ]
+  },
+  {
+    "inimigo": "Anticódon localiza-se no",
+    "correta": "tRNA",
+    "texto": "Pareia com o códon do mRNA durante a tradução.",
+    "ameaca": "TRNA",
+    "alternativas": [
+      "mRNA",
+      "rRNA",
+      "tRNA",
+      "snRNA"
+    ]
+  },
+  {
+    "inimigo": "Códon de início da tradução",
+    "correta": "AUG (metionina)",
+    "texto": "Também codifica Met no meio da cadeia.",
+    "ameaca": "AUG",
+    "alternativas": [
+      "UAA",
+      "UAG",
+      "AUG (metionina)",
+      "UGA"
+    ]
+  },
+  {
+    "inimigo": "Códons de parada (stop)",
+    "correta": "UAA, UAG, UGA",
+    "texto": "Não codificam aminoácido; terminam a tradução.",
+    "ameaca": "STOP",
+    "alternativas": [
+      "AUG",
+      "UAA, UAG, UGA",
+      "AAA",
+      "GGG"
+    ]
+  },
+  {
+    "inimigo": "Número de cromossomos humanos diploides",
+    "correta": "46 (23 pares)",
+    "texto": "22 autossomos + 1 par sexual.",
+    "ameaca": "CARIOTIPO",
+    "alternativas": [
+      "23",
+      "46 (23 pares)",
+      "92",
+      "44"
+    ]
+  },
+  {
+    "inimigo": "Cromossomos sexuais humanos",
+    "correta": "XX (mulher) e XY (homem)",
+    "texto": "Determinação sexual.",
+    "ameaca": "SEXUAL",
+    "alternativas": [
+      "XX e YY",
+      "XO e XX",
+      "XX (mulher) e XY (homem)",
+      "ZZ e ZW apenas"
+    ]
+  },
+  {
+    "inimigo": "Não-disjunção meiótica pode causar",
+    "correta": "Aneuploidia (ex.: trissomia 21)",
+    "texto": "Cromossomos não se separam corretamente.",
+    "ameaca": "NAO DISJUNCAO",
+    "alternativas": [
+      "Poliploidia apenas",
+      "Aneuploidia (ex.: trissomia 21)",
+      "Deleção apenas",
+      "Inversão"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Down",
+    "correta": "Trissomia do cromossomo 21",
+    "texto": "Aneuploidia mais comum; risco aumenta com idade materna.",
+    "ameaca": "DOWN",
+    "alternativas": [
+      "Monossomia 21",
+      "Trissomia do cromossomo 21",
+      "Trissomia 18",
+      "45,X"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Turner",
+    "correta": "45,X (monossomia X)",
+    "texto": "Fenótipo feminino; amenorreia, baixa estatura.",
+    "ameaca": "TURNER",
+    "alternativas": [
+      "47,XXY",
+      "45,X (monossomia X)",
+      "47,XXX",
+      "46,XY"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Klinefelter",
+    "correta": "47,XXY",
+    "texto": "Fenótipo masculino; hipogonadismo, infertilidade.",
+    "ameaca": "KLINEFELTER",
+    "alternativas": [
+      "45,X",
+      "47,XXY",
+      "47,XYY",
+      "46,XX"
+    ]
+  },
+  {
+    "inimigo": "Herança autossômica dominante",
+    "correta": "Afeta ambos os sexos; transmitida por afetados; 50% de risco",
+    "texto": "Ex.: acondroplasia, Huntington.",
+    "ameaca": "AD",
+    "alternativas": [
+      "Só mulheres",
+      "Afeta ambos os sexos; transmitida por afetados; 50% de risco",
+      "Só se ambos os pais forem portadores",
+      "Ligada ao X"
+    ]
+  },
+  {
+    "inimigo": "Herança autossômica recessiva",
+    "correta": "Afeta ambos os sexos; pais geralmente saudáveis (portadores)",
+    "texto": "Ex.: fibrose cística, anemia falciforme.",
+    "ameaca": "AR",
+    "alternativas": [
+      "Só homens",
+      "Afeta ambos os sexos; pais geralmente saudáveis (portadores)",
+      "Todos os filhos de afetado são afetados",
+      "Ligada ao Y"
+    ]
+  },
+  {
+    "inimigo": "Herança ligada ao X recessiva",
+    "correta": "Mais homens afetados; mulheres portadoras transmitem",
+    "texto": "Ex.: hemofilia A, daltonismo.",
+    "ameaca": "XR",
+    "alternativas": [
+      "Mais mulheres",
+      "Mais homens afetados; mulheres portadoras transmitem",
+      "Só autossômica",
+      "Igual à dominante autossômica"
+    ]
+  },
+  {
+    "inimigo": "Herança mitocondrial",
+    "correta": "Transmitida apenas pela mãe; todos os filhos podem herdar",
+    "texto": "DNA mitocondrial de origem ovular.",
+    "ameaca": "MITOCONDRIAL",
+    "alternativas": [
+      "Só pelo pai",
+      "Transmitida apenas pela mãe; todos os filhos podem herdar",
+      "Igual à ligada ao X",
+      "Só autossômica"
+    ]
+  },
+  {
+    "inimigo": "Penetrância incompleta",
+    "correta": "Nem todos os portadores do genótipo expressam o fenótipo",
+    "texto": "Ex.: polidactilia.",
+    "ameaca": "PENETRANCIA",
+    "alternativas": [
+      "Expressão variável apenas",
+      "Nem todos os portadores do genótipo expressam o fenótipo",
+      "Sempre 100%",
+      "Só em recessivos"
+    ]
+  },
+  {
+    "inimigo": "Expressividade variável",
+    "correta": "Grau diferente de manifestação do mesmo genótipo",
+    "texto": "Ex.: neurofibromatose.",
+    "ameaca": "EXPRESSIVIDADE",
+    "alternativas": [
+      "Penetrância zero",
+      "Grau diferente de manifestação do mesmo genótipo",
+      "Sempre idêntica",
+      "Só ambiental"
+    ]
+  },
+  {
+    "inimigo": "Epistasia",
+    "correta": "Um gene mascara a expressão de outro gene",
+    "texto": "Interação génica; razão fenotípica modificada.",
+    "ameaca": "EPISTASIA",
+    "alternativas": [
+      "Codominância",
+      "Um gene mascara a expressão de outro gene",
+      "Pleiotropia apenas",
+      "Ligação gênica"
+    ]
+  },
+  {
+    "inimigo": "Pleiotropia",
+    "correta": "Um único gene afeta múltiplos traços fenotípicos",
+    "texto": "Ex.: fenilcetonúria.",
+    "ameaca": "PLEIOTROPIA",
+    "alternativas": [
+      "Epistasia",
+      "Um único gene afeta múltiplos traços fenotípicos",
+      "Poligenia",
+      "Codominância"
+    ]
+  },
+  {
+    "inimigo": "Herança poligênica / quantitativa",
+    "correta": "Muitos genes + ambiente determinam o traço",
+    "texto": "Ex.: altura, cor da pele, pressão arterial.",
+    "ameaca": "POLIGENICA",
+    "alternativas": [
+      "Monogênica simples",
+      "Muitos genes + ambiente determinam o traço",
+      "Só mitocondrial",
+      "Só ligada ao X"
+    ]
+  },
+  {
+    "inimigo": "Imprinting genômico",
+    "correta": "Expressão depende da origem parental (materna ou paterna)",
+    "texto": "Metilação diferencial; ex.: Prader-Willi / Angelman.",
+    "ameaca": "IMPRINTING",
+    "alternativas": [
+      "Igual nos dois sexos sempre",
+      "Expressão depende da origem parental (materna ou paterna)",
+      "Só em mitocôndrias",
+      "Só em plantas"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Prader-Willi",
+    "correta": "Deleção paterna 15q11-13 (ou dissomia materna)",
+    "texto": "Hipotonia, hiperfagia, obesidade.",
+    "ameaca": "PRADER WILLI",
+    "alternativas": [
+      "Deleção materna",
+      "Deleção paterna 15q11-13 (ou dissomia materna)",
+      "Trissomia 15",
+      "45,X"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Angelman",
+    "correta": "Deleção materna 15q11-13 (ou dissomia paterna)",
+    "texto": "Atraso grave, riso inadequado, convulsões.",
+    "ameaca": "ANGELMAN",
+    "alternativas": [
+      "Deleção paterna",
+      "Deleção materna 15q11-13 (ou dissomia paterna)",
+      "Trissomia 21",
+      "47,XXY"
+    ]
+  },
+  {
+    "inimigo": "PCR (reação em cadeia da polimerase)",
+    "correta": "Amplifica exponencialmente um segmento de DNA in vitro",
+    "texto": "Usa primers, dNTPs e polimerase termoestável.",
+    "ameaca": "PCR",
+    "alternativas": [
+      "Sequenciamento de Sanger apenas",
+      "Amplifica exponencialmente um segmento de DNA in vitro",
+      "Só clona em bactérias",
+      "Só southern blot"
+    ]
+  },
+  {
+    "inimigo": "Eletroforese em gel",
+    "correta": "Separa fragmentos de DNA por tamanho sob campo elétrico",
+    "texto": "DNA migra para o polo positivo.",
+    "ameaca": "ELETROFORESE",
+    "alternativas": [
+      "Só por carga de proteínas",
+      "Separa fragmentos de DNA por tamanho sob campo elétrico",
+      "Só amplifica",
+      "Só sequencia"
+    ]
+  },
+  {
+    "inimigo": "Southern blot",
+    "correta": "Detecta sequência específica de DNA após eletroforese e transferência",
+    "texto": "Usa sonda marcada.",
+    "ameaca": "SOUTHERN",
+    "alternativas": [
+      "Northern (RNA)",
+      "Detecta sequência específica de DNA após eletroforese e transferência",
+      "Western (proteína)",
+      "Só PCR"
+    ]
+  },
+  {
+    "inimigo": "Northern blot",
+    "correta": "Detecta RNA específico",
+    "texto": "Expressão gênica.",
+    "ameaca": "NORTHERN",
+    "alternativas": [
+      "Southern",
+      "Detecta RNA específico",
+      "Western",
+      "Só DNA"
+    ]
+  },
+  {
+    "inimigo": "Western blot",
+    "correta": "Detecta proteína específica com anticorpo",
+    "texto": "Expressão proteica.",
+    "ameaca": "WESTERN",
+    "alternativas": [
+      "Southern",
+      "Northern",
+      "Detecta proteína específica com anticorpo",
+      "Só PCR"
+    ]
+  },
+  {
+    "inimigo": "CRISPR-Cas9",
+    "correta": "Sistema de edição genômica guiado por RNA",
+    "texto": "Corta DNA em local específico; permite knock-out ou inserção.",
+    "ameaca": "CRISPR",
+    "alternativas": [
+      "Só PCR",
+      "Sistema de edição genômica guiado por RNA",
+      "Só eletroforese",
+      "Só clonagem clássica"
+    ]
+  },
+  {
+    "inimigo": "Telômero",
+    "correta": "Extremidade do cromossomo linear; encurta a cada divisão",
+    "texto": "Telomerase mantém em células germinativas e câncer.",
+    "ameaca": "TELOMERO",
+    "alternativas": [
+      "Centrômero",
+      "Extremidade do cromossomo linear; encurta a cada divisão",
+      "Íntron",
+      "Promotor"
+    ]
+  },
+  {
+    "inimigo": "Centrômero",
+    "correta": "Região de ligação das cromátides irmãs e do cinetócoro",
+    "texto": "Essencial para segregação mitótica/meiótica.",
+    "ameaca": "CENTROMERO",
+    "alternativas": [
+      "Telômero",
+      "Região de ligação das cromátides irmãs e do cinetócoro",
+      "Éxon",
+      "Códon"
+    ]
+  },
+  {
+    "inimigo": "Cariótipo",
+    "correta": "Representação ordenada dos cromossomos de uma célula",
+    "texto": "Detecta aneuploidias e grandes rearranjos.",
+    "ameaca": "CARIOTIPO EXAME",
+    "alternativas": [
+      "Genótipo molecular",
+      "Representação ordenada dos cromossomos de uma célula",
+      "Fenótipo apenas",
+      "Só PCR"
+    ]
+  },
+  {
+    "inimigo": "FISH (hibridização in situ fluorescente)",
+    "correta": "Detecta sequências específicas nos cromossomos com sondas fluorescentes",
+    "texto": "Útil para microdeleções e rearranjos.",
+    "ameaca": "FISH",
+    "alternativas": [
+      "Só PCR quantitativo",
+      "Detecta sequências específicas nos cromossomos com sondas fluorescentes",
+      "Só western",
+      "Só eletroforese simples"
+    ]
+  },
+  {
+    "inimigo": "Array-CGH / SNP-array",
+    "correta": "Detecta ganhos e perdas de material genômico em todo o genoma",
+    "texto": "Maior resolução que o cariótipo clássico.",
+    "ameaca": "ARRAY CGH",
+    "alternativas": [
+      "Só cariótipo de bandas",
+      "Detecta ganhos e perdas de material genômico em todo o genoma",
+      "Só sequenciamento de um gene",
+      "Só PCR"
+    ]
+  },
+  {
+    "inimigo": "Sequenciamento de Sanger",
+    "correta": "Método clássico de sequenciamento por terminação de cadeia (ddNTPs)",
+    "texto": "Ainda usado para confirmação de variantes.",
+    "ameaca": "SANGER",
+    "alternativas": [
+      "Só NGS",
+      "Método clássico de sequenciamento por terminação de cadeia (ddNTPs)",
+      "Só PCR",
+      "Só eletroforese"
+    ]
+  },
+  {
+    "inimigo": "NGS (next-generation sequencing)",
+    "correta": "Sequenciamento massivo paralelo de milhões de fragmentos",
+    "texto": "Exomas, genomas, painéis.",
+    "ameaca": "NGS",
+    "alternativas": [
+      "Só Sanger",
+      "Sequenciamento massivo paralelo de milhões de fragmentos",
+      "Só southern",
+      "Só FISH"
+    ]
+  },
+  {
+    "inimigo": "Variante patogênica vs benigna",
+    "correta": "Classificação por critérios (ACMG): frequência, efeito funcional, segregação",
+    "texto": "Importante no laudo genético.",
+    "ameaca": "VARIANTE",
+    "alternativas": [
+      "Todas as variantes são patogênicas",
+      "Classificação por critérios (ACMG): frequência, efeito funcional, segregação",
+      "Só por tamanho",
+      "Só por localização"
+    ]
+  },
+  {
+    "inimigo": "Aconselhamento genético",
+    "correta": "Processo de comunicação de riscos, opções e suporte psicológico",
+    "texto": "Não-diretivo; informed consent.",
+    "ameaca": "ACONSELHAMENTO",
+    "alternativas": [
+      "Prescrição obrigatória de teste",
+      "Processo de comunicação de riscos, opções e suporte psicológico",
+      "Só resultado laboratorial",
+      "Só tratamento"
+    ]
+  },
+  {
+    "inimigo": "Teste de portador",
+    "correta": "Identifica heterozigotos para doenças recessivas",
+    "texto": "Planejamento familiar / triagem populacional.",
+    "ameaca": "PORTADOR",
+    "alternativas": [
+      "Só diagnóstico de afetados",
+      "Identifica heterozigotos para doenças recessivas",
+      "Só cariótipo",
+      "Só NGS de tumor"
+    ]
+  },
+  {
+    "inimigo": "Diagnóstico pré-natal invasivo",
+    "correta": "Amniocentese ou biópsia de vilo corial para análise genética fetal",
+    "texto": "Risco de perda gestacional.",
+    "ameaca": "PRE NATAL",
+    "alternativas": [
+      "Só ultrassom",
+      "Amniocentese ou biópsia de vilo corial para análise genética fetal",
+      "Só NIPT sem confirmação",
+      "Só pós-natal"
+    ]
+  },
+  {
+    "inimigo": "NIPT (teste pré-natal não invasivo)",
+    "correta": "DNA fetal livre no sangue materno; triagem de aneuploidias",
+    "texto": "Não é diagnóstico; requer confirmação se positivo.",
+    "ameaca": "NIPT",
+    "alternativas": [
+      "Diagnóstico definitivo sempre",
+      "DNA fetal livre no sangue materno; triagem de aneuploidias",
+      "Só cariótipo de vilo",
+      "Só ultrassom"
+    ]
+  },
+  {
+    "inimigo": "Mosaicismo",
+    "correta": "Presença de duas ou mais linhagens celulares com genótipos diferentes",
+    "texto": "Pode afetar gravidade e detecção do teste.",
+    "ameaca": "MOSAICISMO",
+    "alternativas": [
+      "Sempre uniforme em todas as células",
+      "Presença de duas ou mais linhagens celulares com genótipos diferentes",
+      "Só em plantas",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Quimerismo",
+    "correta": "Indivíduo com células de duas zigotos diferentes (ex.: transfusão gemelar)",
+    "texto": "Raro; pode confundir testes.",
+    "ameaca": "QUIMERISMO",
+    "alternativas": [
+      "Mosaicismo igual",
+      "Indivíduo com células de duas zigotos diferentes (ex.: transfusão gemelar)",
+      "Só em tumores",
+      "Só em bactérias"
+    ]
+  },
+  {
+    "inimigo": "Oncogene",
+    "correta": "Gene que, quando ativado, promove câncer (ganho de função)",
+    "texto": "Ex.: RAS, MYC, HER2.",
+    "ameaca": "ONCOGENE",
+    "alternativas": [
+      "Gene supressor",
+      "Gene que, quando ativado, promove câncer (ganho de função)",
+      "Só DNA reparo",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Gene supressor de tumor",
+    "correta": "Gene que inibe proliferação; perda de ambas as cópias favorece câncer",
+    "texto": "Ex.: TP53, RB1, BRCA1/2.",
+    "ameaca": "SUPRESSOR",
+    "alternativas": [
+      "Oncogene",
+      "Gene que inibe proliferação; perda de ambas as cópias favorece câncer",
+      "Só DNA polimerase",
+      "Só tRNA"
+    ]
+  },
+  {
+    "inimigo": "Knudson (dois hits)",
+    "correta": "Modelo para genes supressores: ambas as alelos precisam ser inativadas",
+    "texto": "Explica câncer hereditário vs esporádico.",
+    "ameaca": "KNUDSON",
+    "alternativas": [
+      "Só um hit sempre",
+      "Modelo para genes supressores: ambas as alelos precisam ser inativadas",
+      "Só para oncogenes",
+      "Só viral"
+    ]
+  },
+  {
+    "inimigo": "Instabilidade de microssatélites (MSI)",
+    "correta": "Defeito de reparo de mismatch (MMR); comum em Lynch",
+    "texto": "Afeta genes com repetições.",
+    "ameaca": "MSI",
+    "alternativas": [
+      "Só amplificação",
+      "Defeito de reparo de mismatch (MMR); comum em Lynch",
+      "Só deleção grande",
+      "Só aneuploidia"
+    ]
+  },
+  {
+    "inimigo": "Reparo de DNA: excisão de nucleotídeo (NER)",
+    "correta": "Remove lesões volumosas (ex.: dímeros de timina por UV)",
+    "texto": "Defeito: xeroderma pigmentoso.",
+    "ameaca": "NER",
+    "alternativas": [
+      "Só base excision",
+      "Remove lesões volumosas (ex.: dímeros de timina por UV)",
+      "Só recombinacional",
+      "Só ligase"
+    ]
+  },
+  {
+    "inimigo": "Anemia falciforme: mutação",
+    "correta": "Substituição Glu→Val na posição 6 da beta-globina (HbS)",
+    "texto": "Herança autossômica recessiva.",
+    "ameaca": "FALCIFORME",
+    "alternativas": [
+      "Deleção de alfa",
+      "Substituição Glu→Val na posição 6 da beta-globina (HbS)",
+      "Trissomia",
+      "Só ambiental"
+    ]
+  },
+  {
+    "inimigo": "Fibrose cística: gene",
+    "correta": "CFTR (canal de cloro); mutação mais comum ΔF508",
+    "texto": "Autossômica recessiva; suor salgado, infecções pulmonares.",
+    "ameaca": "CFTR",
+    "alternativas": [
+      "HBB",
+      "CFTR (canal de cloro); mutação mais comum ΔF508",
+      "DMD",
+      "FMR1"
+    ]
+  },
+  {
+    "inimigo": "Distrofia muscular de Duchenne: gene",
+    "correta": "DMD (distrofina); ligada ao X",
+    "texto": "Deleções frequentes; CK muito elevada.",
+    "ameaca": "DUCHENNE",
+    "alternativas": [
+      "CFTR",
+      "DMD (distrofina); ligada ao X",
+      "HBB",
+      "FBN1"
+    ]
+  },
+  {
+    "inimigo": "Síndrome do X frágil: mecanismo",
+    "correta": "Expansão de CGG no gene FMR1 (íntron/promotor)",
+    "texto": "Herança ligada ao X; antecipação.",
+    "ameaca": "X FRAGIL",
+    "alternativas": [
+      "Deleção",
+      "Expansão de CGG no gene FMR1 (íntron/promotor)",
+      "Trissomia X",
+      "Só pontual"
+    ]
+  },
+  {
+    "inimigo": "Doença de Huntington: mecanismo",
+    "correta": "Expansão de CAG no gene HTT (poliQ)",
+    "texto": "Autossômica dominante; antecipação (especialmente transmissão paterna).",
+    "ameaca": "HUNTINGTON",
+    "alternativas": [
+      "Deleção",
+      "Expansão de CAG no gene HTT (poliQ)",
+      "Trissomia 4",
+      "Só recessiva"
+    ]
+  },
+  {
+    "inimigo": "Anticipação genética",
+    "correta": "Aumento da gravidade / início mais cedo em gerações sucessivas",
+    "texto": "Comum em doenças por expansão de tripletas.",
+    "ameaca": "ANTECIPACAO",
+    "alternativas": [
+      "Penetrância completa sempre",
+      "Aumento da gravidade / início mais cedo em gerações sucessivas",
+      "Só em recessivos",
+      "Melhora espontânea"
+    ]
+  },
+  {
+    "inimigo": "Lei de Hardy-Weinberg",
+    "correta": "p² + 2pq + q² = 1 (frequências genotípicas em equilíbrio)",
+    "texto": "Assume população grande, panmixia, sem seleção/migração/mutação.",
+    "ameaca": "HARDY WEINBERG",
+    "alternativas": [
+      "Só para dominantes",
+      "p² + 2pq + q² = 1 (frequências genotípicas em equilíbrio)",
+      "Só para sex-linked",
+      "Frequências sempre mudam"
+    ]
+  },
+  {
+    "inimigo": "Deriva genética",
+    "correta": "Mudança aleatória de frequências alélicas (efeito fundador, gargalo)",
+    "texto": "Mais intensa em populações pequenas.",
+    "ameaca": "DERIVA",
+    "alternativas": [
+      "Seleção natural apenas",
+      "Mudança aleatória de frequências alélicas (efeito fundador, gargalo)",
+      "Só mutação",
+      "Só migração"
+    ]
+  },
+  {
+    "inimigo": "Seleção natural",
+    "correta": "Diferencial de sucesso reprodutivo segundo o fenótipo",
+    "texto": "Aumenta frequência de alelos vantajosos.",
+    "ameaca": "SELECAO",
+    "alternativas": [
+      "Deriva pura",
+      "Diferencial de sucesso reprodutivo segundo o fenótipo",
+      "Só mutação neutra",
+      "Só migração"
+    ]
+  },
+  {
+    "inimigo": "Efeito fundador",
+    "correta": "População fundada por poucos indivíduos carrega alelos raros em alta frequência",
+    "texto": "Ex.: algumas doenças em isolados.",
+    "ameaca": "FUNDADOR",
+    "alternativas": [
+      "Seleção forte",
+      "População fundada por poucos indivíduos carrega alelos raros em alta frequência",
+      "Só mutação nova",
+      "Só panmixia"
+    ]
+  },
+  {
+    "inimigo": "Consanguinidade",
+    "correta": "Aumenta probabilidade de homozigose para alelos raros recessivos",
+    "texto": "Coeficiente de endogamia.",
+    "ameaca": "CONSANGUINIDADE",
+    "alternativas": [
+      "Diminui recessivos",
+      "Aumenta probabilidade de homozigose para alelos raros recessivos",
+      "Só afeta dominantes",
+      "Sem efeito genético"
+    ]
+  },
+  {
+    "inimigo": "Haplótipo",
+    "correta": "Conjunto de alelos em loci próximos herdados juntos",
+    "texto": "Desequilíbrio de ligação.",
+    "ameaca": "HAPLOTIPO",
+    "alternativas": [
+      "Genótipo de um loco",
+      "Conjunto de alelos em loci próximos herdados juntos",
+      "Fenótipo",
+      "Cariótipo"
+    ]
+  },
+  {
+    "inimigo": "Desequilíbrio de ligação (LD)",
+    "correta": "Associação não aleatória de alelos em loci diferentes",
+    "texto": "Útil em estudos de associação (GWAS).",
+    "ameaca": "LD",
+    "alternativas": [
+      "Equilíbrio de Hardy-Weinberg apenas",
+      "Associação não aleatória de alelos em loci diferentes",
+      "Só recombinação livre",
+      "Só mutação"
+    ]
+  },
+  {
+    "inimigo": "GWAS",
+    "correta": "Estudo de associação genômica ampla; SNPs e fenótipos",
+    "texto": "Identifica loci de risco para doenças complexas.",
+    "ameaca": "GWAS",
+    "alternativas": [
+      "Só sequenciamento de um gene",
+      "Estudo de associação genômica ampla; SNPs e fenótipos",
+      "Só cariótipo",
+      "Só PCR de mutação conhecida"
+    ]
+  },
+  {
+    "inimigo": "SNP (polimorfismo de nucleotídeo único)",
+    "correta": "Variação de uma base com frequência >1% na população",
+    "texto": "Marcador mais comum em GWAS.",
+    "ameaca": "SNP",
+    "alternativas": [
+      "Só mutação patogênica rara",
+      "Variação de uma base com frequência >1% na população",
+      "Só CNV",
+      "Só inversão"
+    ]
+  },
+  {
+    "inimigo": "CNV (variação do número de cópias)",
+    "correta": "Deleções ou duplicações de segmentos >1 kb",
+    "texto": "Podem ser patogênicas ou polimórficas.",
+    "ameaca": "CNV",
+    "alternativas": [
+      "Só SNP",
+      "Deleções ou duplicações de segmentos >1 kb",
+      "Só pontual",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Epigenética",
+    "correta": "Modificações hereditárias da expressão sem alterar a sequência do DNA",
+    "texto": "Metilação, histonas, RNA não codificante.",
+    "ameaca": "EPIGENETICA",
+    "alternativas": [
+      "Só mutação da sequência",
+      "Modificações hereditárias da expressão sem alterar a sequência do DNA",
+      "Só recombinação",
+      "Só aneuploidia"
+    ]
+  },
+  {
+    "inimigo": "Metilação do DNA",
+    "correta": "Adição de grupo metil (geralmente CpG); geralmente reprime transcrição",
+    "texto": "Imprinting e inativação do X.",
+    "ameaca": "METILACAO",
+    "alternativas": [
+      "Ativa sempre a transcrição",
+      "Adição de grupo metil (geralmente CpG); geralmente reprime transcrição",
+      "Só em RNA",
+      "Só em proteínas"
+    ]
+  },
+  {
+    "inimigo": "Inativação do cromossomo X",
+    "correta": "Um dos X é silenciado em fêmeas de mamíferos (corpúsculo de Barr)",
+    "texto": "Compensação de dose; mosaico.",
+    "ameaca": "INATIVACAO X",
+    "alternativas": [
+      "Os dois X ativos sempre",
+      "Um dos X é silenciado em fêmeas de mamíferos (corpúsculo de Barr)",
+      "Só em homens",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Corpúsculo de Barr",
+    "correta": "X inativado condensado visível na interfase",
+    "texto": "Número = nX − 1.",
+    "ameaca": "BARR",
+    "alternativas": [
+      "Y condensado",
+      "X inativado condensado visível na interfase",
+      "Nucléolo",
+      "Centríolo"
+    ]
+  },
+  {
+    "inimigo": "Código genético é degenerado (redundante)",
+    "correta": "Mais de um códon pode codificar o mesmo aminoácido",
+    "texto": "Reduz impacto de algumas mutações sinônimas.",
+    "ameaca": "CODIGO DEGENERADO",
+    "alternativas": [
+      "Um códon = um aa sempre exclusivo",
+      "Mais de um códon pode codificar o mesmo aminoácido",
+      "Sempre ambíguo",
+      "Só 20 códons"
+    ]
+  },
+  {
+    "inimigo": "Mutação sinônima (silenciosa)",
+    "correta": "Não altera o aminoácido (mesmo aa)",
+    "texto": "Pode afetar splicing ou velocidade de tradução.",
+    "ameaca": "SINONIMA",
+    "alternativas": [
+      "Muda o aa",
+      "Não altera o aminoácido (mesmo aa)",
+      "Sempre frameshift",
+      "Sempre nonsense"
+    ]
+  },
+  {
+    "inimigo": "Mutação missense",
+    "correta": "Troca de um aminoácido por outro",
+    "texto": "Pode ser neutra, patogênica ou moderada.",
+    "ameaca": "MISSENSE",
+    "alternativas": [
+      "Não muda aa",
+      "Troca de um aminoácido por outro",
+      "Cria stop",
+      "Só deleção"
+    ]
+  },
+  {
+    "inimigo": "Mutação nonsense",
+    "correta": "Cria códon de parada prematuro",
+    "texto": "Proteína truncada; frequentemente degradação por NMD.",
+    "ameaca": "NONSENSE",
+    "alternativas": [
+      "Só missense",
+      "Cria códon de parada prematuro",
+      "Silenciosa",
+      "Só em íntron"
+    ]
+  },
+  {
+    "inimigo": "Frameshift",
+    "correta": "Inserção ou deleção não múltipla de 3; altera a fase de leitura",
+    "texto": "Geralmente introduz stop prematuro.",
+    "ameaca": "FRAMESHIFT",
+    "alternativas": [
+      "Múltiplo de 3 sempre inofensivo",
+      "Inserção ou deleção não múltipla de 3; altera a fase de leitura",
+      "Só substituições",
+      "Só em promotor"
+    ]
+  },
+  {
+    "inimigo": "Mutação de splicing",
+    "correta": "Afeta sítios doador/aceptor ou elementos regulatórios do splicing",
+    "texto": "Pode excluir éxon ou incluir íntron.",
+    "ameaca": "SPLICING MUT",
+    "alternativas": [
+      "Só em éxon codificador",
+      "Afeta sítios doador/aceptor ou elementos regulatórios do splicing",
+      "Só missense",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Promotor",
+    "correta": "Região regulatória onde a RNA polimerase e fatores se ligam para iniciar transcrição",
+    "texto": "Mutações podem reduzir ou abolir expressão.",
+    "ameaca": "PROMOTOR",
+    "alternativas": [
+      "Terminador apenas",
+      "Região regulatória onde a RNA polimerase e fatores se ligam para iniciar transcrição",
+      "Só éxon",
+      "Só códon de stop"
+    ]
+  },
+  {
+    "inimigo": "Enhancer",
+    "correta": "Elemento regulatório que aumenta a transcrição à distância",
+    "texto": "Pode estar longe do gene; orientação independente.",
+    "ameaca": "ENHANCER",
+    "alternativas": [
+      "Promotor mínimo apenas",
+      "Elemento regulatório que aumenta a transcrição à distância",
+      "Só silenciador",
+      "Só íntron"
+    ]
+  },
+  {
+    "inimigo": "Fator de transcrição",
+    "correta": "Proteína que se liga ao DNA e regula a transcrição de genes-alvo",
+    "texto": "Essenciais no desenvolvimento e resposta a sinais.",
+    "ameaca": "FATOR TRANSCRICAO",
+    "alternativas": [
+      "Só RNA polimerase",
+      "Proteína que se liga ao DNA e regula a transcrição de genes-alvo",
+      "Só histona",
+      "Só ribossomo"
+    ]
+  },
+  {
+    "inimigo": "Chaperona molecular",
+    "correta": "Auxilia o enovelamento correto de proteínas",
+    "texto": "Ex.: HSP70; importantes no estresse.",
+    "ameaca": "CHAPERONA",
+    "alternativas": [
+      "Só degrada proteínas",
+      "Auxilia o enovelamento correto de proteínas",
+      "Só sintetiza DNA",
+      "Só tRNA"
+    ]
+  },
+  {
+    "inimigo": "Ubiquitina-proteassoma",
+    "correta": "Via principal de degradação de proteínas intracelulares marcadas",
+    "texto": "Regula ciclo celular e qualidade proteica.",
+    "ameaca": "PROTEASSOMA",
+    "alternativas": [
+      "Só lisossomo",
+      "Via principal de degradação de proteínas intracelulares marcadas",
+      "Só síntese",
+      "Só secreção"
+    ]
+  },
+  {
+    "inimigo": "Apoptose: via intrínseca",
+    "correta": "Mitocondrial; citocromo c → apoptossomo → caspases",
+    "texto": "Regulada por Bcl-2 family.",
+    "ameaca": "APOPTOSE INT",
+    "alternativas": [
+      "Só receptores de morte",
+      "Mitocondrial; citocromo c → apoptossomo → caspases",
+      "Só necrose",
+      "Só autofagia"
+    ]
+  },
+  {
+    "inimigo": "Caspases",
+    "correta": "Proteases de cisteína executoras da apoptose",
+    "texto": "Iniciadoras e efetoras.",
+    "ameaca": "CASPASES",
+    "alternativas": [
+      "Só quinases",
+      "Proteases de cisteína executoras da apoptose",
+      "Só fosfatases",
+      "Só ligases"
+    ]
+  },
+  {
+    "inimigo": "RNA de interferência (RNAi)",
+    "correta": "Silenciamento pós-transcricional mediado por siRNA/miRNA",
+    "texto": "Ferramenta experimental e mecanismo natural.",
+    "ameaca": "RNAi",
+    "alternativas": [
+      "Só ativação de genes",
+      "Silenciamento pós-transcricional mediado por siRNA/miRNA",
+      "Só edição de DNA",
+      "Só tradução aumentada"
+    ]
+  },
+  {
+    "inimigo": "miRNA",
+    "correta": "Pequenos RNAs que regulam a estabilidade/tradução de mRNAs-alvo",
+    "texto": "Importantes no desenvolvimento e câncer.",
+    "ameaca": "MIRNA",
+    "alternativas": [
+      "Só mRNA mensageiro",
+      "Pequenos RNAs que regulam a estabilidade/tradução de mRNAs-alvo",
+      "Só tRNA",
+      "Só rRNA"
+    ]
+  },
+  {
+    "inimigo": "lncRNA",
+    "correta": "RNAs longos não codificantes com funções regulatórias",
+    "texto": "Ex.: XIST na inativação do X.",
+    "ameaca": "LNCRNA",
+    "alternativas": [
+      "Só codificam proteínas",
+      "RNAs longos não codificantes com funções regulatórias",
+      "Só miRNA",
+      "Só snRNA"
+    ]
+  },
+  {
+    "inimigo": "XIST",
+    "correta": "lncRNA responsável por iniciar a inativação do cromossomo X",
+    "texto": "Expresso no X que será inativado.",
+    "ameaca": "XIST",
+    "alternativas": [
+      "Gene codificador de proteína no Y",
+      "lncRNA responsável por iniciar a inativação do cromossomo X",
+      "Só miRNA",
+      "Só mRNA de histona"
+    ]
+  },
+  {
+    "inimigo": "Isoformas por splicing alternativo",
+    "correta": "Um gene pode gerar múltiplas proteínas",
+    "texto": "Aumenta diversidade proteômica.",
+    "ameaca": "SPLICING ALT",
+    "alternativas": [
+      "Sempre uma proteína por gene",
+      "Um gene pode gerar múltiplas proteínas",
+      "Só em bactérias",
+      "Só em mitocôndrias"
+    ]
+  },
+  {
+    "inimigo": "Código genético é quase universal",
+    "correta": "Mesmos códons na maioria dos organismos",
+    "texto": "Exceções em mitocôndrias e alguns protistas.",
+    "ameaca": "UNIVERSAL",
+    "alternativas": [
+      "Totalmente diferente em cada espécie",
+      "Mesmos códons na maioria dos organismos",
+      "Só em humanos",
+      "Só em vírus"
+    ]
+  },
+  {
+    "inimigo": "Wobble (oscilação)",
+    "correta": "Terceira base do códon pode ter pareamento flexível",
+    "texto": "Permite menos tRNAs do que códons.",
+    "ameaca": "WOBBLE",
+    "alternativas": [
+      "Pareamento rígido sempre",
+      "Terceira base do códon pode ter pareamento flexível",
+      "Só na primeira base",
+      "Só no DNA"
+    ]
+  },
+  {
+    "inimigo": "Ribossomo: sítios A, P e E",
+    "correta": "A (aminoacil), P (peptidil), E (saída)",
+    "texto": "Ciclo de elongação da tradução.",
+    "ameaca": "RIBOSSOMO SITIOS",
+    "alternativas": [
+      "Só um sítio",
+      "A (aminoacil), P (peptidil), E (saída)",
+      "Só no núcleo",
+      "Só em mitocôndrias"
+    ]
+  },
+  {
+    "inimigo": "Fator de iniciação e elongação",
+    "correta": "Proteínas que auxiliam o início e o alongamento da cadeia polipeptídica",
+    "texto": "GTPases importantes.",
+    "ameaca": "FATORES TRADUCAO",
+    "alternativas": [
+      "Só RNA polimerase",
+      "Proteínas que auxiliam o início e o alongamento da cadeia polipeptídica",
+      "Só DNA ligase",
+      "Só helicase"
+    ]
+  },
+  {
+    "inimigo": "Polirribossomo (polissomo)",
+    "correta": "Vários ribossomos traduzindo o mesmo mRNA simultaneamente",
+    "texto": "Aumenta eficiência de síntese.",
+    "ameaca": "POLISSOMO",
+    "alternativas": [
+      "Um ribossomo por célula",
+      "Vários ribossomos traduzindo o mesmo mRNA simultaneamente",
+      "Só no núcleo",
+      "Só em vírus"
+    ]
+  },
+  {
+    "inimigo": "Direção da síntese de proteína",
+    "correta": "N-terminal → C-terminal",
+    "texto": "Correspondente à leitura 5'→3' do mRNA.",
+    "ameaca": "DIRECAO TRADUCAO",
+    "alternativas": [
+      "C → N",
+      "N-terminal → C-terminal",
+      "Aleatória",
+      "Só no sentido 3'→5'"
+    ]
+  },
+  {
+    "inimigo": "Processamento do pré-mRNA eucariótico",
+    "correta": "Cap 5', poli-A 3' e splicing",
+    "texto": "Essencial para estabilidade e exportação nuclear.",
+    "ameaca": "PRE MRNA",
+    "alternativas": [
+      "Só em bactérias",
+      "Cap 5', poli-A 3' e splicing",
+      "Só tradução",
+      "Só replicação"
+    ]
+  },
+  {
+    "inimigo": "Cap 5' (7-metilguanosina)",
+    "correta": "Protege o mRNA e é reconhecido na iniciação da tradução",
+    "texto": "Adicionado co-transcricionalmente.",
+    "ameaca": "CAP 5",
+    "alternativas": [
+      "Poli-A apenas",
+      "Protege o mRNA e é reconhecido na iniciação da tradução",
+      "Só em tRNA",
+      "Só em rRNA"
+    ]
+  },
+  {
+    "inimigo": "Cauda poli-A",
+    "correta": "Sequência de adeninas no 3' do mRNA; estabilidade e tradução",
+    "texto": "Poliadenilação no núcleo.",
+    "ameaca": "POLI A",
+    "alternativas": [
+      "Cap 5' apenas",
+      "Sequência de adeninas no 3' do mRNA; estabilidade e tradução",
+      "Só em DNA",
+      "Só em rRNA"
+    ]
+  },
+  {
+    "inimigo": "Nucléolo",
+    "correta": "Local de biogênese dos ribossomos (rRNA e montagem de subunidades)",
+    "texto": "Contém organizadores nucleolares.",
+    "ameaca": "NUCLEOLO",
+    "alternativas": [
+      "Só splicing de mRNA",
+      "Local de biogênese dos ribossomos (rRNA e montagem de subunidades)",
+      "Só mitocôndria",
+      "Só Golgi"
+    ]
+  },
+  {
+    "inimigo": "Histonas",
+    "correta": "Proteínas básicas que empacotam o DNA em nucleossomos",
+    "texto": "H2A, H2B, H3, H4 (octâmero) + H1.",
+    "ameaca": "HISTONAS",
+    "alternativas": [
+      "Só DNA polimerase",
+      "Proteínas básicas que empacotam o DNA em nucleossomos",
+      "Só RNA",
+      "Só lipídios"
+    ]
+  },
+  {
+    "inimigo": "Nucleossomo",
+    "correta": "Unidade básica da cromatina: DNA enrolado em octâmero de histonas",
+    "texto": "Compactação e regulação.",
+    "ameaca": "NUCLEOSSOMO",
+    "alternativas": [
+      "Só ribossomo",
+      "Unidade básica da cromatina: DNA enrolado em octâmero de histonas",
+      "Só centrômero",
+      "Só telômero"
+    ]
+  },
+  {
+    "inimigo": "Eucromatina vs heterocromatina",
+    "correta": "Eucromatina: ativa/transcrita; heterocromatina: condensada/silenciada",
+    "texto": "Estados dinâmicos.",
+    "ameaca": "CROMATINA",
+    "alternativas": [
+      "Sempre iguais",
+      "Eucromatina: ativa/transcrita; heterocromatina: condensada/silenciada",
+      "Só em bactérias",
+      "Só no citoplasma"
+    ]
+  },
+  {
+    "inimigo": "Ilhas CpG",
+    "correta": "Regiões ricas em CG frequentemente nos promotores",
+    "texto": "Metilação de ilhas CpG reprime genes.",
+    "ameaca": "CPG",
+    "alternativas": [
+      "Só no telômero",
+      "Regiões ricas em CG frequentemente nos promotores",
+      "Só em íntrons distantes",
+      "Só no DNA mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Transposon",
+    "correta": "Elemento genético móvel que pode se inserir em novos locais",
+    "texto": "Contribuem para evolução e podem causar mutações.",
+    "ameaca": "TRANSPOSON",
+    "alternativas": [
+      "Só vírus",
+      "Elemento genético móvel que pode se inserir em novos locais",
+      "Só plasmídeo bacteriano estático",
+      "Só cromossomo Y"
+    ]
+  },
+  {
+    "inimigo": "Pseudogene",
+    "correta": "Sequência semelhante a gene mas não funcional (mutações)",
+    "texto": "Resquício evolutivo; alguns têm função regulatória.",
+    "ameaca": "PSEUDOGENE",
+    "alternativas": [
+      "Gene ativo sempre",
+      "Sequência semelhante a gene mas não funcional (mutações)",
+      "Só éxon",
+      "Só miRNA"
+    ]
+  },
+  {
+    "inimigo": "Gene ortólogo",
+    "correta": "Genes em espécies diferentes derivados de um ancestral comum",
+    "texto": "Úteis em estudos evolutivos e funcionais.",
+    "ameaca": "ORTOLOGO",
+    "alternativas": [
+      "Parálogo na mesma espécie apenas",
+      "Genes em espécies diferentes derivados de um ancestral comum",
+      "Só alelos",
+      "Só SNPs"
+    ]
+  },
+  {
+    "inimigo": "Gene parálogo",
+    "correta": "Genes duplicados na mesma espécie (divergência funcional)",
+    "texto": "Famílias gênicas.",
+    "ameaca": "PARALOGO",
+    "alternativas": [
+      "Ortálogo entre espécies",
+      "Genes duplicados na mesma espécie (divergência funcional)",
+      "Só mitocondrial",
+      "Só viral"
+    ]
+  },
+  {
+    "inimigo": "Hibridização de ácidos nucleicos",
+    "correta": "Pareamento de sequências complementares (sonda × alvo)",
+    "texto": "Base de FISH, southern, microarrays.",
+    "ameaca": "HIBRIDIZACAO",
+    "alternativas": [
+      "Só tradução",
+      "Pareamento de sequências complementares (sonda × alvo)",
+      "Só PCR sem sonda",
+      "Só clonagem"
+    ]
+  },
+  {
+    "inimigo": "Sonda (probe)",
+    "correta": "Fragmento de ácido nucleico marcado usado para detectar sequência alvo",
+    "texto": "Radioativa, fluorescente ou enzimática.",
+    "ameaca": "SONDA",
+    "alternativas": [
+      "Só primer de PCR",
+      "Fragmento de ácido nucleico marcado usado para detectar sequência alvo",
+      "Só anticorpo",
+      "Só enzima de restrição"
+    ]
+  },
+  {
+    "inimigo": "Enzima de restrição",
+    "correta": "Corta DNA em sequências específicas (sítios de restrição)",
+    "texto": "Ferramenta clássica de clonagem e RFLP.",
+    "ameaca": "RESTRICAO",
+    "alternativas": [
+      "Só DNA polimerase",
+      "Corta DNA em sequências específicas (sítios de restrição)",
+      "Só ligase",
+      "Só helicase"
+    ]
+  },
+  {
+    "inimigo": "Plasmídeo",
+    "correta": "DNA circular extracromossômico (bactérias); vetor de clonagem",
+    "texto": "Carrega genes de resistência etc.",
+    "ameaca": "PLASMIDEO",
+    "alternativas": [
+      "Cromossomo bacteriano principal",
+      "DNA circular extracromossômico (bactérias); vetor de clonagem",
+      "Só vírus",
+      "Só mRNA"
+    ]
+  },
+  {
+    "inimigo": "Clonagem molecular",
+    "correta": "Inserção de fragmento de DNA em vetor e propagação em hospedeiro",
+    "texto": "Produção de muitas cópias e expressão.",
+    "ameaca": "CLONAGEM",
+    "alternativas": [
+      "Só PCR",
+      "Inserção de fragmento de DNA em vetor e propagação em hospedeiro",
+      "Só sequenciamento",
+      "Só eletroforese"
+    ]
+  },
+  {
+    "inimigo": "Biblioteca genômica vs de cDNA",
+    "correta": "Genômica: todo o DNA; cDNA: apenas éxons (a partir de mRNA)",
+    "texto": "cDNA reflete genes expressos.",
+    "ameaca": "BIBLIOTECA",
+    "alternativas": [
+      "Idênticas",
+      "Genômica: todo o DNA; cDNA: apenas éxons (a partir de mRNA)",
+      "Só de proteínas",
+      "Só de RNA ribossômico"
+    ]
+  },
+  {
+    "inimigo": "Expressão heteróloga",
+    "correta": "Produção de proteína de uma espécie em outra (ex.: insulina em bactéria)",
+    "texto": "Biotecnologia.",
+    "ameaca": "EXPRESSAO HETEROLOGA",
+    "alternativas": [
+      "Só na espécie original",
+      "Produção de proteína de uma espécie em outra (ex.: insulina em bactéria)",
+      "Só em vírus",
+      "Só in vitro sem célula"
+    ]
+  },
+  {
+    "inimigo": "Organismo geneticamente modificado (OGM)",
+    "correta": "Organismo com DNA alterado por engenharia genética",
+    "texto": "Plantas Bt, animais modelo, terapia gênica.",
+    "ameaca": "OGM",
+    "alternativas": [
+      "Só seleção artificial clássica",
+      "Organismo com DNA alterado por engenharia genética",
+      "Só mutação espontânea",
+      "Só hibridização sexual"
+    ]
+  },
+  {
+    "inimigo": "Terapia gênica",
+    "correta": "Introdução de material genético para tratar doença",
+    "texto": "Vetores virais ou não virais; ex vivo ou in vivo.",
+    "ameaca": "TERAPIA GENICA",
+    "alternativas": [
+      "Só fármacos químicos",
+      "Introdução de material genético para tratar doença",
+      "Só cirurgia",
+      "Só radioterapia"
+    ]
+  },
+  {
+    "inimigo": "Célula-tronco pluripotente induzida (iPS)",
+    "correta": "Célula somática reprogramada a estado pluripotente",
+    "texto": "Fatores de Yamanaka; medicina regenerativa e modelos de doença.",
+    "ameaca": "IPS",
+    "alternativas": [
+      "Só embrionária",
+      "Célula somática reprogramada a estado pluripotente",
+      "Só adulta multipotente",
+      "Só cancerosa"
+    ]
+  },
+  {
+    "inimigo": "Teste de paternidade / identificação humana",
+    "correta": "Usa marcadores STR (microssatélites) altamente polimórficos",
+    "texto": "CODIS etc.",
+    "ameaca": "STR",
+    "alternativas": [
+      "Só grupos sanguíneos",
+      "Usa marcadores STR (microssatélites) altamente polimórficos",
+      "Só cariótipo",
+      "Só sequenciamento completo sempre"
+    ]
+  },
+  {
+    "inimigo": "Frequência alélica",
+    "correta": "Proporção de um alelo em relação a todos os alelos do loco na população",
+    "texto": "Base da genética de populações.",
+    "ameaca": "FREQ ALELICA",
+    "alternativas": [
+      "Só número de indivíduos",
+      "Proporção de um alelo em relação a todos os alelos do loco na população",
+      "Só fenótipo",
+      "Só mutações novas"
+    ]
+  },
+  {
+    "inimigo": "Equilíbrio de ligação vs recombinação",
+    "correta": "Loci próximos tendem a ser herdados juntos; recombinação quebra o LD",
+    "texto": "Mapas genéticos em cM.",
+    "ameaca": "MAPA GENETICO",
+    "alternativas": [
+      "Recombinação sempre 50% entre quaisquer loci",
+      "Loci próximos tendem a ser herdados juntos; recombinação quebra o LD",
+      "Só em mitocôndrias",
+      "Só em Y"
+    ]
+  },
+  {
+    "inimigo": "Unidade de mapa (centimorgan)",
+    "correta": "1% de recombinação ≈ 1 cM",
+    "texto": "Distância genética relativa.",
+    "ameaca": "CENTIMORGAN",
+    "alternativas": [
+      "1 milhão de pares de bases sempre",
+      "1% de recombinação ≈ 1 cM",
+      "Só física em bp",
+      "Só número de genes"
+    ]
+  },
+  {
+    "inimigo": "Mapa físico vs genético",
+    "correta": "Físico: sequência/bp; genético: taxa de recombinação",
+    "texto": "Nem sempre proporcionais (hotspots).",
+    "ameaca": "MAPA FISICO",
+    "alternativas": [
+      "Idênticos sempre",
+      "Físico: sequência/bp; genético: taxa de recombinação",
+      "Só em bactérias",
+      "Só por FISH"
+    ]
+  },
+  {
+    "inimigo": "Hotspot de recombinação",
+    "correta": "Região com taxa de crossing-over elevada",
+    "texto": "Influencia mapas e diversidade.",
+    "ameaca": "HOTSPOT",
+    "alternativas": [
+      "Taxa uniforme em todo o genoma",
+      "Região com taxa de crossing-over elevada",
+      "Só no centrômero",
+      "Só no Y"
+    ]
+  },
+  {
+    "inimigo": "DNA mitocondrial humano",
+    "correta": "Circular, ~16,5 kb, herança materna, 37 genes",
+    "texto": "Alta taxa de mutação; doenças mitocondriais.",
+    "ameaca": "MTDNA",
+    "alternativas": [
+      "Linear como nuclear",
+      "Circular, ~16,5 kb, herança materna, 37 genes",
+      "Só do pai",
+      "Sem genes"
+    ]
+  },
+  {
+    "inimigo": "Heteroplasmia",
+    "correta": "Mistura de mtDNA normal e mutante na mesma célula/indivíduo",
+    "texto": "Limiar determina gravidade da doença mitocondrial.",
+    "ameaca": "HETEROPLASMIA",
+    "alternativas": [
+      "Sempre homoplasmia",
+      "Mistura de mtDNA normal e mutante na mesma célula/indivíduo",
+      "Só nuclear",
+      "Só em plantas"
+    ]
+  },
+  {
+    "inimigo": "Doenças mitocondriais: exemplos",
+    "correta": "Leber (LHON), MELAS, MERRF, síndrome de Kearns-Sayre",
+    "texto": "Envolvem fosforilação oxidativa.",
+    "ameaca": "DOENCAS MITO",
+    "alternativas": [
+      "Só autossômicas clássicas",
+      "Leber (LHON), MELAS, MERRF, síndrome de Kearns-Sayre",
+      "Só ligadas ao X",
+      "Só infecciosas"
+    ]
+  },
+  {
+    "inimigo": "Efeito materno (genética do desenvolvimento)",
+    "correta": "Fenótipo do embrião determinado pelo genótipo materno (produtos no óvulo)",
+    "texto": "Comum em Drosophila e outros modelos.",
+    "ameaca": "EFEITO MATERNO",
+    "alternativas": [
+      "Só genótipo do embrião",
+      "Fenótipo do embrião determinado pelo genótipo materno (produtos no óvulo)",
+      "Só do pai",
+      "Só ambiental"
+    ]
+  },
+  {
+    "inimigo": "Genes homeóticos / Hox",
+    "correta": "Controlam identidade de segmentos e padrões corporais",
+    "texto": "Conservados na evolução.",
+    "ameaca": "HOX",
+    "alternativas": [
+      "Só em plantas",
+      "Controlam identidade de segmentos e padrões corporais",
+      "Só reparo de DNA",
+      "Só metabolismo"
+    ]
+  },
+  {
+    "inimigo": "Indução embrionária",
+    "correta": "Sinal de um tecido determina o destino de outro",
+    "texto": "Ex.: organizador de Spemann.",
+    "ameaca": "INDUCAO",
+    "alternativas": [
+      "Destino fixado só pelo genoma sem sinais",
+      "Sinal de um tecido determina o destino de outro",
+      "Só mitose",
+      "Só apoptose"
+    ]
+  },
+  {
+    "inimigo": "Células germinativas primordiais",
+    "correta": "Precursoras dos gametas; migram para as gônadas",
+    "texto": "Epigenética resetada em parte.",
+    "ameaca": "CGP",
+    "alternativas": [
+      "Só somáticas",
+      "Precursoras dos gametas; migram para as gônadas",
+      "Só nervosas",
+      "Só hematopoéticas"
+    ]
+  },
+  {
+    "inimigo": "Meiose: redução do número cromossômico",
+    "correta": "De diploide a haploide; duas divisões (I e II)",
+    "texto": "Crossing-over na prófase I.",
+    "ameaca": "MEIOSE",
+    "alternativas": [
+      "Igual à mitose",
+      "De diploide a haploide; duas divisões (I e II)",
+      "Só uma divisão",
+      "Aumenta o número"
+    ]
+  },
+  {
+    "inimigo": "Mitose: função",
+    "correta": "Produz duas células filhas geneticamente idênticas (diploides)",
+    "texto": "Crescimento e reposição tecidual.",
+    "ameaca": "MITOSE",
+    "alternativas": [
+      "Produz gametas haploides",
+      "Produz duas células filhas geneticamente idênticas (diploides)",
+      "Só em bactérias",
+      "Só meiótica"
+    ]
+  },
+  {
+    "inimigo": "Checkpoint do ciclo celular",
+    "correta": "Pontos de controle (G1/S, G2/M, metástase) que verificam integridade",
+    "texto": "p53 é guardião do genoma.",
+    "ameaca": "CHECKPOINT",
+    "alternativas": [
+      "Sem verificação",
+      "Pontos de controle (G1/S, G2/M, metástase) que verificam integridade",
+      "Só na citocinese",
+      "Só em meiose"
+    ]
+  },
+  {
+    "inimigo": "p53",
+    "correta": "Fator de transcrição ativado por dano ao DNA; induz reparo, parada ou apoptose",
+    "texto": "Mutado em ~50% dos cânceres humanos.",
+    "ameaca": "P53",
+    "alternativas": [
+      "Oncogene clássico de ganho de função apenas",
+      "Fator de transcrição ativado por dano ao DNA; induz reparo, parada ou apoptose",
+      "Só DNA polimerase",
+      "Só histona"
+    ]
+  },
+  {
+    "inimigo": "Ciclinas e CDKs",
+    "correta": "Regulam a progressão do ciclo celular",
+    "texto": "Complexos ciclina-CDK fosforilam alvos específicos de cada fase.",
+    "ameaca": "CICLINA CDK",
+    "alternativas": [
+      "Só degradação de DNA",
+      "Regulam a progressão do ciclo celular",
+      "Só tradução",
+      "Só em bactérias"
+    ]
+  },
+  {
+    "inimigo": "Transcrição reversa",
+    "correta": "Síntese de DNA a partir de RNA (transcriptase reversa)",
+    "texto": "Usada por retrovírus e na síntese de cDNA.",
+    "ameaca": "TRANSCRICAO REVERSA",
+    "alternativas": [
+      "Só DNA → RNA",
+      "Síntese de DNA a partir de RNA (transcriptase reversa)",
+      "Só tradução",
+      "Só replicação sem RNA"
+    ]
+  },
+  {
+    "inimigo": "Retrovírus",
+    "correta": "Vírus de RNA que se integra como DNA no genoma hospedeiro",
+    "texto": "HIV; vetores de terapia gênica.",
+    "ameaca": "RETROVIRUS",
+    "alternativas": [
+      "Só DNA vírus",
+      "Vírus de RNA que se integra como DNA no genoma hospedeiro",
+      "Só bacteriófago lítico",
+      "Só príon"
+    ]
+  },
+  {
+    "inimigo": "Integração viral e proto-oncogene",
+    "correta": "Inserção próxima a proto-oncogene pode ativá-lo",
+    "texto": "Mecanismo de oncogênese viral.",
+    "ameaca": "INSERCAO VIRAL",
+    "alternativas": [
+      "Sempre inativa oncogenes",
+      "Inserção próxima a proto-oncogene pode ativá-lo",
+      "Só deleta genes",
+      "Só em plantas"
+    ]
+  },
+  {
+    "inimigo": "Virus oncogênicos de DNA",
+    "correta": "HPV, EBV, HBV, HHV-8",
+    "texto": "Produzem proteínas que inativam p53/Rb.",
+    "ameaca": "VIRUS DNA ONCO",
+    "alternativas": [
+      "Só RNA vírus",
+      "HPV, EBV, HBV, HHV-8",
+      "Só influenza",
+      "Só bacteriophage"
+    ]
+  },
+  {
+    "inimigo": "HPV e câncer de colo",
+    "correta": "Tipos de alto risco (16, 18) → E6/E7 → degradação p53/Rb",
+    "texto": "Vacina preventiva.",
+    "ameaca": "HPV",
+    "alternativas": [
+      "Só baixo risco causa câncer",
+      "Tipos de alto risco (16, 18) → E6/E7 → degradação p53/Rb",
+      "Só HSV-1",
+      "Só CMV"
+    ]
+  },
+  {
+    "inimigo": "Instabilidade genômica no câncer",
+    "correta": "Mutações, aneuploidia, MSI, CIN",
+    "texto": "Hallmark do câncer.",
+    "ameaca": "INSTABILIDADE",
+    "alternativas": [
+      "Genoma sempre estável",
+      "Mutações, aneuploidia, MSI, CIN",
+      "Só em células normais",
+      "Só viral"
+    ]
+  },
+  {
+    "inimigo": "Metástase: etapas",
+    "correta": "Invasão, intravasão, sobrevivência na circulação, extravasão, colonização",
+    "texto": "Processo multi-etapas.",
+    "ameaca": "METASTASE",
+    "alternativas": [
+      "Só crescimento local",
+      "Invasão, intravasão, sobrevivência na circulação, extravasão, colonização",
+      "Só apoptose",
+      "Só diferenciação"
+    ]
+  },
+  {
+    "inimigo": "Angiogênese tumoral",
+    "correta": "Formação de novos vasos estimulada pelo tumor (VEGF)",
+    "texto": "Alvo de terapias antiangiogênicas.",
+    "ameaca": "ANGIOGENESE",
+    "alternativas": [
+      "Sem vasos no tumor",
+      "Formação de novos vasos estimulada pelo tumor (VEGF)",
+      "Só linfáticos",
+      "Só em embrião"
+    ]
+  },
+  {
+    "inimigo": "Warburg effect",
+    "correta": "Células tumorais preferem glicólise mesmo com O2",
+    "texto": "Metabolismo adaptado à proliferação.",
+    "ameaca": "WARBURG",
+    "alternativas": [
+      "Só fosforilação oxidativa",
+      "Células tumorais preferem glicólise mesmo com O2",
+      "Só em hipoxia",
+      "Só em neurônios"
+    ]
+  },
+  {
+    "inimigo": "Driver vs passenger mutation",
+    "correta": "Driver confere vantagem seletiva; passenger é incidental",
+    "texto": "Importante para terapia-alvo.",
+    "ameaca": "DRIVER",
+    "alternativas": [
+      "Todas iguais",
+      "Driver confere vantagem seletiva; passenger é incidental",
+      "Só passenger importa",
+      "Só em vírus"
+    ]
+  },
+  {
+    "inimigo": "Biomarcador preditivo",
+    "correta": "Indica probabilidade de resposta a uma terapia específica",
+    "texto": "Ex.: HER2, EGFR, BRAF, PD-L1.",
+    "ameaca": "PREDITIVO",
+    "alternativas": [
+      "Só diagnóstico",
+      "Indica probabilidade de resposta a uma terapia específica",
+      "Só prognóstico de sobrevida",
+      "Só de exposição"
+    ]
+  },
+  {
+    "inimigo": "Biomarcador prognóstico",
+    "correta": "Indica o curso provável da doença independente do tratamento",
+    "texto": "Ex.: estágio, grau, certas mutações.",
+    "ameaca": "PROGNOSTICO",
+    "alternativas": [
+      "Só prediz resposta a fármaco",
+      "Indica o curso provável da doença independente do tratamento",
+      "Só diagnóstico etiológico",
+      "Só de exposição"
+    ]
+  },
+  {
+    "inimigo": "Medicina de precisão / personalizada",
+    "correta": "Tratamento guiado pelo perfil molecular do paciente/tumor",
+    "texto": "Genômica + farmacogenômica.",
+    "ameaca": "PRECISAO",
+    "alternativas": [
+      "Mesmo tratamento para todos",
+      "Tratamento guiado pelo perfil molecular do paciente/tumor",
+      "Só por sintomas",
+      "Só por idade"
+    ]
+  },
+  {
+    "inimigo": "Farmacogenômica",
+    "correta": "Estudo de como variantes genéticas afetam resposta a fármacos",
+    "texto": "Ex.: CYP2C9/VKORC1 e varfarina; HLA-B*5701 e abacavir.",
+    "ameaca": "FARMACOGENOMICA",
+    "alternativas": [
+      "Só efeito do fármaco no gene",
+      "Estudo de como variantes genéticas afetam resposta a fármacos",
+      "Só toxicologia ambiental",
+      "Só microbioma"
+    ]
+  },
+  {
+    "inimigo": "CYP2D6",
+    "correta": "Citocromo P450 importante no metabolismo de muitos fármacos",
+    "texto": "Metabolizadores ultrarrápidos, normais, intermediários e pobres.",
+    "ameaca": "CYP2D6",
+    "alternativas": [
+      "Só transportador",
+      "Citocromo P450 importante no metabolismo de muitos fármacos",
+      "Só receptor",
+      "Só canal de íon"
+    ]
+  },
+  {
+    "inimigo": "G6PD deficiency",
+    "correta": "Deficiência de glicose-6-fosfato desidrogenase; risco de hemólise com oxidantes",
+    "texto": "Ligada ao X; comum em áreas de malária.",
+    "ameaca": "G6PD",
+    "alternativas": [
+      "Autossômica dominante",
+      "Deficiência de glicose-6-fosfato desidrogenase; risco de hemólise com oxidantes",
+      "Só mitocondrial",
+      "Só em mulheres sempre grave"
+    ]
+  },
+  {
+    "inimigo": "Teste genético de predisposição",
+    "correta": "Identifica variantes que aumentam risco de doença futura",
+    "texto": "Ex.: BRCA1/2, Lynch; requer aconselhamento.",
+    "ameaca": "PREDISPOSICAO",
+    "alternativas": [
+      "Diagnóstico de doença já presente apenas",
+      "Identifica variantes que aumentam risco de doença futura",
+      "Só cariótipo de rotina",
+      "Só NIPT"
+    ]
+  },
+  {
+    "inimigo": "BRCA1/BRCA2",
+    "correta": "Genes de reparo de DNA (recombinação homóloga); risco de mama/ovário",
+    "texto": "Herança autossômica dominante com penetrância incompleta.",
+    "ameaca": "BRCA",
+    "alternativas": [
+      "Só oncogênicos de ganho",
+      "Genes de reparo de DNA (recombinação homóloga); risco de mama/ovário",
+      "Só ligados ao X",
+      "Só mitocondriais"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Lynch (HNPCC)",
+    "correta": "Defeito de MMR (MLH1, MSH2, MSH6, PMS2); MSI; câncer colorretal e outros",
+    "texto": "Critérios de Amsterdam/Bethesda; imunohistoquímica e MSI.",
+    "ameaca": "LYNCH",
+    "alternativas": [
+      "Só polipose clássica",
+      "Defeito de MMR (MLH1, MSH2, MSH6, PMS2); MSI; câncer colorretal e outros",
+      "Só BRCA",
+      "Só TP53"
+    ]
+  },
+  {
+    "inimigo": "Polipose adenomatosa familiar (FAP)",
+    "correta": "Mutação em APC; centenas/milhares de pólipos; alto risco de CCR",
+    "texto": "Autossômica dominante; colectomia profilática.",
+    "ameaca": "FAP",
+    "alternativas": [
+      "Só Lynch",
+      "Mutação em APC; centenas/milhares de pólipos; alto risco de CCR",
+      "Só recessiva",
+      "Só esporádica sempre"
+    ]
+  },
+  {
+    "inimigo": "Li-Fraumeni",
+    "correta": "Mutação germinativa em TP53; múltiplos cânceres em idade jovem",
+    "texto": "Mama, sarcoma, cérebro, adrenocortical, leucemia.",
+    "ameaca": "LI FRAUMENI",
+    "alternativas": [
+      "Só pele",
+      "Mutação germinativa em TP53; múltiplos cânceres em idade jovem",
+      "Só cólon",
+      "Só ovário"
+    ]
+  },
+  {
+    "inimigo": "Retinoblastoma hereditário",
+    "correta": "Mutação germinativa em RB1; risco de tumores bilaterais e segundos tumores",
+    "texto": "Modelo clássico de dois hits.",
+    "ameaca": "RETINOBLASTOMA",
+    "alternativas": [
+      "Só esporádico unilateral sempre",
+      "Mutação germinativa em RB1; risco de tumores bilaterais e segundos tumores",
+      "Só oncogênica",
+      "Só viral"
+    ]
+  },
+  {
+    "inimigo": "Neurofibromatose tipo 1",
+    "correta": "Mutação em NF1 (neurofibromina); manchas café-com-leite, neurofibromas",
+    "texto": "Autossômica dominante; expressividade variável.",
+    "ameaca": "NF1",
+    "alternativas": [
+      "Só NF2",
+      "Mutação em NF1 (neurofibromina); manchas café-com-leite, neurofibromas",
+      "Só recessiva",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Esclerose tuberosa",
+    "correta": "TSC1/TSC2; hamartomas em múltiplos órgãos; mTOR hiperativo",
+    "texto": "Autossômica dominante.",
+    "ameaca": "ESCLEROSE TUB",
+    "alternativas": [
+      "Só pele",
+      "TSC1/TSC2; hamartomas em múltiplos órgãos; mTOR hiperativo",
+      "Só recessiva",
+      "Só ligada ao X"
+    ]
+  },
+  {
+    "inimigo": "Doença de von Hippel-Lindau",
+    "correta": "VHL; hemangioblastomas, ca renal de células claras, feocromocitoma",
+    "texto": "Autossômica dominante.",
+    "ameaca": "VHL",
+    "alternativas": [
+      "Só rim esporádico",
+      "VHL; hemangioblastomas, ca renal de células claras, feocromocitoma",
+      "Só recessiva",
+      "Só X"
+    ]
+  },
+  {
+    "inimigo": "Acondroplasia",
+    "correta": "Mutação ganho de função em FGFR3; nanismo rizomélico",
+    "texto": "Autossômica dominante; maioria de novo (idade paterna).",
+    "ameaca": "ACONDROPLASIA",
+    "alternativas": [
+      "Recessiva",
+      "Mutação ganho de função em FGFR3; nanismo rizomélico",
+      "Ligada ao X",
+      "Trissomia"
+    ]
+  },
+  {
+    "inimigo": "Osteogênese imperfeita",
+    "correta": "Mutações em COL1A1/COL1A2; fragilidade óssea, escleras azuladas",
+    "texto": "Tipos de gravidade variável.",
+    "ameaca": "OI",
+    "alternativas": [
+      "Só vitamina D",
+      "Mutações em COL1A1/COL1A2; fragilidade óssea, escleras azuladas",
+      "Só recessiva leve",
+      "Só nutricional"
+    ]
+  },
+  {
+    "inimigo": "Marfan",
+    "correta": "Mutação em FBN1 (fibrilina-1); alta estatura, ectopia lentis, dilatação aórtica",
+    "texto": "Autossômica dominante.",
+    "ameaca": "MARFAN",
+    "alternativas": [
+      "Só colágeno tipo I",
+      "Mutação em FBN1 (fibrilina-1); alta estatura, ectopia lentis, dilatação aórtica",
+      "Recessiva",
+      "Ligada ao X"
+    ]
+  },
+  {
+    "inimigo": "Síndrome de Ehlers-Danlos",
+    "correta": "Grupo de distúrbios do tecido conectivo (colágeno); hipermobilidade, pele frágil",
+    "texto": "Vários tipos e genes.",
+    "ameaca": "EDS",
+    "alternativas": [
+      "Só Marfan",
+      "Grupo de distúrbios do tecido conectivo (colágeno); hipermobilidade, pele frágil",
+      "Só ósseo",
+      "Só muscular"
+    ]
+  },
+  {
+    "inimigo": "Fenilcetonúria (PKU)",
+    "correta": "Deficiência de fenilalanina hidroxilase; acumulo de Phe; DI se não tratada",
+    "texto": "Triagem neonatal; dieta restrita em Phe.",
+    "ameaca": "PKU",
+    "alternativas": [
+      "Só tirosinemia",
+      "Deficiência de fenilalanina hidroxilase; acumulo de Phe; DI se não tratada",
+      "Só galatosemia",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Galactosemia clássica",
+    "correta": "Deficiência de GALT; intolerância à galactose/leite",
+    "texto": "Triagem neonatal; exclusão de lactose/galactose.",
+    "ameaca": "GALACTOSEMIA",
+    "alternativas": [
+      "Só PKU",
+      "Deficiência de GALT; intolerância à galactose/leite",
+      "Só frutose",
+      "Só glicogênio"
+    ]
+  },
+  {
+    "inimigo": "Doença de Tay-Sachs",
+    "correta": "Deficiência de hexosaminidase A; acumulo de GM2; neurodegeneração",
+    "texto": "Mais frequente em judeus Ashkenazi; AR.",
+    "ameaca": "TAY SACHS",
+    "alternativas": [
+      "Só Gaucher",
+      "Deficiência de hexosaminidase A; acumulo de GM2; neurodegeneração",
+      "Só Niemann-Pick",
+      "Só Hunter"
+    ]
+  },
+  {
+    "inimigo": "Doença de Gaucher",
+    "correta": "Deficiência de glicocerebrosidase; acumulo em macrófagos",
+    "texto": "Hepatoesplenomegalia, doença óssea; tratamento enzimático.",
+    "ameaca": "GAUCHER",
+    "alternativas": [
+      "Só Tay-Sachs",
+      "Deficiência de glicocerebrosidase; acumulo em macrófagos",
+      "Só Fabry",
+      "Só Pompe"
+    ]
+  },
+  {
+    "inimigo": "Doença de Fabry",
+    "correta": "Deficiência de alfa-galactosidase A; ligada ao X",
+    "texto": "Dor, angioqueratomas, doença renal e cardíaca.",
+    "ameaca": "FABRY",
+    "alternativas": [
+      "Autossômica",
+      "Deficiência de alfa-galactosidase A; ligada ao X",
+      "Só AR",
+      "Só mitocondrial"
+    ]
+  },
+  {
+    "inimigo": "Mucopolissacaridoses",
+    "correta": "Defeitos de degradação de GAG; Hurler, Hunter, Sanfilippo etc.",
+    "texto": "Fenótipos somáticos e neurológicos variáveis.",
+    "ameaca": "MPS",
+    "alternativas": [
+      "Só esfingolipidoses",
+      "Defeitos de degradação de GAG; Hurler, Hunter, Sanfilippo etc.",
+      "Só aminoácidos",
+      "Só ureia"
+    ]
+  },
+  {
+    "inimigo": "Ciclo da ureia: defeitos",
+    "correta": "Hiperamonemia; OTC (ligada ao X) é o mais comum",
+    "texto": "Emergência neonatal possível.",
+    "ameaca": "CICLO UREIA",
+    "alternativas": [
+      "Só acidemias orgânicas",
+      "Hiperamonemia; OTC (ligada ao X) é o mais comum",
+      "Só PKU",
+      "Só glicogênio"
+    ]
+  },
+  {
+    "inimigo": "Acidemias orgânicas",
+    "correta": "Defeitos no metabolismo de aminoácidos de cadeia ramificada etc.",
+    "texto": "Acidose metabólica, hiperamonemia; triagem neonatal.",
+    "ameaca": "ACIDEMIA ORG",
+    "alternativas": [
+      "Só ciclo da ureia",
+      "Defeitos no metabolismo de aminoácidos de cadeia ramificada etc.",
+      "Só lipídios",
+      "Só purinas"
+    ]
+  },
+  {
+    "inimigo": "Triagem neonatal (teste do pezinho)",
+    "correta": "Detecta erros inatos do metabolismo e endocrinopatias tratáveis",
+    "texto": "Deve ser feito nos primeiros dias de vida.",
+    "ameaca": "PEZINHO",
+    "alternativas": [
+      "Só aos 6 meses",
+      "Detecta erros inatos do metabolismo e endocrinopatias tratáveis",
+      "Só genoma completo",
+      "Só cariótipo"
+    ]
+  },
+  {
+    "inimigo": "Aconselhamento em triagem neonatal positiva",
+    "correta": "Confirmação diagnóstica, tratamento precoce e aconselhamento familiar",
+    "texto": "Evitar danos do falso-positivo.",
+    "ameaca": "ACONSELHA PEZINHO",
+    "alternativas": [
+      "Ignorar e repetir só depois de anos",
+      "Confirmação diagnóstica, tratamento precoce e aconselhamento familiar",
+      "Só informar o resultado bruto",
+      "Só alta hospitalar"
+    ]
+  },
+  {
+    "inimigo": "Princípio ético: autonomia",
+    "correta": "Respeito à decisão informada do paciente/família",
+    "texto": "Consentimento livre e esclarecido.",
+    "ameaca": "AUTONOMIA",
+    "alternativas": [
+      "Beneficência apenas",
+      "Respeito à decisão informada do paciente/família",
+      "Só não-maleficência",
+      "Só justiça"
+    ]
+  },
+  {
+    "inimigo": "Princípio ético: não-maleficência",
+    "correta": "Não causar dano",
+    "texto": "Evitar testes sem utilidade clínica ou com risco desproporcional.",
+    "ameaca": "NAO MALEFICENCIA",
+    "alternativas": [
+      "Só beneficência",
+      "Não causar dano",
+      "Só autonomia",
+      "Só justiça"
+    ]
+  },
+  {
+    "inimigo": "Princípio ético: beneficência",
+    "correta": "Agir no melhor interesse do paciente",
+    "texto": "Oferecer testes e intervenções com benefício líquido.",
+    "ameaca": "BENEFICENCIA",
+    "alternativas": [
+      "Só autonomia",
+      "Agir no melhor interesse do paciente",
+      "Só justiça",
+      "Só não-maleficência"
+    ]
+  },
+  {
+    "inimigo": "Princípio ético: justiça",
+    "correta": "Equidade no acesso e distribuição de recursos",
+    "texto": "Evitar discriminação genética.",
+    "ameaca": "JUSTICA",
+    "alternativas": [
+      "Só autonomia",
+      "Equidade no acesso e distribuição de recursos",
+      "Só beneficência",
+      "Só sigilo"
+    ]
+  },
+  {
+    "inimigo": "Sigilo genético e discriminação",
+    "correta": "Proteção de informações genéticas contra uso discriminatório",
+    "texto": "Emprego, seguro; leis específicas em vários países.",
+    "ameaca": "SIGILO",
+    "alternativas": [
+      "Divulgação livre sempre",
+      "Proteção de informações genéticas contra uso discriminatório",
+      "Só para o médico",
+      "Só para pesquisa"
+    ]
+  },
+  {
+    "inimigo": "Diagnóstico pré-implantacional (PGD/PGT)",
+    "correta": "Análise genética de embriões antes da transferência no IVF",
+    "texto": "Para doenças monogênicas ou aneuploidias.",
+    "ameaca": "PGT",
+    "alternativas": [
+      "Só amniocentese",
+      "Análise genética de embriões antes da transferência no IVF",
+      "Só NIPT",
+      "Só pós-natal"
+    ]
+  },
+  {
+    "inimigo": "Edição germinativa vs somática",
+    "correta": "Germinativa afeta descendência; somática não é herdada",
+    "texto": "Debate ético intenso sobre edição germinativa.",
+    "ameaca": "EDICAO GERMINATIVA",
+    "alternativas": [
+      "Iguais em impacto",
+      "Germinativa afeta descendência; somática não é herdada",
+      "Só somática é herdada",
+      "Só em plantas"
+    ]
+  },
+  {
+    "inimigo": "Banco de dados de variantes (ClinVar, gnomAD)",
+    "correta": "Recursos públicos para interpretação de variantes",
+    "texto": "Frequência populacional e evidências clínicas.",
+    "ameaca": "CLINVAR GNOMAD",
+    "alternativas": [
+      "Só artigos antigos",
+      "Recursos públicos para interpretação de variantes",
+      "Só locais hospitalares",
+      "Só PCR"
+    ]
+  },
+  {
+    "inimigo": "Classificação ACMG de variantes",
+    "correta": "Patogênica, provavelmente patogênica, VUS, provavelmente benigna, benigna",
+    "texto": "Critérios padronizados.",
+    "ameaca": "ACMG",
+    "alternativas": [
+      "Só patogênica ou não",
+      "Patogênica, provavelmente patogênica, VUS, provavelmente benigna, benigna",
+      "Só por tamanho",
+      "Só por gene"
+    ]
+  },
+  {
+    "inimigo": "VUS (variante de significado incerto)",
+    "correta": "Evidência insuficiente para classificar como patogênica ou benigna",
+    "texto": "Não deve guiar conduta clínica isoladamente; reanálise periódica.",
+    "ameaca": "VUS",
+    "alternativas": [
+      "Sempre patogênica",
+      "Evidência insuficiente para classificar como patogênica ou benigna",
+      "Sempre benigna",
+      "Só em íntrons"
+    ]
+  },
+  {
+    "inimigo": "Reanálise de dados genômicos",
+    "correta": "Reinterpretação periódica à luz de novos conhecimentos",
+    "texto": "Pode reclassificar VUS.",
+    "ameaca": "REANALISE",
+    "alternativas": [
+      "Resultado definitivo eterno",
+      "Reinterpretação periódica à luz de novos conhecimentos",
+      "Só na primeira análise",
+      "Só em pesquisa"
+    ]
+  },
+  {
+    "inimigo": "Incidental / secondary findings",
+    "correta": "Achados não relacionados à indicação do teste mas clinicamente acionáveis",
+    "texto": "Lista ACMG de genes reportáveis.",
+    "ameaca": "ACHADOS SECUNDARIOS",
+    "alternativas": [
+      "Nunca reportar",
+      "Achados não relacionados à indicação do teste mas clinicamente acionáveis",
+      "Só de pesquisa",
+      "Só de ancestry"
+    ]
+  },
+  {
+    "inimigo": "Consentimento para achados secundários",
+    "correta": "Paciente deve optar por receber ou não",
+    "texto": "Discussão pré-teste essencial.",
+    "ameaca": "CONSENTIMENTO SEC",
+    "alternativas": [
+      "Obrigatório sempre revelar",
+      "Paciente deve optar por receber ou não",
+      "Só o médico decide",
+      "Só em menores"
+    ]
+  }
+];
+
+    let desafios = [];
+    let index = 0;
+    let acertos = 0;
+    let erros = 0;
+    let maxAmeacas = 0;
+    let isTyping = false;
+
+    function atualizarPlacar() {
+      const restantes = Math.max(0, maxAmeacas - index);
+      placarDiv.textContent = `✅ ACERTOS: ${acertos} | ❌ ERROS: ${erros} | 🩺 PERGUNTAS RESTANTES: ${restantes}`;
+    }
+
+    function typeWriterEffect(element, text, speed = 30) {
+      return new Promise(resolve => {
+        let i = 0;
+        element.textContent = '';
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        element.appendChild(cursorSpan);
+        function type() {
+          if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            element.appendChild(cursorSpan);
+            i++;
+            setTimeout(type, speed);
+          } else {
+            cursorSpan.remove();
+            resolve();
+          }
+        }
+        type();
+      });
+    }
+
+    async function printTerminal(text, type = 'normal') {
+        isTyping = true;
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        let color = '#00ff00';
+        let bold = false;
+        let prefix = '[SISTEMA]: ';
+        if (type === 'alerta') { entry.classList.add('alerta'); prefix = '[ALERTA] QUESTÃO: '; }
+        else if (type === 'diagnostico') { entry.classList.add('diagnostico'); prefix = '[FEEDBACK]: '; }
+        else if (type === 'sucesso') { color = '#39ff14'; bold = true; prefix = '✅ [STATUS: CORRETO]: '; }
+        else if (type === 'falha') { color = '#ff3333'; bold = true; prefix = '❌ [STATUS: INCORRETO]: '; }
+        else if (type === 'input_req') { entry.classList.add('input_req'); prefix = '[INPUT_REQ]: '; }
+        else if (type === 'cmd_input') { color = '#00ffff'; prefix = '[PROCESSANDO]: '; }
+        else if (type === 'log_data') { color = '#a0a0a0'; prefix = '[INFO]: '; }
+        else if (type === 'final_message') { color = '#00ff00'; bold = true; prefix = ''; }
+        else if (type === 'criterio') { color = '#ffd700'; prefix = '[DESCRIÇÃO]: '; }
+        entry.style.color = color;
+        if (bold) entry.style.fontWeight = 'bold';
+        terminal.appendChild(entry);
+        await typeWriterEffect(entry, `${prefix}${text}`);
+        terminal.scrollTop = terminal.scrollHeight;
+        isTyping = false;
+    }
+
+    async function novoDesafio() {
+      choicesDiv.innerHTML = "";
+      if (index >= desafios.length) { finalizarQuiz(); return; }
+      const desafio = desafios[index];
+      await printTerminal(`${desafio.inimigo}`, 'alerta');
+      await printTerminal(desafio.ameaca, 'criterio');
+      await printTerminal("SELECIONE A RESPOSTA CORRETA.", 'input_req');
+      const alternativasEmbaralhadas = shuffle([...desafio.alternativas]);
+      alternativasEmbaralhadas.forEach((alt) => {
+        const btn = document.createElement("button");
+        btn.classList.add("choice");
+        btn.textContent = alt;
+        btn.onclick = () => verificarResposta(alt, btn);
+        choicesDiv.appendChild(btn);
+      });
+      atualizarPlacar();
+    }
+
+    async function verificarResposta(resposta, clickedButton) {
+      const buttons = choicesDiv.getElementsByTagName('button');
+      for(let btn of buttons) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
+      clickedButton.classList.add('selected');
+      const desafioAtual = desafios[index];
+      await printTerminal(`PROCESSANDO RESPOSTA: '${resposta}'...`, 'cmd_input');
+      if (resposta === desafioAtual.correta) {
+        await printTerminal('RESPOSTA CORRETA! CONHECIMENTO APROVADO.', 'sucesso');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        acertos++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('correct');
+      } else {
+        await printTerminal('RESPOSTA INCORRETA. REVISÃO NECESSÁRIA.', 'falha');
+        await printTerminal(`Questão respondida incorretamente.`, 'diagnostico');
+        await printTerminal(desafioAtual.texto, 'log_data');
+        erros++;
+        clickedButton.classList.remove('selected');
+        clickedButton.classList.add('incorrect');
+        for(let btn of buttons) {
+            if (btn.textContent === desafioAtual.correta) btn.classList.add('correct');
+        }
+      }
+      index++;
+      atualizarPlacar();
+      setTimeout(async () => {
+        if (index < desafios.length) await novoDesafio();
+        else await finalizarQuiz();
+      }, 2500);
+    }
+    
+    async function finalizarQuiz() {
+      choicesDiv.innerHTML = "";
+      await printTerminal("RELATÓRIO DE TESTE CONCLUÍDO.", 'normal');
+      const finalMessage = `Fim dos testes! Você acertou ${acertos} de ${maxAmeacas} questões.`;
+      await printTerminal(finalMessage, 'final_message');
+      botaoReiniciar.style.display = "block";
+    }
+
+    async function reiniciarQuiz() {
+      index = 0; acertos = 0; erros = 0;
+      terminal.innerHTML = "";
+      await printTerminal("SISTEMA DE TESTE INICIADO", 'alerta');
+      botaoReiniciar.style.display = "none";
+      desafios = shuffle([...desafiosOriginais]);
+      maxAmeacas = desafios.length;
+      setTimeout(async () => { await novoDesafio(); }, 1000);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function showManual() { manualModal.style.display = "block"; }
+    function showReferences() { referencesModal.style.display = "block"; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+
+    window.onclick = function(event) {
+      if (event.target == manualModal) manualModal.style.display = "none";
+      if (event.target == referencesModal) referencesModal.style.display = "none";
+    }
+
+    window.onload = () => { reiniciarQuiz(); };
+  </script>
+</body>
+</html>
